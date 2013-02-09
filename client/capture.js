@@ -25,7 +25,7 @@ try {
   }
 });
 
-// Screenshot the page.
+// Configure the page.
 var page = require('webpage').create();
 if (config.viewportSize) {
   page.viewportSize = {
@@ -34,6 +34,15 @@ if (config.viewportSize) {
   };
 }
 
+// TODO: Custom headers
+// TODO: Path to code to inject
+// TODO: Username/password using HTTP basic auth
+// TODO: Header key/value pairs
+// TODO: CSS selectors to hide
+// TODO: User agent spoofing shortcut
+
+
+// Screenshot
 page.open(config.targetUrl, function(status) {
   // Inject code
   // Wait for completion

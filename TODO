@@ -98,3 +98,5 @@ How to run phantomjs
 Disable the FS module?
 
 phantomjs capture.js url testscript.js output.png
+pdiff before/after to output file
+
