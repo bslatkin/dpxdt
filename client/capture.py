@@ -13,9 +13,16 @@ import time
 import gflags
 
 FLAGS = gflags.FLAGS
-gflags.DEFINE_string('phantomjs_binary', None, 'Path to the phantomjs binary')
-gflags.DEFINE_string('phantomjs_script', None,
-                     'Path to the script that drives the phantomjs process')
+gflags.DEFINE_string(
+    'phantomjs_binary', None, 'Path to the phantomjs binary')
+
+gflags.DEFINE_string(
+    'phantomjs_script', None,
+    'Path to the script that drives the phantomjs process')
+
+gflags.DEFINE_integer(
+    'polltime', 1,
+    'How long to sleep between polling for work or subprocesses')
 
 
 class Error(Exception):
@@ -50,7 +57,7 @@ class WorkItem(object):
     return 'WorkItem(%s)' % repr(self.__dict__)
 
 
-class CaptureThread(threading.Thread):
+class ProcessThread(threading.Thread):
   """TODO"""
 
   def __init__(self, input_queue, output_queue, error_queue):
@@ -60,12 +67,11 @@ class CaptureThread(threading.Thread):
     self.output_queue = output_queue
     self.error_queue = error_queue
     self.interrupted = False
-    self.polltime = 1
 
   def run(self):
     while not self.interrupted:
       try:
-        item = self.input_queue.get(True, self.polltime)
+        item = self.input_queue.get(True, FLAGS.polltime)
       except Queue.Empty:
         continue
 
@@ -73,24 +79,26 @@ class CaptureThread(threading.Thread):
         self.handle_item(item)
       except Exception, e:
         item.error = 'Exception. %s: %s' % (e.__class__.__name__, str(e))
-        logging.exception('CaptureThread item=%r %s', item, item.error)
+        logging.exception('%s error item=%r %s',
+                          self.worker_name, item, item.error)
         self.error_queue.put(item)
       else:
         self.output_queue.put(item)
       finally:
         self.input_queue.task_done()
 
+  def get_args(self, item):
+    raise NotImplemented
+
+  @property
+  def worker_name(self):
+    return '%s:%s' % (self.__class__.__name__, self.ident)
+
   def handle_item(self, item):
     start_time = time.time()
     with open(item.log_path, 'w') as output_file:
-      args = [
-          FLAGS.phantomjs_binary,
-          '--disk-cache=false',
-          '--debug=true',
-          FLAGS.phantomjs_script,
-          item.config_path,
-      ]
-      logging.info('Starting process: %r', args)
+      args = self.get_args(item)
+      logging.info('%s start item=%r: %r', self.worker_name, item, args)
       process = subprocess.Popen(
         args,
         stderr=subprocess.STDOUT,
@@ -103,15 +111,30 @@ class CaptureThread(threading.Thread):
           now = time.time()
           if now - start_time > item.timeout or self.interrupted:
             process.kill()
-            raise TimeoutError('Sent SIGKILL to pid=%s' % process.pid)
+            raise TimeoutError('Sent SIGKILL to item=%r, pid=%s' % (
+                               item, process.pid))
 
-          time.sleep(self.polltime)
+          time.sleep(FLAGS.polltime)
           continue
 
         if process.returncode != 0:
           raise BadReturnCodeError(process.returncode)
 
+        logging.info('%s finished item=%r', self.worker_name, item)
         break
+
+
+class CaptureThread(ProcessThread):
+  """TODO"""
+
+  def get_args(self, item):
+    return [
+        FLAGS.phantomjs_binary,
+        '--disk-cache=false',
+        '--debug=true',
+        FLAGS.phantomjs_script,
+        item.config_path,
+    ]
 
 
 def main(argv):
@@ -120,6 +143,8 @@ def main(argv):
   except gflags.FlagsError, e:
     print '%s\nUsage: %s ARGS\n%s' % (e, sys.argv[0], FLAGS)
     sys.exit(1)
+
+  logging.getLogger().setLevel(logging.DEBUG)
 
   input_queue = Queue.Queue()
   output_queue = Queue.Queue()
