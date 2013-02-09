@@ -76,3 +76,15 @@ Ordering for writing something useful:
 self-hosted version
 1. Server could write to SQL to run behind the firewall
 2. Allow workers to run locally for firewall traversal
+
+
+Two modes of operation:
+- Incremental: Take a new set of images, then do the diff against what's already saved server side from the last build/release
+  - Need a workflow to mark off goldens from the last release as the latest set of good images
+- Differential: Take an old set and a new set separately and then diff them both
+
+
+Client components:
+- capture: runs on config file, drives phantom JS, saves a screenshots and metadata
+- differ: runs diff on two screenshots, uploads the result to the server
+- client: runs capture, then differ
