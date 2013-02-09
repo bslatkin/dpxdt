@@ -88,3 +88,13 @@ Client components:
 - capture: runs on config file, drives phantom JS, saves a screenshots and metadata
 - differ: runs diff on two screenshots, uploads the result to the server
 - client: runs capture, then differ
+
+
+How to run phantomjs
+--ignore-ssl-errors=false
+--disk-cache=false
+
+
+Disable the FS module?
+
+phantomjs capture.js url testscript.js output.png
