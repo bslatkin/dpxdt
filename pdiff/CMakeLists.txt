@@ -14,11 +14,13 @@ FIND_PATH(FREEIMAGE_INCLUDE_DIR FreeImage.h
   /usr/local/include
   /usr/include
   /opt/local/include
+  ../FreeImage/Dist
 )
 FIND_LIBRARY(FREEIMAGE_LIBRARY freeimage
   /usr/lib
   /usr/local/lib
   /opt/local/lib
+  ../FreeImage/Dist
 )
 
 IF(FREEIMAGE_INCLUDE_DIR)
