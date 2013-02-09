@@ -6,3 +6,4 @@
 *.a-*
 FreeImage/Dist/*
 CVS
+.DS_Store
