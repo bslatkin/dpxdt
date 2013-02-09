@@ -5,30 +5,31 @@
 include Makefile.srcs
 
 # General configuration variables:
-CC_PPC = gcc-4.0
-CC_I386 = gcc-4.0
-CC_X86_64 = gcc-4.0
-CPP_PPC = g++-4.0
-CPP_I386 = g++-4.0
-CPP_X86_64 = g++-4.0
+CC_PPC = gcc
+CC_I386 = gcc
+CC_X86_64 = gcc
+CPP_PPC = g++
+CPP_I386 = g++
+CPP_X86_64 = g++
 COMPILERFLAGS = -Os -fexceptions -fvisibility=hidden -DNO_LCMS
 COMPILERFLAGS_PPC = -arch ppc
 COMPILERFLAGS_I386 = -arch i386
 COMPILERFLAGS_X86_64 = -arch x86_64
 COMPILERPPFLAGS = -Wno-ctor-dtor-privacy
-INCLUDE += 
-INCLUDE_PPC = -isysroot /Developer/SDKs/MacOSX10.5.sdk
-INCLUDE_I386 = -isysroot /Developer/SDKs/MacOSX10.5.sdk
-INCLUDE_X86_64 = -isysroot /Developer/SDKs/MacOSX10.6.sdk
+SDK_ROOT = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform
+INCLUDE +=
+INCLUDE_PPC = -isysroot $(SDK_ROOT)/Developer/SDKs/MacOSX10.5.sdk
+INCLUDE_I386 = -isysroot $(SDK_ROOT)/Developer/SDKs/MacOSX10.5.sdk
+INCLUDE_X86_64 = -isysroot $(SDK_ROOT)/Developer/SDKs/MacOSX10.8.sdk
 CFLAGS_PPC = $(COMPILERFLAGS) $(COMPILERFLAGS_PPC) $(INCLUDE) $(INCLUDE_PPC)
 CFLAGS_I386 = $(COMPILERFLAGS) $(COMPILERFLAGS_I386) $(INCLUDE) $(INCLUDE_I386)
 CFLAGS_X86_64 = $(COMPILERFLAGS) $(COMPILERFLAGS_X86_64) $(INCLUDE) $(INCLUDE_X86_64)
 CPPFLAGS_PPC = $(COMPILERPPFLAGS) $(CFLAGS_PPC)
 CPPFLAGS_I386 = $(COMPILERPPFLAGS) $(CFLAGS_I386)
 CPPFLAGS_X86_64 = $(COMPILERPPFLAGS) $(CFLAGS_X86_64)
-LIBRARIES_PPC = -Wl,-syslibroot /Developer/SDKs/MacOSX10.5.sdk
-LIBRARIES_I386 = -Wl,-syslibroot /Developer/SDKs/MacOSX10.5.sdk
-LIBRARIES_X86_64 = -Wl,-syslibroot /Developer/SDKs/MacOSX10.6.sdk
+LIBRARIES_PPC = -Wl,-syslibroot $(SDK_ROOT)/Developer/SDKs/MacOSX10.5.sdk
+LIBRARIES_I386 = -Wl,-syslibroot $(SDK_ROOT)/Developer/SDKs/MacOSX10.5.sdk
+LIBRARIES_X86_64 = -Wl,-syslibroot $(SDK_ROOT)/Developer/SDKs/MacOSX10.8.sdk
 LIBTOOL = libtool
 LIPO = lipo
 
@@ -61,8 +62,8 @@ dist: FreeImage
 
 FreeImage: $(STATICLIB) $(SHAREDLIB)
 
-$(STATICLIB): $(STATICLIB)-ppc $(STATICLIB)-i386 $(STATICLIB)-x86_64
-	$(LIPO) -create $(STATICLIB)-ppc $(STATICLIB)-i386 $(STATICLIB)-x86_64 -output $(STATICLIB)
+$(STATICLIB): $(STATICLIB)-x86_64
+	$(LIPO) -create $(STATICLIB)-x86_64 -output $(STATICLIB)
 
 $(STATICLIB)-ppc: $(MODULES_PPC)
 	$(LIBTOOL) -arch_only ppc -o $@ $(MODULES_PPC)
@@ -73,8 +74,8 @@ $(STATICLIB)-i386: $(MODULES_I386)
 $(STATICLIB)-x86_64: $(MODULES_X86_64)
 	$(LIBTOOL) -arch_only x86_64 -o $@ $(MODULES_X86_64)
 
-$(SHAREDLIB): $(SHAREDLIB)-ppc $(SHAREDLIB)-i386 $(SHAREDLIB)-x86_64
-	$(LIPO) -create $(SHAREDLIB)-ppc $(SHAREDLIB)-i386 $(SHAREDLIB)-x86_64 -output $(SHAREDLIB)
+$(SHAREDLIB): $(SHAREDLIB)-x86_64
+	$(LIPO) -create $(SHAREDLIB)-x86_64 -output $(SHAREDLIB)
 
 $(SHAREDLIB)-ppc: $(MODULES_PPC)
 	$(CPP_PPC) -arch ppc -dynamiclib $(LIBRARIES_PPC) -o $@ $(MODULES_PPC)
