@@ -14,6 +14,8 @@ API server you post to with a description like:
   - username/password using HTTP basic auth
   - header key/value pairs
   - css selectors to hide
+  - screen size (for responsive CSS)
+  - User agent spoofing (can just do this with headers?)
 - API key
 - email address
 - callback URL
