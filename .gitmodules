@@ -1,0 +1,3 @@
+[submodule "flask"]
+	path = flask
+	url = https://github.com/mitsuhiko/flask
