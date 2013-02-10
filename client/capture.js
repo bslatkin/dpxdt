@@ -4,8 +4,10 @@ var system = require('system');
 
 // Read and validate config.
 var configPath = null;
-if (system.args.length == 2) {
+var outputPath = null;
+if (system.args.length == 3) {
   configPath = system.args[1];
+  outputPath = system.args[2];
 } else {
   console.log('Usage: phantomjs capture.js <config.js>');
   phantom.exit(1);
@@ -18,7 +20,7 @@ try {
   phantom.exit(1);
 }
 
-['targetUrl', 'outputPath'].forEach(function(field) {
+['targetUrl'].forEach(function(field) {
   if (!config[field]) {
     console.log('Missing required field: ' + field);
     phantom.exit(1);
@@ -47,6 +49,6 @@ page.open(config.targetUrl, function(status) {
   // Inject code
   // Wait for completion
   // Check status
-  page.render(config.outputPath);
+  page.render(outputPath);
   phantom.exit(0);
 });
