@@ -38,9 +38,6 @@ class Error(Exception):
 class TimeoutError(Exception):
   """Subprocess has taken too long to complete and was terminated."""
 
-class BadReturnCodeError(Error):
-  """Subprocess exited with a bad return code."""
-
 
 
 class WorkItem(object):
@@ -178,6 +175,7 @@ class ProcessItem(WorkItem):
     WorkItem.__init__(self)
     self.log_path = log_path
     self.timeout_seconds = timeout_seconds
+    self.return_code = None
 
 
 class ProcessThread(WorkerThread):
@@ -210,8 +208,7 @@ class ProcessThread(WorkerThread):
           time.sleep(FLAGS.polltime)
           continue
 
-        if process.returncode != 0:
-          raise BadReturnCodeError(process.returncode)
+        item.returncode = process.returncode
 
         return item
 
@@ -437,8 +434,11 @@ def GetCoordinator():
   coordinator.register(FetchItem, fetch_queue)
 
   # TODO: Make number of threads configurable.
+  # TODO: Enable multiple coodinator threads.
   coordinator.worker_threads = [
     CaptureThread(capture_queue, workflow_queue),
+    CaptureThread(capture_queue, workflow_queue),
+    DiffThread(diff_queue, workflow_queue),
     DiffThread(diff_queue, workflow_queue),
     FetchThread(fetch_queue, workflow_queue),
     FetchThread(fetch_queue, workflow_queue),

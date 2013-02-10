@@ -35,6 +35,13 @@ gflags.DEFINE_spaceseplist(
     'URL prefixes that should not be crawled.')
 
 
+class Error(Exception):
+  """Base class for exceptions in this module."""
+
+class CaptureFailedError(Error):
+  """Capturing a page screenshot failed."""
+
+
 # URL regex rewriting code originally from mirrorrr
 # http://code.google.com/p/mirrorrr/source/browse/trunk/transform_content.py
 
@@ -157,21 +164,35 @@ class PdiffWorkflow(workers.WorkflowItem):
       config_path,
       output_base + '_run.png')
 
+    if capture.returncode != 0:
+      raise CaptureFailedError('Failed to capture url=%r' % url)
+
     if not reference_dir:
       return
 
-    last_run = os.path.join(reference_dir, clean_url) + '_run.png'
+    ref_base = os.path.join(reference_dir, clean_url)
+    last_run = ref_base + '_run.png'
     if not os.path.exists(last_run):
       return
 
-    ref_output = output_base + '_ref.png'
-    shutil.copy(last_run, ref_output)
+    last_log = ref_base + '_run.log'
+    if not os.path.exists(last_log):
+      return
 
-    self.diff = yield workers.DiffItem(
+    ref_output = output_base + '_ref.png'
+    ref_log = output_base + '_ref.log'
+    shutil.copy(last_run, ref_output)
+    shutil.copy(last_log, ref_log)
+
+    diff_output = output_base + '_diff.png'
+    diff = yield workers.DiffItem(
         output_base + '_diff.log',
         ref_output,
         capture.output_path,
-        output_base + '_diff.png')
+        diff_output)
+
+    if diff.returncode != 0 and os.path.exists(diff_output):
+      print 'Found diff for path=%r, diff=%r' % (parts.path, diff_output)
 
 
 class SiteDiff(workers.WorkflowItem):
@@ -222,12 +243,12 @@ class SiteDiff(workers.WorkflowItem):
     # TODO: Check for outputs? What about failure cases?
 
 
-def real_main(argv):
+def real_main(url, ignore_prefixes, output_dir, reference_dir):
+  """Runs the site_diff."""
   coordinator = workers.GetCoordinator()
   coordinator.start()
   try:
-    item = SiteDiff(
-        argv[1], FLAGS.ignore_prefixes, FLAGS.output_dir, FLAGS.reference_dir)
+    item = SiteDiff(url, ignore_prefixes, output_dir, reference_dir)
     coordinator.input_queue.put(item)
     result = coordinator.output_queue.get()
     if result.error:
@@ -249,7 +270,8 @@ def main(argv):
     sys.exit(1)
 
   logging.getLogger().setLevel(logging.DEBUG)
-  real_main(argv)
+  real_main(
+      argv[1], FLAGS.ignore_prefixes, FLAGS.output_dir, FLAGS.reference_dir)
 
 
 if __name__ == '__main__':

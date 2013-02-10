@@ -68,10 +68,8 @@ class SiteDiffTest(unittest.TestCase):
     """Sets up the test harness."""
     FLAGS.fetch_frequency = 100
     self.test_dir = tempfile.mkdtemp('site_diff_test')
-    # TODO: Move this flag to a parameter of the main function instead of
-    # relying on a flag, so we can test the future hosted service thread.
     self.output_dir = join(self.test_dir, 'output')
-    FLAGS.output_dir = self.output_dir
+    self.reference_dir = join(self.test_dir, 'reference')
 
   def testFirstSnapshot(self):
     """Tests taking the very first snapshot."""
@@ -80,13 +78,14 @@ class SiteDiffTest(unittest.TestCase):
       if path == '/':
         return 200, 'text/html', 'Hello world!'
 
-    site_diff.real_main(['unused', 'http://%s:%d/' % test.server_address])
+    site_diff.real_main(
+        'http://%s:%d/' % test.server_address, [], self.output_dir, None)
     test.shutdown()
 
-    exists(join(self.output_dir, '__run.log'))
-    exists(join(self.output_dir, '__run.png'))
-    exists(join(self.output_dir, '__config.js'))
-    exists(join(self.output_dir, 'url_paths.txt'))
+    self.assertTrue(exists(join(self.output_dir, '__run.log')))
+    self.assertTrue(exists(join(self.output_dir, '__run.png')))
+    self.assertTrue(exists(join(self.output_dir, '__config.js')))
+    self.assertTrue(exists(join(self.output_dir, 'url_paths.txt')))
 
     self.assertEquals(
         ['/'],
@@ -94,11 +93,66 @@ class SiteDiffTest(unittest.TestCase):
 
   def testNoDifferences(self):
     """Tests crawling the site end-to-end."""
-    self.fail()
+    @webserver
+    def test(path):
+      if path == '/':
+        return 200, 'text/html', 'Hello world!'
+
+    site_diff.real_main(
+        'http://%s:%d/' % test.server_address, [], self.reference_dir, None)
+    site_diff.real_main(
+        'http://%s:%d/' % test.server_address, [],
+        self.output_dir, self.reference_dir)
+    test.shutdown()
+
+    self.assertTrue(exists(join(self.reference_dir, '__run.log')))
+    self.assertTrue(exists(join(self.reference_dir, '__run.png')))
+    self.assertTrue(exists(join(self.reference_dir, '__config.js')))
+    self.assertTrue(exists(join(self.reference_dir, 'url_paths.txt')))
+
+    self.assertTrue(exists(join(self.output_dir, '__run.log')))
+    self.assertTrue(exists(join(self.output_dir, '__run.png')))
+    self.assertTrue(exists(join(self.output_dir, '__ref.log')))
+    self.assertTrue(exists(join(self.output_dir, '__ref.png')))
+    self.assertFalse(exists(join(self.output_dir, '__diff.png')))  # No diff
+    self.assertTrue(exists(join(self.output_dir, '__diff.log')))
+    self.assertTrue(exists(join(self.output_dir, '__config.js')))
+    self.assertTrue(exists(join(self.output_dir, 'url_paths.txt')))
 
   def testOneDifference(self):
     """Tests when there is one found difference."""
-    self.fail()
+    @webserver
+    def test(path):
+      if path == '/':
+        return 200, 'text/html', 'Hello world!'
+
+    site_diff.real_main(
+        'http://%s:%d/' % test.server_address, [], self.reference_dir, None)
+    test.shutdown()
+
+    @webserver
+    def test(path):
+      if path == '/':
+        return 200, 'text/html', 'Hello world a little different!'
+
+    site_diff.real_main(
+        'http://%s:%d/' % test.server_address, [],
+        self.output_dir, self.reference_dir)
+    test.shutdown()
+
+    self.assertTrue(exists(join(self.reference_dir, '__run.log')))
+    self.assertTrue(exists(join(self.reference_dir, '__run.png')))
+    self.assertTrue(exists(join(self.reference_dir, '__config.js')))
+    self.assertTrue(exists(join(self.reference_dir, 'url_paths.txt')))
+
+    self.assertTrue(exists(join(self.output_dir, '__run.log')))
+    self.assertTrue(exists(join(self.output_dir, '__run.png')))
+    self.assertTrue(exists(join(self.output_dir, '__ref.log')))
+    self.assertTrue(exists(join(self.output_dir, '__ref.png')))
+    self.assertTrue(exists(join(self.output_dir, '__diff.png')))  # Diff!!
+    self.assertTrue(exists(join(self.output_dir, '__diff.log')))
+    self.assertTrue(exists(join(self.output_dir, '__config.js')))
+    self.assertTrue(exists(join(self.output_dir, 'url_paths.txt')))
 
   def testNotFound(self):
     """Tests when a URL in the old set is a 404 in the new set."""
