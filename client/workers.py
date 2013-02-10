@@ -26,6 +26,9 @@ gflags.DEFINE_string(
 gflags.DEFINE_integer(
     'polltime', 1,
     'How long to sleep between polling for work or subprocesses')
+gflags.DEFINE_float(
+    'fetch_frequency', 1.0,
+    'Maximum number of fetches to make per second per thread.')
 
 
 
@@ -46,9 +49,23 @@ class WorkItem(object):
   def __init__(self):
     self.error = None
 
+  @staticmethod
+  def _print_tree(obj):
+    if isinstance(obj, dict):
+      result = []
+      for key, value in obj.iteritems():
+        result.append("'%s': %s" % (key, WorkItem._print_tree(value)))
+      return '{%s}' % ', '.join(result)
+    else:
+      value_str = repr(obj)
+      if len(value_str) > 100:
+        return '%s...%s' % (value_str[:100], value_str[-1])
+      else:
+        return value_str
+
   def __repr__(self):
-    # TODO: Make this recursive, truncate long values to 100 bytes.
-    return '%s(%s)' % (self.__class__.__name__, repr(self.__dict__))
+    return '%s(%s)' % (self.__class__.__name__,
+                       self._print_tree(self.__dict__))
 
 
 class WorkerThread(threading.Thread):
@@ -105,25 +122,47 @@ class WorkerThread(threading.Thread):
 
 
 class FetchItem(WorkItem):
-  """TODO"""
+  """Work item that is handled by fetching a URL."""
 
   def __init__(self, url, timeout_seconds=30):
+    """Initializer.
+
+    Args:
+      url: URL to fetch.
+      timeout_seconds: How long until the fetch should timeout.
+    """
     WorkItem.__init__(self)
     self.url = url
     self.timeout_seconds = timeout_seconds
     self.status_code = None
     self.data = None
+    self.headers = None
 
 
 class FetchThread(WorkerThread):
-  """TODO"""
+  """Worker thread for fetching URLs."""
 
   def handle_item(self, item):
-    conn = urllib2.urlopen(item.url, timeout=item.timeout_seconds)
-    item.status_code = conn.getcode()
-    if item.status_code == 200:
-      item.data = conn.read()
-    return item
+    start_time = time.time()
+    try:
+      try:
+        conn = urllib2.urlopen(item.url, timeout=item.timeout_seconds)
+        item.status_code = conn.getcode()
+        item.headers = conn.info()
+        if item.status_code == 200:
+          item.data = conn.read()
+      except urllib2.HTTPError, e:
+        item.status_code = e.code
+      except urllib2.URLError:
+        pass
+
+      return item
+    finally:
+      end_time = time.time()
+      wait_duration = (1.0 / FLAGS.fetch_frequency) - (end_time - start_time)
+      if wait_duration > 0:
+        logging.debug('Rate limiting URL fetch for %f seconds', wait_duration)
+        time.sleep(wait_duration)
 
 
 class ProcessItem(WorkItem):
@@ -277,10 +316,19 @@ class Barrier(list):
     self.generator = generator
     if isinstance(work, (list, tuple)):
       self[:] = work
+      self.was_list = True
     else:
       self[:] = [work]
+      self.was_list = False
     self.remaining = len(self)
     self.error = None
+
+  def get_item(self):
+    """Returns the item to send back into the workflow generator."""
+    if self.was_list:
+      return self
+    else:
+      return self[0]
 
   def finish(self, item):
     """Marks the given item that is part of the barrier as done."""
@@ -327,7 +375,7 @@ class WorkflowThread(WorkerThread):
       barrier.finish(item)
       if barrier.remaining:
         return
-      item = barrier
+      item = barrier.get_item()
       workflow = barrier.workflow
       generator = barrier.generator
 
@@ -341,7 +389,10 @@ class WorkflowThread(WorkerThread):
 
     barrier = Barrier(workflow, generator, next_item)
     for item in barrier:
-      target_queue = self.work_map[type(item)]
+      if isinstance(item, WorkflowItem):
+        target_queue = self.input_queue
+      else:
+        target_queue = self.work_map[type(item)]
       self.pending[item] = barrier
       target_queue.put(item)
 
