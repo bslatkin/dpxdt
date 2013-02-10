@@ -32,7 +32,7 @@ gflags.DEFINE_string(
     'When empty, no diffs will be made.')
 
 gflags.DEFINE_spaceseplist(
-    'ignore_prefixes', None,
+    'ignore_prefixes', [],
     'URL prefixes that should not be crawled.')
 
 
@@ -52,7 +52,7 @@ SAME_DIR_URL_REGEX = r"(?!(/)|(http(s?)://)|(#)|(url\())(?P<url>[^\"'> \t]+)"
 ROOT_DIR_URL_REGEX = r"(?!//(?!>))/(?P<url>)(?=[ \t\n]*[\"'\)>/])"
 # Start of a tag using 'src' or 'href'
 TAG_START = (
-    r"(?i)\s(?P<tag>src|href|action|url|background)"
+    r"(?i)(?P<tag>\ssrc|href|action|url|background)"
     r"(?P<equals>[\t ]*=[\t ]*)(?P<quote>[\"']?)")
 # Potential HTML document URL with no fragments.
 MAYBE_HTML_URL_REGEX = TAG_START + r"(?P<absurl>http(s?)://[^\"'> \t#]+)"
