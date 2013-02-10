@@ -24,7 +24,6 @@ gflags.DEFINE_string(
     'output_dir', None,
     'Directory where the output should be saved. If it does not exist '
     'it will be created.')
-gflags.MarkFlagAsRequired('output_dir')
 
 gflags.DEFINE_string(
     'reference_dir', None,
@@ -136,7 +135,10 @@ class PdiffWorkflow(workers.WorkflowItem):
   """Workflow for generating Pdiffs."""
 
   def run(self, url, output_dir, reference_dir):
-    clean_url = url.replace('/', '_').replace(':', '_').replace('.', '_')
+    parts = urlparse.urlparse(url)
+    clean_url = (
+      parts.path.replace('/', '_').replace('\\', '_')
+      .replace(':', '_').replace('.', '_'))
     output_base = os.path.join(output_dir, clean_url)
 
     config_path = output_base + '_config.js'
@@ -207,22 +209,39 @@ class SiteDiff(workers.WorkflowItem):
     print 'Found %d total URLs, %d good HTML pages' % (
         len(seen_urls), len(good_urls))
 
+    found_urls = os.path.join(output_dir, 'url_paths.txt')
+    good_paths = set(urlparse.urlparse(u).path for u in good_urls)
+    with open(found_urls, 'w') as urls_file:
+      urls_file.write('\n'.join(sorted(good_paths)))
+
+    results = []
     for url in good_urls:
-      result = yield PdiffWorkflow(url, output_dir, reference_dir)
+      results.append(PdiffWorkflow(url, output_dir, reference_dir))
+    results = yield results
+
+    # TODO: Check for outputs? What about failure cases?
 
 
 def real_main(argv):
   coordinator = workers.GetCoordinator()
-
-  item = SiteDiff(
-      argv[1], FLAGS.ignore_prefixes, FLAGS.output_dir, FLAGS.reference_dir)
-  coordinator.input_queue.put(item)
-  result = coordinator.output_queue.get()
-  if result.error:
-    raise result.error[0], result.error[1], result.error[2]
+  coordinator.start()
+  try:
+    item = SiteDiff(
+        argv[1], FLAGS.ignore_prefixes, FLAGS.output_dir, FLAGS.reference_dir)
+    coordinator.input_queue.put(item)
+    result = coordinator.output_queue.get()
+    if result.error:
+      raise result.error[0], result.error[1], result.error[2]
+  finally:
+    coordinator.stop()
 
 
 def main(argv):
+  gflags.MarkFlagAsRequired('phantomjs_binary')
+  gflags.MarkFlagAsRequired('phantomjs_script')
+  gflags.MarkFlagAsRequired('pdiff_binary')
+  gflags.MarkFlagAsRequired('output_dir')
+
   try:
     argv = FLAGS(argv)
   except gflags.FlagsError, e:

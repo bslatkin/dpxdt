@@ -352,7 +352,26 @@ class WorkflowThread(WorkerThread):
     WorkerThread.__init__(self, input_queue, output_queue)
     self.pending = {}
     self.work_map = {}
+    self.worker_threads = []
     self.register(WorkflowItem, input_queue)
+
+  # TODO: Implement drain, to let all existing work finish but no new work
+  # allowed at the top of the funnel.
+
+  def start(self):
+    """Starts the coordinator thread and all related worker threads."""
+    for thread in self.worker_threads:
+      thread.start()
+    WorkerThread.start(self)
+
+  def stop(self):
+    """Stops the coordinator thread and all related threads."""
+    for thread in self.worker_threads:
+      thread.interrupted = True
+    self.interrupted = True
+    for thread in self.worker_threads:
+      thread.join()
+    self.join()
 
   def register(self, work_type, queue):
     """Registers where work for a specific type can be executed.
@@ -379,15 +398,22 @@ class WorkflowThread(WorkerThread):
       workflow = barrier.workflow
       generator = barrier.generator
 
-    try:
-      if item and item.error:
-        next_item = generator.throw(*item.error)
-      else:
-        next_item = generator.send(item)
-    except StopIteration:
-      return workflow
+    while True:
+      try:
+        if item and item.error:
+          next_item = generator.throw(*item.error)
+        else:
+          next_item = generator.send(item)
+      except StopIteration:
+        return workflow
 
-    barrier = Barrier(workflow, generator, next_item)
+      # If a returned barrier is empty, immediately progress the workflow.
+      barrier = Barrier(workflow, generator, next_item)
+      if barrier:
+        break
+      else:
+        item = None
+
     for item in barrier:
       if isinstance(item, WorkflowItem):
         target_queue = self.input_queue
@@ -411,14 +437,11 @@ def GetCoordinator():
   coordinator.register(FetchItem, fetch_queue)
 
   # TODO: Make number of threads configurable.
-  worker_threads = [
-    coordinator,
+  coordinator.worker_threads = [
     CaptureThread(capture_queue, workflow_queue),
     DiffThread(diff_queue, workflow_queue),
     FetchThread(fetch_queue, workflow_queue),
     FetchThread(fetch_queue, workflow_queue),
   ]
-  for thread in worker_threads:
-    thread.start()
 
   return coordinator
