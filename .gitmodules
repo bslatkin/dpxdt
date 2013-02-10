@@ -1,3 +1,12 @@
 [submodule "flask"]
 	path = flask
 	url = https://github.com/mitsuhiko/flask
+[submodule "werkzeug"]
+	path = werkzeug
+	url = https://github.com/mitsuhiko/werkzeug.git
+[submodule "jinja2"]
+	path = jinja2
+	url = https://github.com/mitsuhiko/jinja2.git
+[submodule "itsdangerous"]
+	path = itsdangerous
+	url = https://github.com/mitsuhiko/itsdangerous
