@@ -8,6 +8,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib2
 
 # Local Libraries
 import gflags
@@ -46,6 +47,7 @@ class WorkItem(object):
     self.error = None
 
   def __repr__(self):
+    # TODO: Make this recursive, truncate long values to 100 bytes.
     return '%s(%s)' % (self.__class__.__name__, repr(self.__dict__))
 
 
@@ -100,6 +102,28 @@ class WorkerThread(threading.Thread):
       work item is considered finished and no additional work is needed.
     """
     raise NotImplemented
+
+
+class FetchItem(WorkItem):
+  """TODO"""
+
+  def __init__(self, url, timeout_seconds=30):
+    WorkItem.__init__(self)
+    self.url = url
+    self.timeout_seconds = timeout_seconds
+    self.status_code = None
+    self.data = None
+
+
+class FetchThread(WorkerThread):
+  """TODO"""
+
+  def handle_item(self, item):
+    conn = urllib2.urlopen(item.url, timeout=item.timeout_seconds)
+    item.status_code = conn.getcode()
+    if item.status_code == 200:
+      item.data = conn.read()
+    return item
 
 
 class ProcessItem(WorkItem):
@@ -222,14 +246,47 @@ class WorkflowItem(WorkItem):
   To use: Sub-class and override run(). Yield WorkItems you want processed
   as part of this workflow. Exceptions in child workflows will be reinjected
   into the run() generator at the yield point. Results will be available on
-  the WorkItems returned by yield statements.
+  the WorkItems returned by yield statements. Yield a list of WorkItems
+  to do them in parallel. The first error encountered for the whole list
+  will be raised if there's an exception.
   """
 
-  def __init__(self):
+  def __init__(self, *args, **kwargs):
     WorkItem.__init__(self)
+    self.args = args
+    self.kwargs = kwargs
 
-  def run(self):
+  def run(self, *args, **kwargs):
     yield 'Yo dawg'
+
+
+class Barrier(list):
+  """Barrier for running multiple WorkItems in parallel."""
+
+  def __init__(self, workflow, generator, work):
+    """Initializer.
+
+    Args:
+      workflow: WorkflowItem instance this is for.
+      generator: Current state of the WorkflowItem's generator.
+      work: Next set of work to do. May be a single WorkItem object or
+        a list or tuple that contains a set of WorkItems to run in parallel.
+    """
+    list.__init__(self)
+    self.workflow = workflow
+    self.generator = generator
+    if isinstance(work, (list, tuple)):
+      self[:] = work
+    else:
+      self[:] = [work]
+    self.remaining = len(self)
+    self.error = None
+
+  def finish(self, item):
+    """Marks the given item that is part of the barrier as done."""
+    self.remaining -= 1
+    if item.error and not self.error:
+      self.error = item.error
 
 
 class WorkflowThread(WorkerThread):
@@ -263,10 +320,16 @@ class WorkflowThread(WorkerThread):
   def handle_item(self, item):
     if isinstance(item, WorkflowItem):
       workflow = item
-      generator = item.run()
+      generator = item.run(*item.args, **item.kwargs)
       item = None
     else:
-      workflow, generator = self.pending.pop(item)
+      barrier = self.pending.pop(item)
+      barrier.finish(item)
+      if barrier.remaining:
+        return
+      item = barrier
+      workflow = barrier.workflow
+      generator = barrier.generator
 
     try:
       if item and item.error:
@@ -276,6 +339,35 @@ class WorkflowThread(WorkerThread):
     except StopIteration:
       return workflow
 
-    target_queue = self.work_map[type(next_item)]
-    self.pending[next_item] = (workflow, generator)
-    target_queue.put(next_item)
+    barrier = Barrier(workflow, generator, next_item)
+    for item in barrier:
+      target_queue = self.work_map[type(item)]
+      self.pending[item] = barrier
+      target_queue.put(item)
+
+
+def GetCoordinator():
+  """Creates a coodinator and related threads and returns it."""
+  capture_queue = Queue.Queue()
+  diff_queue = Queue.Queue()
+  fetch_queue = Queue.Queue()
+  workflow_queue = Queue.Queue()
+  complete_queue = Queue.Queue()
+
+  coordinator = WorkflowThread(workflow_queue, complete_queue)
+  coordinator.register(CaptureItem, capture_queue)
+  coordinator.register(DiffItem, diff_queue)
+  coordinator.register(FetchItem, fetch_queue)
+
+  # TODO: Make number of threads configurable.
+  worker_threads = [
+    coordinator,
+    CaptureThread(capture_queue, workflow_queue),
+    DiffThread(diff_queue, workflow_queue),
+    FetchThread(fetch_queue, workflow_queue),
+    FetchThread(fetch_queue, workflow_queue),
+  ]
+  for thread in worker_threads:
+    thread.start()
+
+  return coordinator
