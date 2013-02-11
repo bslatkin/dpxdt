@@ -253,6 +253,36 @@ class SiteDiffTest(unittest.TestCase):
         self.output_readlines('url_paths.txt'))
 
   def testNotFound(self):
+    """Tests when a URL in the crawl is not found."""
+    @webserver
+    def test(path):
+      if path == '/':
+        return 200, 'text/html', (
+            'Hello world! <a href="/missing">x</a>')
+      elif path == '/missing':
+        return 404, 'text/plain', 'Nope'
+
+    site_diff.real_main(
+        'http://%s:%d/' % test.server_address, ['/ignore'],
+        self.output_dir, None)
+    test.shutdown()
+
+    self.assertTrue(exists(join(self.output_dir, '__run.log')))
+    self.assertTrue(exists(join(self.output_dir, '__run.png')))
+    self.assertTrue(exists(join(self.output_dir, '__config.js')))
+    self.assertTrue(exists(join(self.output_dir, 'url_paths.txt')))
+
+    self.assertEquals(
+        ['/'],
+        self.output_readlines('url_paths.txt'))
+
+    self.fail()
+
+  def testDiffNotLinkedUrlsFound(self):
+    """Tests when a URL in the old set exists but is not linked."""
+    self.fail()
+
+  def testDiffNotFound(self):
     """Tests when a URL in the old set is a 404 in the new set."""
     self.fail()
 
@@ -263,7 +293,6 @@ class SiteDiffTest(unittest.TestCase):
   def testFailureAfterRetry(self):
     """Tests when repeated retries of a URL fail."""
     self.fail()
-
 
 
 def main(argv):
