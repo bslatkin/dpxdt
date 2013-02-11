@@ -6,6 +6,7 @@ import logging
 import mimetypes
 
 # Local libraries
+import flask
 from flask import Flask, request
 from flask.ext.sqlalchemy import SQLAlchemy
 
@@ -96,10 +97,105 @@ class Run(db.Model):
   # __table_args__ = (db.Index('vertial', 'release', 'candidate'),)
 
 
+@app.route('/api/build', methods=['POST'])
+def create_build():
+  name = request.form.get('name')
+  assert name, 'name required'
+
+  # TODO: Make sure the requesting user is logged in
+
+  build = Build(name=name)
+  db.session.add(build)
+  db.session.commit()
+
+  logging.info('Created build: build_id=%s, name=%r', build.id, name)
+
+  return flask.jsonify(build_id=build.id, name=name)
+
+
+@app.route('/api/release', methods=['POST'])
+def create_release():
+  name = request.form.get('name')
+  assert name, 'name required'
+  build_id = request.form.get('build_id', type=int)
+  assert build_id, 'build_id required'
+
+  # TODO: Make sure build_id exists
+  # TODO: Make sure requesting user is owner of the build_id
+
+  last_release = Release.query.filter_by(
+      build_id=build_id,
+      name=name,
+      status='live').first()
+  if last_release:
+    last_release.status = 'dead'
+    logging.info('Marked release as dead: build_id=%s, name=%r, release_id=%s',
+                 build_id, name, last_release.id)
+    db.session.add(last_release)
+
+  release = Release(
+      name=name,
+      build_id=build_id)
+  db.session.add(release)
+  db.session.commit()
+
+  logging.info('Created release: build_id=%s, name=%r, release_id=%s',
+               build_id, name, release.id)
+
+  return flask.jsonify(release_id=release.id, build_id=build_id, name=name)
+
+
+@app.route('/api/run', methods=['POST'])
+def create_run():
+  name = request.form.get('name')
+  assert name, 'name required'
+  release_id = request.form.get('release_id', type=int)
+  assert release_id, 'release_id required'
+
+  release = Release.query.filter_by(id=release_id).first()
+  assert release, 'release_id does not exist'
+
+  # TODO: Make sure requesting user is owner of the build_id
+
+  current_image = request.form.get('current_image')
+  current_log = request.form.get('current_log')
+  current_config = request.form.get('current_config')
+
+  previous_image = request.form.get('previous_image')
+  previous_log = request.form.get('previous_log')
+  previous_config = request.form.get('previous_config')
+
+  diff_image = request.form.get('diff_image')
+  diff_log = request.form.get('diff_log')
+
+  # TODO: Make sure all referenced items exist? or don't and assume
+  # the client is uploading them in parallel.
+
+  fields = dict(
+      name=name,
+      release_id=release_id,
+      current_image=current_image,
+      current_log=current_log,
+      current_config=current_config,
+      previous_image=previous_image,
+      previous_log=previous_log,
+      previous_config=previous_config,
+      diff_image=diff_image,
+      diff_log=diff_log)
+
+  run = Run(**fields)
+  db.session.add(run)
+  db.session.commit()
+
+  logging.info('Created run: build_id=%s, name=%r, release_id=%s',
+               release.build_id, name, release_id)
+
+  return flask.jsonify(**fields)
+
+
 @app.route('/api/upload', methods=['POST'])
 def upload():
-  if len(request.files) != 1:
-    return 'Need exactly one file', 400
+  assert len(request.files) != 1, 'Need exactly one uploaded file'
 
   # TODO: Require an API key on the basic auth header
 
@@ -108,8 +204,10 @@ def upload():
   sha1sum = hashlib.sha1(data).hexdigest()
   exists = Artifact.query.filter_by(id=sha1sum).first()
   if exists:
-    logging.info('Upload already exists artifact=%s', sha1sum)
-    return '', 200
+    logging.info('Upload already exists: artifact_id=%s', sha1sum)
+    return flask.jsonify(sha1sum=sha1sum)
+
+  # TODO: Depending on the environment, stash the data somewhere else.
 
   content_type, _ = mimetypes.guess_type(file_storage.filename)
   artifact = Artifact(
@@ -119,9 +217,9 @@ def upload():
   db.session.add(artifact)
   db.session.commit()
 
-  logging.info('Saved uploaded artifact=%s, content_type=%s',
+  logging.info('Upload received: artifact_id=%s, content_type=%s',
                sha1sum, content_type)
-  return '', 200
+  return flask.jsonify(sha1sum=sha1sum)
 
 
 if __name__ == '__main__':
