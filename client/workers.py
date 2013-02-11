@@ -121,7 +121,8 @@ class WorkerThread(threading.Thread):
 class FetchItem(WorkItem):
   """Work item that is handled by fetching a URL."""
 
-  def __init__(self, url, timeout_seconds=30):
+  def __init__(self, url, request_headers=None,
+               upload_data=None, timeout_seconds=30):
     """Initializer.
 
     Args:
@@ -130,6 +131,8 @@ class FetchItem(WorkItem):
     """
     WorkItem.__init__(self)
     self.url = url
+    self.request_headers = request_headers
+    self.upload_data = upload_data
     self.timeout_seconds = timeout_seconds
     self.status_code = None
     self.data = None
