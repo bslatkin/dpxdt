@@ -132,6 +132,11 @@ class SiteDiffTest(unittest.TestCase):
     self.output_dir = join(self.test_dir, 'output')
     self.reference_dir = join(self.test_dir, 'reference')
 
+  def output_readlines(self, path):
+    """Reads the lines of an output file, stripping newlines."""
+    return [
+      x.strip() for x in open(join(self.output_dir, path)).xreadlines()]
+
   def testFirstSnapshot(self):
     """Tests taking the very first snapshot."""
     @webserver
@@ -150,7 +155,7 @@ class SiteDiffTest(unittest.TestCase):
 
     self.assertEquals(
         ['/'],
-        open(join(self.output_dir, 'url_paths.txt')).readlines())
+        self.output_readlines('url_paths.txt'))
 
   def testNoDifferences(self):
     """Tests crawling the site end-to-end."""
@@ -222,11 +227,30 @@ class SiteDiffTest(unittest.TestCase):
       - Finds new links in HTML data
       - Avoids non-HTML pages
       - Respects ignore patterns specified on flags
-      - Ignores all query strings
-      - Handles relative URLs, fragment-only URLs, scheme-relative URLs,
-        absolute URLs, etc
     """
-    self.fail()
+    @webserver
+    def test(path):
+      if path == '/':
+        return 200, 'text/html', (
+            'Hello world! <a href="/stuff">x</a> <a href="/ignore">y</a>')
+      elif path == '/stuff':
+        return 200, 'text/html', 'Stuff page <a href="/avoid">x</a>'
+      elif path == '/avoid':
+        return 200, 'text/plain', 'Ignore me!'
+
+    site_diff.real_main(
+        'http://%s:%d/' % test.server_address, ['/ignore'],
+        self.output_dir, None)
+    test.shutdown()
+
+    self.assertTrue(exists(join(self.output_dir, '__run.log')))
+    self.assertTrue(exists(join(self.output_dir, '__run.png')))
+    self.assertTrue(exists(join(self.output_dir, '__config.js')))
+    self.assertTrue(exists(join(self.output_dir, 'url_paths.txt')))
+
+    self.assertEquals(
+        ['/', '/stuff'],
+        self.output_readlines('url_paths.txt'))
 
   def testNotFound(self):
     """Tests when a URL in the old set is a 404 in the new set."""
