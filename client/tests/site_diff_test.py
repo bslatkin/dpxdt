@@ -33,6 +33,67 @@ exists = os.path.exists
 join = os.path.join
 
 
+class HtmlRewritingTest(unittest.TestCase):
+  """Tests the HTML rewriting functions."""
+
+  def testAll(self):
+    """Tests all the variations."""
+    base_url = 'http://www.example.com/my-url/here'
+    def test(test_url):
+      data = '<a href="%s">my link here</a>' % test_url
+      result = site_diff.extract_urls(base_url, data)
+      if not result:
+        return None
+      return list(result)[0]
+
+    self.assertEquals('http://www.example.com/mypath-here',
+                      test('/mypath-here'))
+
+    self.assertEquals(None, test('#fragment-only'))
+
+    self.assertEquals('http://www.example.com/my/path/over/here.html',
+                      test('/my/path/01/13/../../over/here.html'))
+
+    self.assertEquals('http://www.example.com/my/path/01/over/here.html',
+                      test('/my/path/01/13/./../over/here.html'))
+
+    self.assertEquals('http://www.example.com/my-url/same-directory.html',
+                      test('same-directory.html'))
+
+    self.assertEquals('http://www.example.com/relative-but-no/child',
+                      test('../../relative-but-no/child'))
+
+    self.assertEquals('http://www.example.com/too/many/relative/paths',
+                      test('../../../../too/many/relative/paths'))
+
+    self.assertEquals('http://www.example.com/this/is/scheme-relative.html',
+                      test('//www.example.com/this/is/scheme-relative.html'))
+
+    self.assertEquals('http://www.example.com/okay-then',  # Scheme changed
+                      test('https://www.example.com/okay-then#blah'))
+
+    self.assertEquals('http://www.example.com/another-one',
+                      test('http://www.example.com/another-one'))
+
+    self.assertEquals('http://www.example.com/this-has/a',
+                      test('/this-has/a?query=string'))
+
+    self.assertEquals('http://www.example.com/this-also-has/a/',
+                      test('/this-also-has/a/?query=string&but=more-complex'))
+
+    self.assertEquals(
+        'http://www.example.com/relative-with/some-(parenthesis%20here)',
+        test('/relative-with/some-(parenthesis%20here)'))
+
+    self.assertEquals(
+        'http://www.example.com/relative-with/some-(parenthesis%20here)',
+        test('//www.example.com/relative-with/some-(parenthesis%20here)'))
+
+    self.assertEquals(
+        'http://www.example.com/relative-with/some-(parenthesis%20here)',
+        test('http://www.example.com/relative-with/some-(parenthesis%20here)'))
+
+
 def webserver(func):
   """Runs the given function as a webserver.
 
@@ -153,6 +214,19 @@ class SiteDiffTest(unittest.TestCase):
     self.assertTrue(exists(join(self.output_dir, '__diff.log')))
     self.assertTrue(exists(join(self.output_dir, '__config.js')))
     self.assertTrue(exists(join(self.output_dir, 'url_paths.txt')))
+
+  def testCrawler(self):
+    """Tests that the crawler behaves well.
+
+    Specifically:
+      - Finds new links in HTML data
+      - Avoids non-HTML pages
+      - Respects ignore patterns specified on flags
+      - Ignores all query strings
+      - Handles relative URLs, fragment-only URLs, scheme-relative URLs,
+        absolute URLs, etc
+    """
+    self.fail()
 
   def testNotFound(self):
     """Tests when a URL in the old set is a 404 in the new set."""

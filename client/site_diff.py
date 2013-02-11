@@ -45,23 +45,26 @@ class CaptureFailedError(Error):
 # URL regex rewriting code originally from mirrorrr
 # http://code.google.com/p/mirrorrr/source/browse/trunk/transform_content.py
 
+# URLs that have absolute addresses
+ABSOLUTE_URL_REGEX = r"(?P<url>(http(s?):)?//[^\"'> \t]+)"
 # URLs that are relative to the base of the current hostname.
 BASE_RELATIVE_URL_REGEX = (
-    r"/(?!(/)|(http(s?)://)|(url\())(?P<url>[^\"'> \t\)]*)")
+    r"/(?!(/)|(http(s?)://)|(url\())(?P<url>[^\"'> \t]*)")
 # URLs that have '../' or './' to start off their paths.
 TRAVERSAL_URL_REGEX = (
     r"(?P<relative>\.(\.)?)/(?!(/)|"
-    r"(http(s?)://)|(url\())(?P<url>[^\"'> \t\)]*)")
+    r"(http(s?)://)|(url\())(?P<url>[^\"'> \t]*)")
 # URLs that are in the same directory as the requested URL.
 SAME_DIR_URL_REGEX = r"(?!(/)|(http(s?)://)|(#)|(url\())(?P<url>[^\"'> \t]+)"
 # URL matches the root directory.
-ROOT_DIR_URL_REGEX = r"(?!//(?!>))/(?P<url>)(?=[ \t\n]*[\"'\)>/])"
+ROOT_DIR_URL_REGEX = r"(?!//(?!>))/(?P<url>)(?=[ \t\n]*[\"'> /])"
 # Start of a tag using 'src' or 'href'
 TAG_START = (
     r"(?i)(?P<tag>\ssrc|href|action|url|background)"
     r"(?P<equals>[\t ]*=[\t ]*)(?P<quote>[\"']?)")
 # Potential HTML document URL with no fragments.
-MAYBE_HTML_URL_REGEX = TAG_START + r"(?P<absurl>http(s?)://[^\"'> \t#]+)"
+MAYBE_HTML_URL_REGEX = (
+    TAG_START + r"(?P<absurl>(http(s?):)?//[^\"'> \t]+)")
 
 REPLACEMENT_REGEXES = [
   (TAG_START + SAME_DIR_URL_REGEX,
@@ -72,6 +75,8 @@ REPLACEMENT_REGEXES = [
      "\g<tag>\g<equals>\g<quote>%(base)s/\g<url>"),
   (TAG_START + ROOT_DIR_URL_REGEX,
      "\g<tag>\g<equals>\g<quote>%(base)s/"),
+  (TAG_START + ABSOLUTE_URL_REGEX,
+     "\g<tag>\g<equals>\g<quote>\g<url>"),
 ]
 
 
@@ -94,7 +99,28 @@ def extract_urls(url, data, unescape=HTMLParser.HTMLParser().unescape):
   result = set()
   for match in re.finditer(MAYBE_HTML_URL_REGEX, data):
     found_url = unescape(match.groupdict()['absurl'])
+
+    # Collapse ../../ and related
+    found_parts = urlparse.urlparse(found_url)
+    path_parts = []
+    for part in found_parts.path.split('/'):
+      if part == '.':
+        continue
+      elif part == '..':
+        if path_parts:
+          path_parts.pop()
+      else:
+        path_parts.append(part)
+
+    found_parts = list(found_parts)
+    found_parts[0] = parts[0]  # Use the main page's scheme
+    found_parts[2] = '/'.join(path_parts)
+    found_parts[4] = ''  # No query string
+    found_parts[5] = ''  # No path
+
+    found_url = urlparse.urlunparse(found_parts)
     result.add(found_url)
+
   return result
 
 
@@ -114,10 +140,6 @@ def prune_urls(url_set, start_url, allowed_list, ignored_list):
         break
 
     if not allowed:
-      continue
-
-    parts = urlparse.urlparse(url)
-    if parts.query or parts.fragment:
       continue
 
     ignored = False
@@ -208,6 +230,8 @@ class SiteDiff(workers.WorkflowItem):
 
     while pending_urls:
       seen_urls.update(pending_urls)
+      # TODO: Make WorkItems immediately dispatchable to a registered queue
+      # so they start running before they are even yielded.
       output = yield [workers.FetchItem(u) for u in pending_urls]
       pending_urls.clear()
 
