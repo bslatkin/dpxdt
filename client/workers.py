@@ -18,8 +18,8 @@ import gflags
 FLAGS = gflags.FLAGS
 
 
-gflags.DEFINE_integer(
-    'polltime', 1,
+gflags.DEFINE_float(
+    'polltime', 1.0,
     'How long to sleep between polling for work or subprocesses')
 
 gflags.DEFINE_float(
@@ -57,8 +57,16 @@ class WorkItem(object):
         return value_str
 
   def __repr__(self):
-    return '%s(%s)' % (self.__class__.__name__,
-                       self._print_tree(self.__dict__))
+    return '%s.%s(%s)' % (
+        self.__class__.__module__,
+        self.__class__.__name__,
+        self._print_tree(self.__dict__))
+
+  def check_result(self):
+    # TODO: For WorkflowItems, remove generator.throw(*item.error) from
+    # the stack trace since it's noise.
+    if self.error:
+      raise self.error[0], self.error[1], self.error[2]
 
 
 class WorkerThread(threading.Thread):
@@ -91,7 +99,7 @@ class WorkerThread(threading.Thread):
         logging.error('%s error item=%r', self.worker_name, item)
         self.output_queue.put(item)
       else:
-        logging.info('%s finished item=%r', self.worker_name, item)
+        logging.info('%s processed item=%r', self.worker_name, item)
         if next_item:
           self.output_queue.put(next_item)
       finally:
@@ -218,10 +226,11 @@ class ProcessThread(WorkerThread):
         process.poll()
         if process.returncode is None:
           now = time.time()
-          if now - start_time > item.timeout_seconds or self.interrupted:
+          run_time = now - start_time
+          if run_time > item.timeout_seconds or self.interrupted:
             process.kill()
-            raise TimeoutError('Sent SIGKILL to item=%r, pid=%s' % (
-                               item, process.pid))
+            raise TimeoutError('Sent SIGKILL to item=%r, pid=%s, run_time=%s' %
+                               (item, process.pid, run_time))
 
           time.sleep(FLAGS.polltime)
           continue
@@ -246,6 +255,9 @@ class WorkflowItem(WorkItem):
     WorkItem.__init__(self)
     self.args = args
     self.kwargs = kwargs
+    self.result = None
+    self.done = False
+    self.root = False
 
   def run(self, *args, **kwargs):
     yield 'Yo dawg'
@@ -267,7 +279,7 @@ class Barrier(list):
     self.workflow = workflow
     self.generator = generator
     if isinstance(work, (list, tuple)):
-      self[:] = work
+      self[:] = list(work)
       self.was_list = True
     else:
       self[:] = [work]
@@ -312,12 +324,15 @@ class WorkflowThread(WorkerThread):
 
   def start(self):
     """Starts the coordinator thread and all related worker threads."""
+    assert not self.interrupted
     for thread in self.worker_threads:
       thread.start()
     WorkerThread.start(self)
 
   def stop(self):
     """Stops the coordinator thread and all related threads."""
+    if self.interrupted:
+      return
     for thread in self.worker_threads:
       thread.interrupted = True
     self.interrupted = True
@@ -337,27 +352,44 @@ class WorkflowThread(WorkerThread):
     self.work_map[work_type] = queue
 
   def handle_item(self, item):
-    if isinstance(item, WorkflowItem):
+    if isinstance(item, WorkflowItem) and not item.done:
       workflow = item
       generator = item.run(*item.args, **item.kwargs)
       item = None
     else:
       barrier = self.pending.pop(item)
       barrier.finish(item)
-      if barrier.remaining:
+      if barrier.remaining and not barrier.error:
         return
       item = barrier.get_item()
       workflow = barrier.workflow
       generator = barrier.generator
 
     while True:
+      logging.debug('Transitioning workflow=%r, generator=%r, item=%r',
+                    workflow, generator, item)
       try:
-        if item and item.error:
+        if item is not None and item.error:
           next_item = generator.throw(*item.error)
         else:
           next_item = generator.send(item)
       except StopIteration:
-        return workflow
+        workflow.done = True
+        if workflow.root:
+          return workflow
+        else:
+          self.input_queue.put(workflow)
+          return
+      except Exception, e:
+        # Sub-workflow re-raised an exception. Reinject it into the workflow
+        # so a pending parent can catch it.
+        workflow.done = True
+        workflow.error = sys.exc_info()
+        if workflow.root:
+          return workflow
+        else:
+          self.input_queue.put(workflow)
+          return
 
       # If a returned barrier is empty, immediately progress the workflow.
       barrier = Barrier(workflow, generator, next_item)
@@ -428,17 +460,8 @@ class RemoteQueueWorkflow(WorkflowItem):
 
 
 
-_coordinator = None
-
-
-def GetCoordinator(_recreate=False):
-  """Returns the global coodinator or creates it."""
-  global _coordinator
-  if _recreate:
-    _coordinator = None
-  if _coordinator:
-    return _coordinator
-
+def GetCoordinator():
+  """Creates a coordinator and returns it."""
   fetch_queue = Queue.Queue()
   workflow_queue = Queue.Queue()
   complete_queue = Queue.Queue()
@@ -453,5 +476,4 @@ def GetCoordinator(_recreate=False):
     FetchThread(fetch_queue, workflow_queue),
   ]
 
-  _coordinator = coordinator
-  return _coordinator
+  return coordinator

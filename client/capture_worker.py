@@ -39,7 +39,7 @@ class CaptureItem(workers.ProcessItem):
       config_path: Path to the screenshot config file to pass to PhantomJs.
       output_path: Where the output screenshot should be written.
     """
-    ProcessItem.__init__(self, log_path)
+    workers.ProcessItem.__init__(self, log_path)
     self.config_path = config_path
     self.output_path = output_path
 
@@ -58,11 +58,8 @@ class CaptureThread(workers.ProcessThread):
     ]
 
 
-def register(coordinator=None):
-  """Registers this module as a worker with the global coordinator."""
-  if not coordinator:
-    coordinator = workers.GetCoordinator()
-
+def register(coordinator):
+  """Registers this module as a worker with the given coordinator."""
   capture_queue = Queue.Queue()
   coordinator.register(CaptureItem, capture_queue)
   coordinator.worker_threads.append(

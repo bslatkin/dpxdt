@@ -12,9 +12,12 @@ import shutil
 import sys
 import urlparse
 
-
 # Local Libraries
 import gflags
+
+# Local modules
+import capture_worker
+import pdiff_worker
 import workers
 
 
@@ -181,10 +184,10 @@ class PdiffWorkflow(workers.WorkflowItem):
         }
       }))
 
-    capture = yield workers.CaptureItem(
-      output_base + '_run.log',
-      config_path,
-      output_base + '_run.png')
+    capture = yield capture_worker.CaptureItem(
+        output_base + '_run.log',
+        config_path,
+        output_base + '_run.png')
 
     if capture.returncode != 0:
       raise CaptureFailedError('Failed to capture url=%r' % url)
@@ -207,7 +210,7 @@ class PdiffWorkflow(workers.WorkflowItem):
     shutil.copy(last_log, ref_log)
 
     diff_output = output_base + '_diff.png'
-    diff = yield workers.DiffItem(
+    diff = yield pdiff_worker.PdiffItem(
         output_base + '_diff.log',
         ref_output,
         capture.output_path,
@@ -262,17 +265,24 @@ class SiteDiff(workers.WorkflowItem):
     results = []
     for url in good_urls:
       results.append(PdiffWorkflow(url, output_dir, reference_dir))
+
     results = yield results
 
     # TODO: Check for outputs? What about failure cases?
 
 
-def real_main(url, ignore_prefixes, output_dir, reference_dir):
+def real_main(url, ignore_prefixes, output_dir, reference_dir,
+              coordinator=None):
   """Runs the site_diff."""
-  coordinator = workers.GetCoordinator()
+  if not coordinator:
+    coordinator = workers.GetCoordinator()
+  capture_worker.register(coordinator)
+  pdiff_worker.register(coordinator)
   coordinator.start()
+
   try:
     item = SiteDiff(url, ignore_prefixes, output_dir, reference_dir)
+    item.root = True
     coordinator.input_queue.put(item)
     result = coordinator.output_queue.get()
     if result.error:

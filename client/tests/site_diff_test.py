@@ -128,9 +128,11 @@ class SiteDiffTest(unittest.TestCase):
   def setUp(self):
     """Sets up the test harness."""
     FLAGS.fetch_frequency = 100
+    FLAGS.polltime = 0.01
     self.test_dir = tempfile.mkdtemp('site_diff_test')
     self.output_dir = join(self.test_dir, 'output')
     self.reference_dir = join(self.test_dir, 'reference')
+    self.coordinator = workers.GetCoordinator()
 
   def output_readlines(self, path):
     """Reads the lines of an output file, stripping newlines."""
@@ -145,7 +147,8 @@ class SiteDiffTest(unittest.TestCase):
         return 200, 'text/html', 'Hello world!'
 
     site_diff.real_main(
-        'http://%s:%d/' % test.server_address, [], self.output_dir, None)
+        'http://%s:%d/' % test.server_address, [], self.output_dir, None,
+        coordinator=self.coordinator)
     test.shutdown()
 
     self.assertTrue(exists(join(self.output_dir, '__run.log')))
@@ -165,10 +168,14 @@ class SiteDiffTest(unittest.TestCase):
         return 200, 'text/html', 'Hello world!'
 
     site_diff.real_main(
-        'http://%s:%d/' % test.server_address, [], self.reference_dir, None)
+        'http://%s:%d/' % test.server_address, [], self.reference_dir, None,
+        coordinator=self.coordinator)
+
+    self.coordinator = workers.GetCoordinator()
     site_diff.real_main(
         'http://%s:%d/' % test.server_address, [],
-        self.output_dir, self.reference_dir)
+        self.output_dir, self.reference_dir,
+        coordinator=self.coordinator)
     test.shutdown()
 
     self.assertTrue(exists(join(self.reference_dir, '__run.log')))
@@ -193,7 +200,8 @@ class SiteDiffTest(unittest.TestCase):
         return 200, 'text/html', 'Hello world!'
 
     site_diff.real_main(
-        'http://%s:%d/' % test.server_address, [], self.reference_dir, None)
+        'http://%s:%d/' % test.server_address, [], self.reference_dir, None,
+        coordinator=self.coordinator)
     test.shutdown()
 
     @webserver
@@ -201,9 +209,11 @@ class SiteDiffTest(unittest.TestCase):
       if path == '/':
         return 200, 'text/html', 'Hello world a little different!'
 
+    self.coordinator = workers.GetCoordinator()
     site_diff.real_main(
         'http://%s:%d/' % test.server_address, [],
-        self.output_dir, self.reference_dir)
+        self.output_dir, self.reference_dir,
+        coordinator=self.coordinator)
     test.shutdown()
 
     self.assertTrue(exists(join(self.reference_dir, '__run.log')))
@@ -240,7 +250,8 @@ class SiteDiffTest(unittest.TestCase):
 
     site_diff.real_main(
         'http://%s:%d/' % test.server_address, ['/ignore'],
-        self.output_dir, None)
+        self.output_dir, None,
+        coordinator=self.coordinator)
     test.shutdown()
 
     self.assertTrue(exists(join(self.output_dir, '__run.log')))
@@ -264,7 +275,8 @@ class SiteDiffTest(unittest.TestCase):
 
     site_diff.real_main(
         'http://%s:%d/' % test.server_address, ['/ignore'],
-        self.output_dir, None)
+        self.output_dir, None,
+        coordinator=self.coordinator)
     test.shutdown()
 
     self.assertTrue(exists(join(self.output_dir, '__run.log')))

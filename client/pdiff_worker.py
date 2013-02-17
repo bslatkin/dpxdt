@@ -37,7 +37,7 @@ class PdiffItem(workers.ProcessItem):
       run_path: Path to the most recent run screenshot to diff.
       output_path: Where the diff image should be written, if any.
     """
-    ProcessItem.__init__(self, log_path)
+    workers.ProcessItem.__init__(self, log_path)
     self.ref_path = ref_path
     self.run_path = run_path
     self.output_path = output_path
@@ -58,11 +58,8 @@ class PdiffThread(workers.ProcessThread):
     ]
 
 
-def register(coordinator=None):
-  """Registers this module as a worker with the global coordinator."""
-  if not coordinator:
-    coordinator = workers.GetCoordinator()
-
+def register(coordinator):
+  """Registers this module as a worker with the given coordinator."""
   pdiff_queue = Queue.Queue()
   coordinator.register(PdiffItem, pdiff_queue)
   coordinator.worker_threads.append(
