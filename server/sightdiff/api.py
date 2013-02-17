@@ -77,6 +77,7 @@ db = sightdiff.db
 
 # Local modules
 import work_queue
+import utils
 
 
 class Build(db.Model):
@@ -157,7 +158,7 @@ def create_build():
   """Creates a new build for a user."""
   # TODO: Make sure the requesting user is logged in
   name = request.form.get('name')
-  assert name, 'name required'
+  utils.jsonify_assert(name, 'name required')
 
   build = Build(name=name)
   db.session.add(build)
@@ -172,9 +173,9 @@ def create_build():
 def create_release():
   """Creates a new release candidate for a build."""
   build_id = request.form.get('build_id', type=int)
-  assert build_id is not None, 'build_id required'
+  utils.jsonify_assert(build_id is not None, 'build_id required')
   name = request.form.get('name')
-  assert name, 'name required'
+  utils.jsonify_assert(name, 'name required')
   # TODO: Make sure build_id exists
   # TODO: Make sure requesting user is owner of the build_id
 
@@ -194,16 +195,14 @@ def create_release():
   db.session.add(release)
   db.session.commit()
 
-  logging.info('Created release: build_id=%s, name=%r, number=%s',
+  logging.info('Created release: build_id=%s, name=%r, number=%d',
                build_id, name, release.number)
 
   return flask.jsonify(build_id=build_id, name=name, number=release.number)
 
 
 def _check_release_done_processing(release_id):
-  """TODO
-  # Check if all pdiffs for this candidate are done.
-  """
+  """Moves a release candidate to reviewing if all runs are done processing."""
   release = Release.query.get(release_id)
   if not release:
     logging.error('Could not find release_id=%s', release_id)
@@ -218,32 +217,39 @@ def _check_release_done_processing(release_id):
     if run.needs_diff:
       return False
 
-  logging.info('Done processing, now reviewing: release_id=%s', release_id)
+  logging.info('Release done processing, now reviewing: build_id=%s, name=%s, '
+               'number=%d', release.build_id, release.name, release.number)
 
   release.status = Release.REVIEWING
   db.session.add(release)
   return True
 
 
+def _get_release_params():
+  """Gets the release params from the current request."""
+  build_id = request.form.get('build_id', type=int)
+  utils.jsonify_assert(build_id is not None, 'build_id required')
+  name = request.form.get('name')
+  utils.jsonify_assert(name, 'name required')
+  number = request.form.get('number', type=int)
+  utils.jsonify_assert(number is not None, 'number required')
+  return build_id, name, number
+
+
 @app.route('/api/report_run', methods=['POST'])
 def report_run():
   """Reports a new run for a release candidate."""
-  build_id = request.form.get('build_id', type=int)
-  assert build_id is not None, 'build_id required'
-  name = request.form.get('name')
-  assert name, 'name required'
-  number = request.form.get('number', type=int)
-  assert number, 'number required'
+  build_id, name, number = _get_release_params()
 
   release = (
       Release.query
       .filter_by(build_id=build_id, name=name, number=number)
       .first())
-  assert release, 'release does not exist'
+  utils.jsonify_assert(release, 'release does not exist')
   # TODO: Make sure requesting user is owner of the build_id
 
   current_image = request.form.get('image', type=str)
-  assert current_image, 'image must be supplied'
+  utils.jsonify_assert(current_image, 'image must be supplied')
   current_log = request.form.get('log', type=str)
   current_config = request.form.get('config', type=str)
   no_diff = request.form.get('no_diff')
@@ -288,7 +294,7 @@ def report_run():
 
   db.session.commit()
 
-  logging.info('Created run: build_id=%s, name=%r, number=%s',
+  logging.info('Created run: build_id=%s, name=%r, number=%d',
                build_id, name, number)
 
   return flask.jsonify(**fields)
@@ -301,14 +307,11 @@ def report_pdiff():
   When there is no diff to report, supply the "no_diff" parameter.
   """
   run_id = request.form.get('run_id', type=int)
-  assert run_id is not None, 'run_id required'
+  utils.jsonify_assert(run_id is not None, 'run_id required')
   no_diff = request.form.get('no_diff')
 
   run = Run.query.get(run_id)
-  if not run:
-    response = flask.jsonify(error='Run does not exist')
-    response.status_code = 400
-    return response
+  utils.jsonify_assert(run, 'Run does not exist')
 
   run.needs_diff = not (no_diff or run.diff_image or run.diff_log)
   run.diff_image = request.form.get('diff_image', type=int)
@@ -316,51 +319,68 @@ def report_pdiff():
 
   db.session.add(run)
 
-  logging.info('Saved pdiff for run_id=%s, no_diff=%s, diff_image=%s, '
+  logging.info('Saved pdiff: run_id=%s, no_diff=%s, diff_image=%s, '
                'diff_log=%s', run_id, no_diff, run.diff_image, run.diff_log)
 
   _check_release_done_processing(run.release_id)
   db.session.commit()
 
-  # What to return here?
   return flask.jsonify(success=True)
 
 
 @app.route('/api/runs_done', methods=['POST'])
 def runs_done():
   """Marks a release candidate as having all runs reported."""
-  build_id = request.form.get('build_id', type=int)
-  assert build_id is not None, 'build_id required'
-  name = request.form.get('name')
-  assert name, 'name required'
-  number = request.form.get('number', type=int)
-  assert number, 'number required'
+  build_id, name, number = _get_release_params()
 
   release = (
       Release.query
       .filter_by(build_id=build_id, name=name, number=number)
       .first())
-  if not release:
-    response = flask.jsonify(error='Release does not exist')
-    response.status_code = 400
-    return response
+  utils.jsonify_assert(release, 'Release does not exist')
 
   release.status = Release.PROCESSING
   db.session.add(release)
   _check_release_done_processing(release)
   db.session.commit()
 
-  return flask.jsonify(build_id=build_id, name=name, number=release.number)
+  logging.info('Runs done for release: build_id=%s, name=%s, number=%d',
+               build_id, name, number)
+
+  return flask.jsonify(success=True)
 
 
-# TODO: Add release complete API
+@app.route('/api/release_done', methods=['POST'])
+def release_done():
+  """Marks a release candidate as good or bad."""
+  build_id, name, number = _get_release_params()
+  status = request.form.get('status')
+  valid_statuses = (Release.GOOD, Release.BAD)
+  utils.jsonify_assert(status in valid_statuses,
+                       'status must be in %r' % valid_statuses)
+
+  release = (
+      Release.query
+      .filter_by(build_id=build_id, name=name, number=number)
+      .first())
+  utils.jsonify_assert(release, 'Release does not exist')
+
+  release.status = status
+  db.session.add(release)
+  db.session.commit()
+
+  logging.info('Release marked as %s: build_id=%s, name=%s, number=%d',
+               status, build_id, name, number)
+
+  return flask.jsonify(success=True)
 
 
 @app.route('/api/upload', methods=['POST'])
 def upload():
   """Uploads an artifact referenced by a run."""
   # TODO: Require an API key on the basic auth header
-  assert len(request.files) != 1, 'Need exactly one uploaded file'
+  utils.jsonify_assert(len(request.files) == 1,
+                       'Need exactly one uploaded file')
 
   file_storage = request.files.values()[0]
   data = file_storage.read()
