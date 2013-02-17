@@ -17,16 +17,11 @@ import gflags
 
 FLAGS = gflags.FLAGS
 
-gflags.DEFINE_string(
-    'phantomjs_binary', None, 'Path to the phantomjs binary')
-gflags.DEFINE_string(
-    'phantomjs_script', None,
-    'Path to the script that drives the phantomjs process')
-gflags.DEFINE_string(
-    'pdiff_binary', None, 'Path to the perceptualdiff binary')
+
 gflags.DEFINE_integer(
     'polltime', 1,
     'How long to sleep between polling for work or subprocesses')
+
 gflags.DEFINE_float(
     'fetch_frequency', 1.0,
     'Maximum number of fetches to make per second per thread.')
@@ -236,69 +231,6 @@ class ProcessThread(WorkerThread):
         return item
 
 
-class CaptureItem(ProcessItem):
-  """Work item for capturing a website screenshot using PhantomJs."""
-
-  def __init__(self, log_path, config_path, output_path):
-    """Initializer.
-
-    Args:
-      log_path: Where to write the verbose logging output.
-      config_path: Path to the screenshot config file to pass to PhantomJs.
-      output_path: Where the output screenshot should be written.
-    """
-    ProcessItem.__init__(self, log_path)
-    self.config_path = config_path
-    self.output_path = output_path
-
-
-class CaptureThread(ProcessThread):
-  """Worker thread that runs PhantomJs."""
-
-  def get_args(self, item):
-    return [
-        FLAGS.phantomjs_binary,
-        '--disk-cache=false',
-        '--debug=true',
-        FLAGS.phantomjs_script,
-        item.config_path,
-        item.output_path,
-    ]
-
-
-class DiffItem(ProcessItem):
-  """Work item for doing perceptual diffs using pdiff."""
-
-  def __init__(self, log_path, ref_path, run_path, output_path):
-    """Initializer.
-
-    Args:
-      log_path: Where to write the verbose logging output.
-      ref_path: Path to reference screenshot to diff.
-      run_path: Path to the most recent run screenshot to diff.
-      output_path: Where the diff image should be written, if any.
-    """
-    ProcessItem.__init__(self, log_path)
-    self.ref_path = ref_path
-    self.run_path = run_path
-    self.output_path = output_path
-
-
-class DiffThread(ProcessThread):
-  """Worker thread that runs pdiff."""
-
-  def get_args(self, item):
-    return [
-        FLAGS.pdiff_binary,
-        '-fov',
-        '85',
-        '-output',
-        item.output_path,
-        item.ref_path,
-        item.run_path,
-    ]
-
-
 class WorkflowItem(WorkItem):
   """Work item for coordinating other work items.
 
@@ -495,28 +427,31 @@ class RemoteQueueWorkflow(WorkflowItem):
                     queue_finish_url, task_id)
 
 
-def GetCoordinator():
-  """Creates a coodinator and related threads and returns it."""
-  capture_queue = Queue.Queue()
-  diff_queue = Queue.Queue()
+
+_coordinator = None
+
+
+def GetCoordinator(_recreate=False):
+  """Returns the global coodinator or creates it."""
+  global _coordinator
+  if _recreate:
+    _coordinator = None
+  if _coordinator:
+    return _coordinator
+
   fetch_queue = Queue.Queue()
   workflow_queue = Queue.Queue()
   complete_queue = Queue.Queue()
 
   coordinator = WorkflowThread(workflow_queue, complete_queue)
-  coordinator.register(CaptureItem, capture_queue)
-  coordinator.register(DiffItem, diff_queue)
   coordinator.register(FetchItem, fetch_queue)
 
   # TODO: Make number of threads configurable.
   # TODO: Enable multiple coodinator threads.
   coordinator.worker_threads = [
-    CaptureThread(capture_queue, workflow_queue),
-    CaptureThread(capture_queue, workflow_queue),
-    DiffThread(diff_queue, workflow_queue),
-    DiffThread(diff_queue, workflow_queue),
     FetchThread(fetch_queue, workflow_queue),
     FetchThread(fetch_queue, workflow_queue),
   ]
 
-  return coordinator
+  _coordinator = coordinator
+  return _coordinator
