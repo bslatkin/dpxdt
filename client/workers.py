@@ -3,6 +3,7 @@
 """Workers for driving screen captures, perceptual diffs, and related work."""
 
 import Queue
+import json
 import logging
 import subprocess
 import sys
@@ -121,22 +122,35 @@ class WorkerThread(threading.Thread):
 class FetchItem(WorkItem):
   """Work item that is handled by fetching a URL."""
 
-  def __init__(self, url, request_headers=None,
-               upload_data=None, timeout_seconds=30):
+  def __init__(self, url, post=None, timeout_seconds=30):
     """Initializer.
 
     Args:
       url: URL to fetch.
-      timeout_seconds: How long until the fetch should timeout.
+      post: Optional. When supplied, a dictionary of post parameters to
+        include in the request.
+      timeout_seconds: Optional. How long until the fetch should timeout.
     """
     WorkItem.__init__(self)
     self.url = url
-    self.request_headers = request_headers
-    self.upload_data = upload_data
+    self.post = post
     self.timeout_seconds = timeout_seconds
     self.status_code = None
     self.data = None
     self.headers = None
+    self._data_json = None
+
+  @property
+  def json(self):
+    """Returns the data de-JSONed or None if it's the wrong content type."""
+    if self._data_json:
+      return self._data_json
+
+    if not self.data or self.headers.gettype() != 'application/json':
+      return None
+
+    self._data_json = json.loads(self.data)
+    return self._data_json
 
 
 class FetchThread(WorkerThread):
@@ -144,9 +158,14 @@ class FetchThread(WorkerThread):
 
   def handle_item(self, item):
     start_time = time.time()
+    data = None
+    if item.post:
+      data = urllib.urlencode(item.post)
+
     try:
       try:
-        conn = urllib2.urlopen(item.url, timeout=item.timeout_seconds)
+        conn = urllib2.urlopen(
+            item.url, data=data, timeout=item.timeout_seconds)
         item.status_code = conn.getcode()
         item.headers = conn.info()
         if item.status_code == 200:
@@ -154,6 +173,7 @@ class FetchThread(WorkerThread):
       except urllib2.HTTPError, e:
         item.status_code = e.code
       except urllib2.URLError:
+        # TODO: Do something smarter here, like report a 400 error.
         pass
 
       return item
@@ -421,6 +441,58 @@ class WorkflowThread(WorkerThread):
         target_queue = self.work_map[type(item)]
       self.pending[item] = barrier
       target_queue.put(item)
+
+
+class RemoteQueueWorkflow(WorkflowItem):
+  """Runs a local workflow based on work items in a remote queue.
+
+  Args:
+    queue_lease_url: URL to POST to for leasing new tasks.
+    queue_finish_url: URL to POST to for finishing an existing task.
+    local_queue_workflow: WorkflowItem sub-class to create using parameters
+      from the remote work payload that will execute the task.
+  """
+
+  def run(self, queue_lease_url, queue_finish_url, local_queue_workflow):
+    while True:
+      next_item = yield workers.FetchItem(queue_lease_url, post={})
+
+      if next_item.json and next_item.json['error']:
+        logging.error('Could not fetch work from queue_lease_url=%r. %s',
+                      next_item.json['error'])
+
+      if (not next_item.json or
+          not next_item.json['tasks'] or
+          next_item.json['error']):
+        # TODO: yield a delay, sleep
+        continue
+
+      task_list = next_item.json['tasks']
+      assert len(task_list) == 1
+      task = task_list[0]
+
+      task_id = task.pop('task_id')
+      logging.debug('Starting work item from queue_lease_url=%r, task_id=%r, '
+                    'payload=%r, workflow=%r',
+                    queue_finish_url, task_id, task, local_queue_workflow)
+
+      try:
+        yield local_queue_workflow(**task)
+      except Exception:
+        logging.exception('Exception while processing work from '
+                          'queue_lease_url=%r, task_id=%r',
+                          queue_lease_url, task_id)
+        continue
+
+      finish_item = yield workers.FetchItem(
+          queue_finish_url, post={'task_id': task_id})
+      if finish_item.json and finish_item.json['error']:
+        logging.error('Could not finish work with queue_finish_url=%r, '
+                      'task_id=%r. %s',
+                      queue_finish_url, finish_item.json['error'], task_id)
+
+      logging.debug('Finished work item with queue_finish_url=%r, task_id=%r',
+                    queue_finish_url, task_id)
 
 
 def GetCoordinator():
