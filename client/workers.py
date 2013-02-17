@@ -96,10 +96,10 @@ class WorkerThread(threading.Thread):
         next_item = self.handle_item(item)
       except Exception, e:
         item.error = sys.exc_info()
-        logging.error('%s error item=%r', self.worker_name, item)
+        logging.debug('%s error item=%r', self.worker_name, item)
         self.output_queue.put(item)
       else:
-        logging.info('%s processed item=%r', self.worker_name, item)
+        logging.debug('%s processed item=%r', self.worker_name, item)
         if next_item:
           self.output_queue.put(next_item)
       finally:
@@ -214,8 +214,8 @@ class ProcessThread(WorkerThread):
     start_time = time.time()
     with open(item.log_path, 'w') as output_file:
       args = self.get_args(item)
-      logging.info('%s item=%r Running subprocess: %r',
-                   self.worker_name, item, args)
+      logging.debug('%s item=%r Running subprocess: %r',
+                    self.worker_name, item, args)
       process = subprocess.Popen(
         args,
         stderr=subprocess.STDOUT,

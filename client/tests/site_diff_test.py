@@ -46,6 +46,9 @@ class HtmlRewritingTest(unittest.TestCase):
         return None
       return list(result)[0]
 
+    self.assertEquals('http://www.example.com/',
+                      test('/'))
+
     self.assertEquals('http://www.example.com/mypath-here',
                       test('/mypath-here'))
 

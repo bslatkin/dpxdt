@@ -1,6 +1,17 @@
 #!/usr/bin/env python
 
-"""Utility for doing incremental diffs for a live website."""
+"""Utility for doing incremental diffs for a live website.
+
+Example usage:
+
+./site_diff.py \
+  --phantomjs_binary=path/to/phantomjs-1.8.1-macosx/bin/phantomjs \
+  --phantomjs_script=path/to/client/capture.js \
+  --pdiff_binary=path/to/pdiff/perceptualdiff \
+  --output_dir=path/to/your/output \
+  http://www.example.com/my/website/here
+
+"""
 
 import HTMLParser
 import Queue
@@ -22,6 +33,10 @@ import workers
 
 
 FLAGS = gflags.FLAGS
+
+gflags.DEFINE_bool(
+    'verbose', False,
+    'When set, do verbose logging output.')
 
 gflags.DEFINE_string(
     'output_dir', None,
@@ -83,6 +98,34 @@ REPLACEMENT_REGEXES = [
 ]
 
 
+def clean_url(url, force_scheme=None):
+  """Cleans the given URL."""
+  # Collapse ../../ and related
+  url_parts = urlparse.urlparse(url)
+  path_parts = []
+  for part in url_parts.path.split('/'):
+    if part == '.':
+      continue
+    elif part == '..':
+      if path_parts:
+        path_parts.pop()
+    else:
+      path_parts.append(part)
+
+  url_parts = list(url_parts)
+  if force_scheme:
+    url_parts[0] = force_scheme
+  url_parts[2] = '/'.join(path_parts)
+  url_parts[4] = ''  # No query string
+  url_parts[5] = ''  # No path
+
+  # Always have a trailing slash
+  if not url_parts[2]:
+    url_parts[2] = '/'
+
+  return urlparse.urlunparse(url_parts)
+
+
 def extract_urls(url, data, unescape=HTMLParser.HTMLParser().unescape):
   """Extracts the URLs from an HTML document."""
   parts = urlparse.urlparse(url)
@@ -102,26 +145,8 @@ def extract_urls(url, data, unescape=HTMLParser.HTMLParser().unescape):
   result = set()
   for match in re.finditer(MAYBE_HTML_URL_REGEX, data):
     found_url = unescape(match.groupdict()['absurl'])
-
-    # Collapse ../../ and related
-    found_parts = urlparse.urlparse(found_url)
-    path_parts = []
-    for part in found_parts.path.split('/'):
-      if part == '.':
-        continue
-      elif part == '..':
-        if path_parts:
-          path_parts.pop()
-      else:
-        path_parts.append(part)
-
-    found_parts = list(found_parts)
-    found_parts[0] = parts[0]  # Use the main page's scheme
-    found_parts[2] = '/'.join(path_parts)
-    found_parts[4] = ''  # No query string
-    found_parts[5] = ''  # No path
-
-    found_url = urlparse.urlunparse(found_parts)
+    # Use the main page's scheme
+    found_url = clean_url(found_url, force_scheme=parts[0])
     result.add(found_url)
 
   return result
@@ -192,6 +217,8 @@ class PdiffWorkflow(workers.WorkflowItem):
     if capture.returncode != 0:
       raise CaptureFailedError('Failed to capture url=%r' % url)
 
+    print 'Captured: %s' % url
+
     if not reference_dir:
       return
 
@@ -227,16 +254,20 @@ class SiteDiff(workers.WorkflowItem):
     if not os.path.isdir(output_dir):
       os.mkdir(output_dir)
 
-    pending_urls = set([start_url])
+    pending_urls = set([clean_url(start_url)])
     seen_urls = set()
     good_urls = set()
 
+    sys.stdout.write('Scanning for content')
+    sys.stdout.flush()
+
     while pending_urls:
       seen_urls.update(pending_urls)
-      # TODO: Make WorkItems immediately dispatchable to a registered queue
-      # so they start running before they are even yielded.
       output = yield [workers.FetchItem(u) for u in pending_urls]
       pending_urls.clear()
+
+      sys.stdout.write('.')
+      sys.stdout.flush()
 
       for item in output:
         if not item.data:
@@ -254,7 +285,8 @@ class SiteDiff(workers.WorkflowItem):
         new = pruned - seen_urls
         pending_urls.update(new)
 
-    print 'Found %d total URLs, %d good HTML pages' % (
+    print
+    print 'Found %d total URLs, %d good HTML pages; starting screenshots' % (
         len(seen_urls), len(good_urls))
 
     found_urls = os.path.join(output_dir, 'url_paths.txt')
@@ -265,10 +297,9 @@ class SiteDiff(workers.WorkflowItem):
     results = []
     for url in good_urls:
       results.append(PdiffWorkflow(url, output_dir, reference_dir))
+    yield results
 
-    results = yield results
-
-    # TODO: Check for outputs? What about failure cases?
+    print 'Results in %s' % output_dir
 
 
 def real_main(url, ignore_prefixes, output_dir, reference_dir,
@@ -303,7 +334,13 @@ def main(argv):
     print '%s\nUsage: %s ARGS\n%s' % (e, sys.argv[0], FLAGS)
     sys.exit(1)
 
-  logging.getLogger().setLevel(logging.DEBUG)
+  if len(argv) != 2:
+    print 'Must supply a website URL as the first argument.'
+    sys.exit(1)
+
+  if FLAGS.verbose:
+    logging.getLogger().setLevel(logging.DEBUG)
+
   real_main(
       argv[1], FLAGS.ignore_prefixes, FLAGS.output_dir, FLAGS.reference_dir)
 
