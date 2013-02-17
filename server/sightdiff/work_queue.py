@@ -70,7 +70,9 @@ def add(queue_name, payload=None, content_type=None,
 
   Args:
     queue_name: Name of the queue to add the work item to.
-    payload: Optional. Payload that describes the work to do.
+    payload: Optional. Payload that describes the work to do as a string.
+      If not a string and content_type is not provided, then this function
+      assumes the payload is a JSON-able Python object.
     content_type: Optional. Content type of the payload.
     source: Optional. Who or what originally created the task.
     task_id: Optional. When supplied, only enqueue this task if a task
@@ -85,6 +87,10 @@ def add(queue_name, payload=None, content_type=None,
     if task:
       return task.task_id
 
+  if payload and not content_type  and not isinstance(payload, basestring):
+    payload = json.dumps(payload)
+    content_type = 'application/json'
+
   now = datetime.datetime.utcnow()
   task = WorkQueue(
       task_id=uuid.uuid4().hex,
@@ -94,7 +100,6 @@ def add(queue_name, payload=None, content_type=None,
       payload=payload,
       content_type=content_type)
   db.session.add(task)
-  db.session.commit()
 
   return task.task_id
 
@@ -147,7 +152,6 @@ def lease(queue_name, owner, timeout):
   task.last_owner = owner
   task.last_lease = now
   db.session.add(task)
-  db.session.commit()
 
   return _task_to_dict(task)
 
@@ -191,7 +195,6 @@ def finish(queue_name, task_id, owner):
 
   task.live = False
   db.session.add(task)
-  db.session.commit()
   return True
 
 
@@ -213,6 +216,7 @@ def handle_add(queue_name):
     response.status_code = 400
     return response
 
+  db.session.commit()
   logging.info('Task added: queue=%s, task_id=%s', queue_name, task_id)
   return flask.jsonify(task_id=task_id)
 
@@ -232,6 +236,7 @@ def handle_lease(queue_name):
   if task['payload'] and task['content_type'] == 'application/json':
     task['payload'] = json.loads(task['payload'])
 
+  db.session.commit()
   logging.info('Task leased: queue=%s, task_id=%s',
                queue_name, task['task_id'])
   return flask.jsonify(tasks=[task])
@@ -253,4 +258,5 @@ def handle_finish(queue_name):
     response.status_code = 400
     return response
 
+  db.session.commit()
   return flask.jsonify(success=True)
