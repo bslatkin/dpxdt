@@ -6,7 +6,7 @@
 import logging
 logging.getLogger().setLevel(logging.DEBUG)
 
-import sightdiff
+import dpxdt
 
 if __name__ == '__main__':
-  sightdiff.app.run(debug=True, use_debugger=True)
+  dpxdt.app.run(debug=True, use_debugger=True)

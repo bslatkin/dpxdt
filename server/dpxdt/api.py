@@ -71,9 +71,9 @@ from flask import Flask, request
 from flask.ext.sqlalchemy import SQLAlchemy
 
 # Environment
-import sightdiff
-app = sightdiff.app
-db = sightdiff.db
+import dpxdt
+app = dpxdt.app
+db = dpxdt.db
 
 # Local modules
 import work_queue

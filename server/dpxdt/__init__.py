@@ -3,8 +3,8 @@
 """TODO
 
 # To use for the first time, or when the schema changes during development:
-import sightdiff
-sightdiff.db.create_all()
+import dpxdt
+dpxdt.db.create_all()
 
 """
 

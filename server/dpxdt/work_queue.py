@@ -13,9 +13,9 @@ import flask
 from flask import Flask, request
 
 # Environment
-import sightdiff
-app = sightdiff.app
-db = sightdiff.db
+import dpxdt
+app = dpxdt.app
+db = dpxdt.db
 
 
 class Error(Exception):
