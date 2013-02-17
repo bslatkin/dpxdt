@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+"""TODO
+"""
+
 import datetime
 import hashlib
 import logging
@@ -10,12 +13,13 @@ import flask
 from flask import Flask, request
 from flask.ext.sqlalchemy import SQLAlchemy
 
+# Environment
+import sightdiff
+app = sightdiff.app
+db = sightdiff.db
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-
-db = SQLAlchemy(app)
+# Local modules
+import work_queue
 
 
 class Build(db.Model):
@@ -224,4 +228,8 @@ def upload():
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.DEBUG)
-  app.run(debug=True)
+  logging.debug('Starting app with endpoints:')
+  for rule in app.url_map.iter_rules():
+    logging.debug('%s -> %r', rule.rule, rule.endpoint)
+
+  app.run(debug=True, use_debugger=True)
