@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-"""TODO
-"""
+"""Pull-queue API and web handlers."""
 
 import datetime
+import json
 import logging
 import time
 import uuid
@@ -21,9 +21,6 @@ db = sightdiff.db
 class Error(Exception):
   """Base class for exceptions in this module."""
 
-class TaskAlreadyExistsError(Error):
-  """Task with the given ID already exists in the queue."""
-
 class TaskDoesNotExistError(Error):
   """Task with the given ID does not exist and cannot be finished."""
 
@@ -35,11 +32,18 @@ class NotOwnerError(Error):
 
 
 class WorkQueue(db.Model):
-  """
+  """Represents a single item of work to do in a specific queue.
+
+  Queries:
+  - By task_id for finishing a task or extending a lease.
+  - By Index(queue_name, live, eta) for finding the oldest task for a queue
+    that is still pending.
+  - By Index(live, create) for finding old tasks that should be deleted from
+    the table periodically to free up space.
   """
 
-  task_id = db.Column(db.String(100), primary_key=True)
-  queue_name = db.Column(db.String(50), nullable=False)
+  task_id = db.Column(db.String(100), primary_key=True, nullable=False)
+  queue_name = db.Column(db.String(100), primary_key=True, nullable=False)
   live = db.Column(db.Boolean, default=True, nullable=False)
   eta = db.Column(db.DateTime, default=datetime.datetime.utcnow,
                   nullable=False)
@@ -56,20 +60,30 @@ class WorkQueue(db.Model):
 
   __table_args__ = (
       db.Index('lease_index', 'queue_name', 'live', 'eta'),
+      db.Index('reap_index', 'live', 'created'),
   )
 
 
-def add(queue_name, payload=None, content_type=None, source=None,
-        task_id=None, ignore_tombstones=False):
-  """TODO"""
+def add(queue_name, payload=None, content_type=None,
+        source=None, task_id=None):
+  """Adds a work item to a queue.
+
+  Args:
+    queue_name: Name of the queue to add the work item to.
+    payload: Optional. Payload that describes the work to do.
+    content_type: Optional. Content type of the payload.
+    source: Optional. Who or what originally created the task.
+    task_id: Optional. When supplied, only enqueue this task if a task
+      with this ID does not already exist. If a task with this ID already
+      exists, then this function will do nothing.
+
+  Returns:
+    ID of the task that was added.
+  """
   if task_id:
     task = WorkQueue.query.filter_by(task_id=task_id).first()
     if task:
-      if ignore_tombstones:
-        return task.task_id
-      else:
-        raise TaskAlreadyExistsError('queue=%s, task_id=%s' % (
-            task_id, queue_name))
+      return task.task_id
 
   now = datetime.datetime.utcnow()
   task = WorkQueue(
@@ -86,14 +100,14 @@ def add(queue_name, payload=None, content_type=None, source=None,
 
 
 def _datetime_to_epoch_seconds(dt):
-  """TODO"""
+  """Converts a datetime.datetime to seconds since the epoch."""
   if dt is None:
     return None
   return int(time.mktime(dt.utctimetuple()))
 
 
 def _task_to_dict(task):
-  """TODO"""
+  """Converts a WorkQueue to a JSON-able dictionary."""
   return dict(
       task_id=task.task_id,
       queue_name=task.queue_name,
@@ -107,7 +121,18 @@ def _task_to_dict(task):
 
 
 def lease(queue_name, owner, timeout):
-  """TODO"""
+  """Leases a work item from a queue.
+
+  Args:
+    queue_name: Name of the queue to lease work from.
+    owner: Who or what is leasing the task.
+    timeout: Number of seconds to lock the task for before allowing
+      another owner to lease it.
+
+  Returns:
+    Dictionary representing the task that was leased, or None if no
+    task is available to be leased.
+  """
   now = datetime.datetime.utcnow()
   query = (
       WorkQueue.query
@@ -128,27 +153,40 @@ def lease(queue_name, owner, timeout):
 
 
 def finish(queue_name, task_id, owner):
-  """TODO"""
+  """Marks a work item on a queue as finished.
+
+  Args:
+    queue_name: Name of the queue the work item is on.
+    task_id: ID of the task that is finished.
+    owner: Who or what has the current lease on the task.
+
+  Returns:
+    True if the task has been finished for the first time; False if the
+    task was already finished.
+
+  Raises:
+    TaskDoesNotExistError if the task does not exist.
+    LeaseExpiredError if the lease is no longer active.
+    NotOwnerError if the specified owner no longer owns the task.
+  """
   now = datetime.datetime.utcnow()
-  task = (
-      WorkQueue.query
-      .filter_by(queue_name=queue_name, task_id=task_id)
-      .first())
+  task = WorkQueue.query.filter_by(queue_name=queue_name,
+                                   task_id=task_id).first()
   if not task:
-    raise TaskDoesNotExistError('queue=%s, task_id=%s' % (queue_name, task_id))
+    raise TaskDoesNotExistError('task_id=%s' % task_id)
 
   delta = task.eta - now
   if delta < datetime.timedelta(0):
     raise LeaseExpiredError('queue=%s, task_id=%s expired %s' % (
-        queue_name, task_id, delta))
+        task.queue_name, task_id, delta))
 
   if task.last_owner != owner:
     raise NotOwnerError('queue=%s, task_id=%s, owner=%s' % (
-        queue_name, task_id, task.last_owner))
+        task.queue_name, task_id, task.last_owner))
 
   if not task.live:
     logging.warning('Finishing already dead task. queue=%s, task_id=%s, '
-                    'owner=%s', queue_name, task_id, owner)
+                    'owner=%s', task.queue_name, task_id, owner)
     return False
 
   task.live = False
@@ -159,16 +197,15 @@ def finish(queue_name, task_id, owner):
 
 @app.route('/api/work_queue/<string:queue_name>/add', methods=['POST'])
 def handle_add(queue_name):
+  """Adds a task to a queue."""
   # TODO: Require an API key on the basic auth header
-
   try:
     task_id = add(
         queue_name,
         payload=request.form.get('payload', type=str),
         content_type=request.form.get('content_type', type=str),
         source=request.form.get('source', request.remote_addr, type=str),
-        task_id=request.form.get('task_id', type=str),
-        ignore_tombstones=request.form.get('ignore_tombstones', type=bool))
+        task_id=request.form.get('task_id', type=str))
   except Error, e:
     error = '%s: %s' % (e.__class__.__name__, e)
     logging.error('Could not add task request=%r. %s', request, error)
@@ -182,8 +219,8 @@ def handle_add(queue_name):
 
 @app.route('/api/work_queue/<string:queue_name>/lease', methods=['POST'])
 def handle_lease(queue_name):
+  """Leases a task from a queue."""
   # TODO: Require an API key on the basic auth header
-
   task = lease(
       queue_name,
       request.form.get('owner', request.remote_addr, type=str),
@@ -192,7 +229,8 @@ def handle_lease(queue_name):
   if not task:
     return flask.jsonify(tasks=[])
 
-  # TODO: If the content_type is JSON, transparently decode and embed it here.
+  if task['payload'] and task['content_type'] == 'application/json':
+    task['payload'] = json.loads(task['payload'])
 
   logging.info('Task leased: queue=%s, task_id=%s',
                queue_name, task['task_id'])
@@ -201,6 +239,7 @@ def handle_lease(queue_name):
 
 @app.route('/api/work_queue/<string:queue_name>/finish', methods=['POST'])
 def handle_finish(queue_name):
+  """Marks a task on a queue as finished."""
   # TODO: Require an API key on the basic auth header
   try:
     finish(
