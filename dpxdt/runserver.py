@@ -14,12 +14,18 @@
 # limitations under the License.
 
 """TODO
+
+PYTHONPATH=./lib:$PYTHONPATH \
+./dpxdt/runserver.py \
+    --phantomjs_binary=path/to/phantomjs-1.8.1-macosx/bin/phantomjs \
+    --phantomjs_script=path/to/client/capture.js \
+    --pdiff_binary=path/to/pdiff/perceptualdiff
 """
 
 import logging
 logging.getLogger().setLevel(logging.DEBUG)
 
-import dpxdt
+import server
 
 if __name__ == '__main__':
-    dpxdt.app.run(debug=True, use_debugger=True)
+    server.app.run(debug=True, use_debugger=True)

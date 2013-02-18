@@ -38,14 +38,13 @@ import urlparse
 
 # Local Libraries
 import gflags
+FLAGS = gflags.FLAGS
 
 # Local modules
 import capture_worker
 import pdiff_worker
 import workers
 
-
-FLAGS = gflags.FLAGS
 
 gflags.DEFINE_bool(
     'verbose', False,

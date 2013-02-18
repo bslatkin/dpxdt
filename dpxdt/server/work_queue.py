@@ -25,10 +25,10 @@ import uuid
 import flask
 from flask import Flask, request
 
-# Environment
-import dpxdt
-app = dpxdt.app
-db = dpxdt.db
+# Local modules
+import server
+app = server.app
+db = server.db
 
 
 class Error(Exception):

@@ -17,6 +17,7 @@
 
 To run:
 
+PYTHONPATH=./lib:$PYTHONPATH \
 ./tests/site_diff_test.py \
     --phantomjs_binary=path/to/phantomjs-1.8.1-macosx/bin/phantomjs \
     --phantomjs_script=path/to/client/capture.js \
@@ -31,14 +32,13 @@ import tempfile
 import threading
 import unittest
 
-
 # Local libraries
 import gflags
-import site_diff
-import workers
-
-
 FLAGS = gflags.FLAGS
+
+# Local modules
+from dpxdt.client import site_diff
+from dpxdt.client import workers
 
 
 # For convenience

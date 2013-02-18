@@ -83,12 +83,10 @@ import flask
 from flask import Flask, request
 from flask.ext.sqlalchemy import SQLAlchemy
 
-# Environment
-import dpxdt
-app = dpxdt.app
-db = dpxdt.db
-
 # Local modules
+import server
+app = server.app
+db = server.db
 import work_queue
 import utils
 

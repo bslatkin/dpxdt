@@ -16,8 +16,8 @@
 """TODO
 
 # To use for the first time, or when the schema changes during development:
-import dpxdt
-dpxdt.db.create_all()
+from dpxdt import server
+server.db.create_all()
 
 """
 

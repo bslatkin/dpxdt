@@ -26,8 +26,6 @@ import urllib2
 
 # Local Libraries
 import gflags
-
-
 FLAGS = gflags.FLAGS
 
 

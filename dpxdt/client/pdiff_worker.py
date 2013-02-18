@@ -26,12 +26,11 @@ import urllib2
 
 # Local Libraries
 import gflags
+FLAGS = gflags.FLAGS
 
 # Local modules
 import workers
 
-
-FLAGS = gflags.FLAGS
 
 gflags.DEFINE_string(
     'pdiff_binary', None, 'Path to the perceptualdiff binary')

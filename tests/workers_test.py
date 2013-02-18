@@ -13,20 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for the workers module."""
+"""Tests for the workers module.
+
+To run:
+
+PYTHONPATH=./lib:$PYTHONPATH \
+./tests/workers_test.py \
+"""
 
 import Queue
 import logging
 import sys
 import unittest
 
-
 # Local Libraries
 import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-import workers
+from dpxdt.client import workers
 
 
 class EchoThread(workers.WorkerThread):
