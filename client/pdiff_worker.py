@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # Copyright 2013 Brett Slatkin
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -39,41 +39,41 @@ gflags.DEFINE_string(
 
 
 class PdiffItem(workers.ProcessItem):
-  """Work item for doing perceptual diffs using pdiff."""
+    """Work item for doing perceptual diffs using pdiff."""
 
-  def __init__(self, log_path, ref_path, run_path, output_path):
-    """Initializer.
+    def __init__(self, log_path, ref_path, run_path, output_path):
+        """Initializer.
 
-    Args:
-      log_path: Where to write the verbose logging output.
-      ref_path: Path to reference screenshot to diff.
-      run_path: Path to the most recent run screenshot to diff.
-      output_path: Where the diff image should be written, if any.
-    """
-    workers.ProcessItem.__init__(self, log_path)
-    self.ref_path = ref_path
-    self.run_path = run_path
-    self.output_path = output_path
+        Args:
+            log_path: Where to write the verbose logging output.
+            ref_path: Path to reference screenshot to diff.
+            run_path: Path to the most recent run screenshot to diff.
+            output_path: Where the diff image should be written, if any.
+        """
+        workers.ProcessItem.__init__(self, log_path)
+        self.ref_path = ref_path
+        self.run_path = run_path
+        self.output_path = output_path
 
 
 class PdiffThread(workers.ProcessThread):
-  """Worker thread that runs pdiff."""
+    """Worker thread that runs pdiff."""
 
-  def get_args(self, item):
-    return [
-        FLAGS.pdiff_binary,
-        '-fov',
-        '85',
-        '-output',
-        item.output_path,
-        item.ref_path,
-        item.run_path,
-    ]
+    def get_args(self, item):
+        return [
+            FLAGS.pdiff_binary,
+            '-fov',
+            '85',
+            '-output',
+            item.output_path,
+            item.ref_path,
+            item.run_path,
+        ]
 
 
 def register(coordinator):
-  """Registers this module as a worker with the given coordinator."""
-  pdiff_queue = Queue.Queue()
-  coordinator.register(PdiffItem, pdiff_queue)
-  coordinator.worker_threads.append(
-      PdiffThread(pdiff_queue, coordinator.input_queue))
+    """Registers this module as a worker with the given coordinator."""
+    pdiff_queue = Queue.Queue()
+    coordinator.register(PdiffItem, pdiff_queue)
+    coordinator.worker_threads.append(
+        PdiffThread(pdiff_queue, coordinator.input_queue))

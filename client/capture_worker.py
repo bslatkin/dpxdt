@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # Copyright 2013 Brett Slatkin
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -42,38 +42,39 @@ gflags.DEFINE_string(
 
 
 class CaptureItem(workers.ProcessItem):
-  """Work item for capturing a website screenshot using PhantomJs."""
+    """Work item for capturing a website screenshot using PhantomJs."""
 
-  def __init__(self, log_path, config_path, output_path):
-    """Initializer.
+    def __init__(self, log_path, config_path, output_path):
+        """Initializer.
 
-    Args:
-      log_path: Where to write the verbose logging output.
-      config_path: Path to the screenshot config file to pass to PhantomJs.
-      output_path: Where the output screenshot should be written.
-    """
-    workers.ProcessItem.__init__(self, log_path)
-    self.config_path = config_path
-    self.output_path = output_path
+        Args:
+            log_path: Where to write the verbose logging output.
+            config_path: Path to the screenshot config file to pass
+                to PhantomJs.
+            output_path: Where the output screenshot should be written.
+        """
+        workers.ProcessItem.__init__(self, log_path)
+        self.config_path = config_path
+        self.output_path = output_path
 
 
 class CaptureThread(workers.ProcessThread):
-  """Worker thread that runs PhantomJs."""
+    """Worker thread that runs PhantomJs."""
 
-  def get_args(self, item):
-    return [
-        FLAGS.phantomjs_binary,
-        '--disk-cache=false',
-        '--debug=true',
-        FLAGS.phantomjs_script,
-        item.config_path,
-        item.output_path,
-    ]
+    def get_args(self, item):
+        return [
+            FLAGS.phantomjs_binary,
+            '--disk-cache=false',
+            '--debug=true',
+            FLAGS.phantomjs_script,
+            item.config_path,
+            item.output_path,
+        ]
 
 
 def register(coordinator):
-  """Registers this module as a worker with the given coordinator."""
-  capture_queue = Queue.Queue()
-  coordinator.register(CaptureItem, capture_queue)
-  coordinator.worker_threads.append(
-      CaptureThread(capture_queue, coordinator.input_queue))
+    """Registers this module as a worker with the given coordinator."""
+    capture_queue = Queue.Queue()
+    coordinator.register(CaptureItem, capture_queue)
+    coordinator.worker_threads.append(
+        CaptureThread(capture_queue, coordinator.input_queue))
