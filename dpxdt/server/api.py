@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Web-based API for managing screenshots and incremental diffs.
+"""Web-based API for managing screenshots and incremental perceptual diffs.
 
 Lifecycle of a release:
 
@@ -81,87 +81,14 @@ import mimetypes
 # Local libraries
 import flask
 from flask import Flask, request
-from flask.ext.sqlalchemy import SQLAlchemy
 
 # Local modules
 import server
 app = server.app
 db = server.db
+import models
 import work_queue
 import utils
-
-
-class Build(db.Model):
-    """A single repository of artifacts and diffs owned by someone.
-
-    Queries:
-    - Get all builds for a specific owner.
-    - Can this user read this build.
-    - Can this user write this build.
-    """
-
-    id = db.Column(db.Integer, primary_key=True)
-    created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    name = db.Column(db.String)
-    # TODO: Add owner
-
-
-class Release(db.Model):
-    """A set of runs that are part of a build, grouped by a user-supplied name.
-
-    Queries:
-    - For a build, find me the active release with this name.
-    - Mark this release as abandoned.
-    - Show me all active releases for this build by unique name in order
-      of creation date descending.
-    """
-
-    RECEIVING = 'receiving'
-    PROCESSING = 'processing'
-    REVIEWING = 'reviewing'
-    BAD = 'bad'
-    GOOD = 'good'
-    STATES = frozenset([RECEIVING, PROCESSING, REVIEWING, BAD, GOOD])
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    number = db.Column(db.Integer, nullable=False)
-    created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    status = db.Column(db.Enum(*STATES), default=RECEIVING, nullable=False)
-    build_id = db.Column(db.Integer, db.ForeignKey('build.id'), nullable=False)
-
-
-class Artifact(db.Model):
-    """Contains a single file uploaded by a diff worker."""
-
-    id = db.Column(db.String(40), primary_key=True)
-    created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    data = db.Column(db.LargeBinary)
-    content_type = db.Column(db.String)
-
-
-class Run(db.Model):
-    """Contains a set of screenshot records uploaded by a diff worker.
-
-    Queries:
-    - Show me all runs for the given release.
-    - Show me all runs with the given name for all releases that are live.
-    """
-
-    id = db.Column(db.Integer, primary_key=True)
-    release_id = db.Column(db.Integer, nullable=False)
-    name = db.Column(db.String, nullable=False)
-
-    created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    image = db.Column(db.String, db.ForeignKey('artifact.id'))
-    log = db.Column(db.String, db.ForeignKey('artifact.id'))
-    config = db.Column(db.String, db.ForeignKey('artifact.id'))
-
-    previous_id = db.Column(db.Integer, db.ForeignKey('run.id'))
-
-    needs_diff = db.Column(db.Boolean)
-    diff_image = db.Column(db.String, db.ForeignKey('artifact.id'))
-    diff_log = db.Column(db.String, db.ForeignKey('artifact.id'))
 
 
 @app.route('/api/build', methods=['POST'])
@@ -171,7 +98,7 @@ def create_build():
     name = request.form.get('name')
     utils.jsonify_assert(name, 'name required')
 
-    build = Build(name=name)
+    build = models.Build(name=name)
     db.session.add(build)
     db.session.commit()
 
@@ -190,15 +117,15 @@ def create_release():
     # TODO: Make sure build_id exists
     # TODO: Make sure requesting user is owner of the build_id
 
-    release = Release(
+    release = models.Release(
         name=name,
         number=1,
         build_id=build_id)
 
     last_candidate = (
-        Release.query
+        models.Release.query
         .filter_by(build_id=build_id, name=name)
-        .order_by(Release.number.desc())
+        .order_by(models.Release.number.desc())
         .first())
     if last_candidate:
         release.number += last_candidate.number
@@ -214,16 +141,16 @@ def create_release():
 
 def _check_release_done_processing(release_id):
     """Moves a release candidate to reviewing if all runs are done."""
-    release = Release.query.get(release_id)
+    release = models.Release.query.get(release_id)
     if not release:
         logging.error('Could not find release_id=%s', release_id)
         return False
 
-    if release.status != Release.PROCESSING:
+    if release.status != models.Release.PROCESSING:
         logging.error('Already done processing: release_id=%s', release_id)
         return False
 
-    query = Run.query.filter_by(release_id=release.id)
+    query = models.Run.query.filter_by(release_id=release.id)
     for run in query:
         if run.needs_diff:
             return False
@@ -232,7 +159,7 @@ def _check_release_done_processing(release_id):
                  'name=%s, number=%d', release.build_id, release.name,
                  release.number)
 
-    release.status = Release.REVIEWING
+    release.status = models.Release.REVIEWING
     db.session.add(release)
     return True
 
@@ -254,7 +181,7 @@ def report_run():
     build_id, name, number = _get_release_params()
 
     release = (
-        Release.query
+        models.Release.query
         .filter_by(build_id=build_id, name=name, number=number)
         .first())
     utils.jsonify_assert(release, 'release does not exist')
@@ -271,14 +198,17 @@ def report_run():
 
     # Find the previous corresponding run and automatically connect it.
     last_good_release = (
-        Release.query
-        .filter_by(build_id=build_id, name=name, status=Release.GOOD)
-        .order_by(Release.created.desc())
+        models.Release.query
+        .filter_by(
+            build_id=build_id,
+            name=name,
+            status=models.Release.GOOD)
+        .order_by(models.Release.created.desc())
         .first())
     previous_id = None
     if last_good_release:
         last_good_run = (
-            Run.query
+            models.Run.query
             .filter_by(release_id=last_good_release.id, name=name)
             .first())
         if last_good_run:
@@ -294,7 +224,7 @@ def report_run():
         needs_diff=needs_diff,
         diff_image=diff_image,
         diff_log=diff_log)
-    run = Run(**fields)
+    run = models.Run(**fields)
     db.session.add(run)
     db.session.flush()
 
@@ -322,7 +252,7 @@ def report_pdiff():
     utils.jsonify_assert(run_id is not None, 'run_id required')
     no_diff = request.form.get('no_diff')
 
-    run = Run.query.get(run_id)
+    run = models.Run.query.get(run_id)
     utils.jsonify_assert(run, 'Run does not exist')
 
     run.needs_diff = not (no_diff or run.diff_image or run.diff_log)
@@ -346,12 +276,12 @@ def runs_done():
     build_id, name, number = _get_release_params()
 
     release = (
-        Release.query
+        models.Release.query
         .filter_by(build_id=build_id, name=name, number=number)
         .first())
     utils.jsonify_assert(release, 'Release does not exist')
 
-    release.status = Release.PROCESSING
+    release.status = models.Release.PROCESSING
     db.session.add(release)
     _check_release_done_processing(release)
     db.session.commit()
@@ -367,12 +297,12 @@ def release_done():
     """Marks a release candidate as good or bad."""
     build_id, name, number = _get_release_params()
     status = request.form.get('status')
-    valid_statuses = (Release.GOOD, Release.BAD)
+    valid_statuses = (models.Release.GOOD, models.Release.BAD)
     utils.jsonify_assert(status in valid_statuses,
                          'status must be in %r' % valid_statuses)
 
     release = (
-        Release.query
+        models.Release.query
         .filter_by(build_id=build_id, name=name, number=number)
         .first())
     utils.jsonify_assert(release, 'Release does not exist')
@@ -397,13 +327,13 @@ def upload():
     file_storage = request.files.values()[0]
     data = file_storage.read()
     sha1sum = hashlib.sha1(data).hexdigest()
-    exists = Artifact.query.filter_by(id=sha1sum).first()
+    exists = models.Artifact.query.filter_by(id=sha1sum).first()
     if exists:
         logging.info('Upload already exists: artifact_id=%s', sha1sum)
         return flask.jsonify(sha1sum=sha1sum)
 
     content_type, _ = mimetypes.guess_type(file_storage.filename)
-    artifact = Artifact(
+    artifact = models.Artifact(
         id=sha1sum,
         content_type=content_type,
         data=data)
