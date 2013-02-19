@@ -23,7 +23,6 @@ Example usage:
     --pdiff_binary=path/to/pdiff/perceptualdiff \
     --output_dir=path/to/your/output \
     http://www.example.com/my/website/here
-
 """
 
 import HTMLParser
@@ -316,7 +315,7 @@ class SiteDiff(workers.WorkflowItem):
 
 
 def real_main(url, ignore_prefixes, output_dir, reference_dir,
-                            coordinator=None):
+              coordinator=None):
     """Runs the site_diff."""
     if not coordinator:
         coordinator = workers.GetCoordinator()
