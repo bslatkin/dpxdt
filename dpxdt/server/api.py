@@ -213,7 +213,7 @@ def create_release():
 
 
 def _check_release_done_processing(release_id):
-    """Moves a release candidate to reviewing if all runs are done processing."""
+    """Moves a release candidate to reviewing if all runs are done."""
     release = Release.query.get(release_id)
     if not release:
         logging.error('Could not find release_id=%s', release_id)

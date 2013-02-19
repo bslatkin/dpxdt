@@ -16,6 +16,7 @@
 """Workers for driving screen captures, perceptual diffs, and related work."""
 
 import Queue
+import heapq
 import json
 import logging
 import subprocess
@@ -95,12 +96,14 @@ class WorkerThread(threading.Thread):
         self.input_queue = input_queue
         self.output_queue = output_queue
         self.interrupted = False
+        self.polltime = FLAGS.polltime
 
     def run(self):
         while not self.interrupted:
             try:
-                item = self.input_queue.get(True, FLAGS.polltime)
+                item = self.input_queue.get(True, self.polltime)
             except Queue.Empty:
+                self.handle_nothing()
                 continue
 
             try:
@@ -119,6 +122,10 @@ class WorkerThread(threading.Thread):
     @property
     def worker_name(self):
         return '%s:%s' % (self.__class__.__name__, self.ident)
+
+    def handle_nothing(self):
+        """Runs whenever there are no items in the queue."""
+        pass
 
     def handle_item(self, item):
         """Handles a single item.
@@ -255,6 +262,44 @@ class ProcessThread(WorkerThread):
                 item.returncode = process.returncode
 
                 return item
+
+
+class TimerItem(WorkItem):
+    """Work item for waiting some period of time before returning."""
+
+    def __init__(self, delay_seconds):
+        WorkItem.__init__(self)
+        self.ready_time = time.time() + delay_seconds
+
+
+class TimerThread(WorkerThread):
+    """"Worker thread that tracks many timers."""
+
+    def __init__(self, *args):
+        """Initializer."""
+        WorkerThread.__init__(self, *args)
+        self.timers = []
+
+    def handle_nothing(self):
+        now = time.time()
+        while self.timers:
+            ready_time, _ = self.timers[0]
+            wait_time = now - ready_time
+            if wait_time <= 0:
+                _, item = heapq.heappop(self.timers)
+                self.output_queue.put(item)
+            else:
+                # Wait for new work up to the point that the earliest
+                # timer is ready to fire.
+                self.polltime = wait_time
+                return
+
+        # Nothing to do, use the default poll time.
+        self.polltime = FLAGS.polltime
+
+    def handle_item(self, item):
+        heapq.heappush(self.timers, (item.ready_time, item))
+        self.handle_nothing()
 
 
 class WorkflowItem(WorkItem):
@@ -427,64 +472,10 @@ class WorkflowThread(WorkerThread):
             target_queue.put(item)
 
 
-class RemoteQueueWorkflow(WorkflowItem):
-    """Runs a local workflow based on work items in a remote queue.
-
-    Args:
-        queue_lease_url: URL to POST to for leasing new tasks.
-        queue_finish_url: URL to POST to for finishing an existing task.
-        local_queue_workflow: WorkflowItem sub-class to create using parameters
-            from the remote work payload that will execute the task.
-    """
-
-    def run(self, queue_lease_url, queue_finish_url, local_queue_workflow):
-        while True:
-            next_item = yield workers.FetchItem(queue_lease_url, post={})
-
-            if next_item.json and next_item.json['error']:
-                logging.error('Could not fetch work from queue_lease_url=%r. '
-                              '%s', queue_lease_url, next_item.json['error'])
-
-            if (not next_item.json or
-                    not next_item.json['tasks'] or
-                    next_item.json['error']):
-                # TODO: yield a delay, sleep
-                continue
-
-            task_list = next_item.json['tasks']
-            assert len(task_list) == 1
-            task = task_list[0]
-
-            task_id = task.pop('task_id')
-            logging.debug('Starting work item from queue_lease_url=%r, '
-                          'task_id=%r, payload=%r, workflow=%r',
-                          queue_finish_url, task_id, task,
-                          local_queue_workflow)
-
-            try:
-                yield local_queue_workflow(**task)
-            except Exception:
-                logging.exception('Exception while processing work from '
-                                  'queue_lease_url=%r, task_id=%r',
-                                  queue_lease_url, task_id)
-                continue
-
-            finish_item = yield workers.FetchItem(
-                queue_finish_url, post={'task_id': task_id})
-            if finish_item.json and finish_item.json['error']:
-                logging.error('Could not finish work with '
-                              'queue_finish_url=%r, task_id=%r. %s',
-                              queue_finish_url, finish_item.json['error'],
-                              task_id)
-
-            logging.debug('Finished work item with queue_finish_url=%r, '
-                          'task_id=%r', queue_finish_url, task_id)
-
-
-
 def GetCoordinator():
     """Creates a coordinator and returns it."""
     fetch_queue = Queue.Queue()
+    timer_queue = Queue.Queue()
     workflow_queue = Queue.Queue()
     complete_queue = Queue.Queue()
 
@@ -496,6 +487,7 @@ def GetCoordinator():
     coordinator.worker_threads = [
         FetchThread(fetch_queue, workflow_queue),
         FetchThread(fetch_queue, workflow_queue),
+        TimerThread(timer_queue, workflow_queue),
     ]
 
     return coordinator
