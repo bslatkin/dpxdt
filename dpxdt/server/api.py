@@ -91,7 +91,7 @@ import work_queue
 import utils
 
 
-@app.route('/api/build', methods=['POST'])
+@app.route('/api/create_build', methods=['POST'])
 def create_build():
     """Creates a new build for a user."""
     # TODO: Make sure the requesting user is logged in
@@ -107,7 +107,7 @@ def create_build():
     return flask.jsonify(build_id=build.id, name=name)
 
 
-@app.route('/api/release', methods=['POST'])
+@app.route('/api/create_release', methods=['POST'])
 def create_release():
     """Creates a new release candidate for a build."""
     build_id = request.form.get('build_id', type=int)

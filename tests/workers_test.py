@@ -53,17 +53,17 @@ class EchoItem(workers.WorkItem):
 class EchoChild(workers.WorkflowItem):
     def run(self, number, should_die=False):
         item = yield EchoItem(number, should_die=should_die)
-        self.result = item.output_number
+        raise workers.Return(item.output_number)
 
 
 class RootWorkflow(workers.WorkflowItem):
     def run(self, child_count, die_on=-1):
         total = 0
         for i in xrange(child_count):
-            workflow = yield EchoChild(i, should_die=(die_on == i))
-            assert workflow.result == i
-            total += workflow.result
-        self.result = total
+            number = yield EchoChild(i, should_die=(die_on == i))
+            assert number is i
+            total += number
+        self.result = total  # Don't raise to test StopIteration
 
 
 class WorkflowThreadTest(unittest.TestCase):

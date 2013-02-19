@@ -373,6 +373,18 @@ class Barrier(list):
 # heartbeat updates that are old, in the case the queue gets out of order.
 
 
+class Return(Exception):
+    """Raised in WorkflowItem.run to return a result to the caller."""
+
+    def __init__(self, result=None):
+        """Initializer.
+
+        Args:
+            result: Result of a WorkflowItem, if any.
+        """
+        self.result = result
+
+
 class WorkflowThread(WorkerThread):
     """Worker thread for running workflows."""
 
@@ -442,27 +454,32 @@ class WorkflowThread(WorkerThread):
             logging.debug('Transitioning workflow=%r, generator=%r, item=%r',
                           workflow, generator, item)
             try:
-                if item is not None and item.error:
-                    next_item = generator.throw(*item.error)
-                else:
-                    next_item = generator.send(item)
-            except StopIteration:
-                workflow.done = True
-                if workflow.root:
-                    return workflow
-                else:
-                    self.input_queue.put(workflow)
-                    return
-            except Exception, e:
-                # Sub-workflow re-raised an exception. Reinject it into the
-                # workflow so a pending parent can catch it.
-                workflow.done = True
-                workflow.error = sys.exc_info()
-                if workflow.root:
-                    return workflow
-                else:
-                    self.input_queue.put(workflow)
-                    return
+                try:
+                    if item is not None and item.error:
+                        next_item = generator.throw(*item.error)
+                    elif isinstance(item, WorkflowItem):
+                        next_item = generator.send(item.result)
+                    else:
+                        next_item = generator.send(item)
+                except StopIteration:
+                    workflow.done = True
+                except Return, e:
+                    workflow.done = True
+                    workflow.result = e.result
+                except Exception, e:
+                    workflow.done = True
+                    workflow.error = sys.exc_info()
+            finally:
+                if workflow.done:
+                    if workflow.root:
+                        # Root workflow finished. This goes to the output
+                        # queue so it can be received by the main thread.
+                        return workflow
+                    else:
+                        # Sub-workflow finished. Reinject it into the
+                        # workflow so a pending parent can catch it.
+                        self.input_queue.put(workflow)
+                        return
 
             # If a returned barrier is empty, immediately progress the
             # workflow.

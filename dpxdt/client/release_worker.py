@@ -15,14 +15,6 @@
 
 """Background worker that uploads new release candidates."""
 
-import Queue
-import json
-import logging
-import subprocess
-import sys
-import threading
-import time
-import urllib2
 
 # Local Libraries
 import gflags
@@ -35,16 +27,25 @@ import workers
 
 
 gflags.DEFINE_string(
-    'release_server_hostport', None,
-    'Where the release server is located.')
+    'release_server_prefix', None,
+    'URL prefix of where the release server is located, such as '
+    '"http://www.example.com/here/is/my/api".')
 
 
 class CreateReleaseWorkflow(workers.WorkflowItem):
     """TODO"""
 
-    def run(self, build_id, name):
-        # create the release name with an API call
-        # return it as the result
+    def run(self, build_id, release_name):
+        call = yield workers.FetchItem(
+            FLAGS.release_server_prefix + '/create_release',
+            post={
+                'build_id': build_id,
+                'release_name': release_name,
+            })
+        # TODO: Handle errors
+
+        raise workers.Return(
+            (build_id, release_name, call.json['release_number']))
 
 
 class ReportRunWorkflow(workers.WorkflowItem):
