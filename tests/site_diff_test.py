@@ -167,7 +167,8 @@ class SiteDiffTest(unittest.TestCase):
                 return 200, 'text/html', 'Hello world!'
 
         site_diff.real_main(
-            'http://%s:%d/' % test.server_address, [], self.output_dir, None,
+            start_url='http://%s:%d/' % test.server_address,
+            output_dir=self.output_dir,
             coordinator=self.coordinator)
         test.shutdown()
 
@@ -188,13 +189,15 @@ class SiteDiffTest(unittest.TestCase):
                 return 200, 'text/html', 'Hello world!'
 
         site_diff.real_main(
-            'http://%s:%d/' % test.server_address, [], self.reference_dir,
-            None, coordinator=self.coordinator)
+            start_url='http://%s:%d/' % test.server_address,
+            output_dir=self.reference_dir,
+            coordinator=self.coordinator)
 
         self.coordinator = workers.GetCoordinator()
         site_diff.real_main(
-            'http://%s:%d/' % test.server_address, [],
-            self.output_dir, self.reference_dir,
+            start_url='http://%s:%d/' % test.server_address,
+            output_dir=self.output_dir,
+            reference_dir=self.reference_dir,
             coordinator=self.coordinator)
         test.shutdown()
 
@@ -220,8 +223,9 @@ class SiteDiffTest(unittest.TestCase):
                 return 200, 'text/html', 'Hello world!'
 
         site_diff.real_main(
-            'http://%s:%d/' % test.server_address, [], self.reference_dir,
-            None, coordinator=self.coordinator)
+            start_url='http://%s:%d/' % test.server_address,
+            output_dir=self.reference_dir,
+            coordinator=self.coordinator)
         test.shutdown()
 
         @webserver
@@ -231,8 +235,9 @@ class SiteDiffTest(unittest.TestCase):
 
         self.coordinator = workers.GetCoordinator()
         site_diff.real_main(
-            'http://%s:%d/' % test.server_address, [],
-            self.output_dir, self.reference_dir,
+            start_url='http://%s:%d/' % test.server_address,
+            output_dir=self.output_dir,
+            reference_dir=self.reference_dir,
             coordinator=self.coordinator)
         test.shutdown()
 
@@ -270,14 +275,19 @@ class SiteDiffTest(unittest.TestCase):
                 return 200, 'text/plain', 'Ignore me!'
 
         site_diff.real_main(
-            'http://%s:%d/' % test.server_address, ['/ignore'],
-            self.output_dir, None, coordinator=self.coordinator)
+            start_url='http://%s:%d/' % test.server_address,
+            ignore_prefixes=['/ignore'],
+            output_dir=self.output_dir,
+            coordinator=self.coordinator)
         test.shutdown()
 
         self.assertTrue(exists(join(self.output_dir, '__run.log')))
         self.assertTrue(exists(join(self.output_dir, '__run.png')))
         self.assertTrue(exists(join(self.output_dir, '__config.js')))
         self.assertTrue(exists(join(self.output_dir, 'url_paths.txt')))
+        self.assertFalse(exists(join(self.output_dir, '_ignore_run.log')))
+        self.assertFalse(exists(join(self.output_dir, '_ignore_run.png')))
+        self.assertFalse(exists(join(self.output_dir, '_ignore_config.js')))
 
         self.assertEquals(
             ['/', '/stuff'],
@@ -294,8 +304,10 @@ class SiteDiffTest(unittest.TestCase):
                 return 404, 'text/plain', 'Nope'
 
         site_diff.real_main(
-            'http://%s:%d/' % test.server_address, ['/ignore'],
-            self.output_dir, None, coordinator=self.coordinator)
+            start_url='http://%s:%d/' % test.server_address,
+            ignore_prefixes=['/ignore'],
+            output_dir=self.output_dir,
+            coordinator=self.coordinator)
         test.shutdown()
 
         self.assertTrue(exists(join(self.output_dir, '__run.log')))

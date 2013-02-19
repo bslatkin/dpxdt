@@ -27,6 +27,7 @@ Example usage:
 
 import HTMLParser
 import Queue
+import datetime
 import json
 import logging
 import os
@@ -42,12 +43,13 @@ FLAGS = gflags.FLAGS
 # Local modules
 import capture_worker
 import pdiff_worker
+import release_worker
 import workers
 
 
-gflags.DEFINE_bool(
-    'verbose', False,
-    'When set, do verbose logging output.')
+gflags.DEFINE_spaceseplist(
+    'ignore_prefixes', [],
+    'URL prefixes that should not be crawled.')
 
 gflags.DEFINE_string(
     'output_dir', None,
@@ -59,9 +61,13 @@ gflags.DEFINE_string(
     'Directory where this tool last ran; used for generating new diffs. '
     'When empty, no diffs will be made.')
 
-gflags.DEFINE_spaceseplist(
-    'ignore_prefixes', [],
-    'URL prefixes that should not be crawled.')
+gflags.DEFINE_string(
+    'upload_build_id', None,
+    'ID of the build to upload this screenshot set to as a new release.')
+
+gflags.DEFINE_bool(
+    'verbose', False,
+    'When set, do verbose logging output.')
 
 
 class Error(Exception):
@@ -231,11 +237,10 @@ class PdiffWorkflow(workers.WorkflowItem):
 
         print 'Captured: %s' % url
 
-        # if upload is true, kick off release_worker.ReportRunWorkflow
-        # reference_dir (local diffs) and upload are mutually exclusive
-
         if not reference_dir:
-            return
+            raise workers.Return((
+                parts.path, capture.output_path, capture.log_path,
+                capture.config_path))
 
         ref_base = os.path.join(reference_dir, clean_url)
         last_run = ref_base + '_run.png'
@@ -265,7 +270,17 @@ class PdiffWorkflow(workers.WorkflowItem):
 class SiteDiff(workers.WorkflowItem):
     """Workflow for coordinating the site diff."""
 
-    def run(self, start_url, ignore_prefixes, output_dir, reference_dir):
+    def run(self,
+            start_url,
+            output_dir,
+            ignore_prefixes,
+            reference_dir,
+            upload_build_id):
+        # TODO: Assert reference_dir or upload_build_id but not both.
+
+        if not ignore_prefixes:
+            ignore_prefixes = []
+
         if not os.path.isdir(output_dir):
             os.mkdir(output_dir)
 
@@ -307,8 +322,11 @@ class SiteDiff(workers.WorkflowItem):
         print ('Found %d total URLs, %d good HTML pages; starting '
                'screenshots' % (len(seen_urls), len(good_urls)))
 
-        # if uploading, create a new release with the name supplied
-        # using CreateReleaseWorkflow
+        if upload_build_id:
+            # TODO: Make the release name prettier.
+            result = yield release_worker.CreateReleaseWorkflow(
+                upload_build_id, str(datetime.datetime.utcnow()))
+            _, release_name, release_number = result
 
         found_urls = os.path.join(output_dir, 'url_paths.txt')
         good_paths = set(urlparse.urlparse(u).path for u in good_urls)
@@ -318,13 +336,24 @@ class SiteDiff(workers.WorkflowItem):
         results = []
         for url in good_urls:
             results.append(PdiffWorkflow(url, output_dir, reference_dir))
-        yield results
+        results = yield results
 
-        # if uploading, mark that all runs are done with
-        # RunsDoneWorkflow
-        # print a URL for the release instead of a path
+        if upload_build_id:
+            reports = []
+            for pdiff_result in results:
+                print 'Result is:', pdiff_result
+                run_name, output_path, log_path, config_path = pdiff_result
+                reports.append(release_worker.ReportRunWorkflow(
+                    upload_build_id, release_name, release_number,
+                    run_name, output_path, log_path, config_path))
+            yield reports
 
-        print 'Results in %s' % output_dir
+            release_url = yield release_worker.RunsDoneWorkflow(
+                upload_build_id, release_name, release_number)
+
+            print 'Results will be at %s' % release_url
+        else:
+            print 'Results in %s' % output_dir
 
 
 # TODO: Add a second mode where the SiteDiff workflow is wrapped in a queue
@@ -332,7 +361,11 @@ class SiteDiff(workers.WorkflowItem):
 # register function to include this in the server's coordinator.
 
 
-def real_main(url, ignore_prefixes, output_dir, reference_dir,
+def real_main(start_url=None,
+              output_dir=None,
+              ignore_prefixes=None,
+              reference_dir=None,
+              upload_build_id=None,
               coordinator=None):
     """Runs the site_diff."""
     if not coordinator:
@@ -342,7 +375,12 @@ def real_main(url, ignore_prefixes, output_dir, reference_dir,
     coordinator.start()
 
     try:
-        item = SiteDiff(url, ignore_prefixes, output_dir, reference_dir)
+        item = SiteDiff(
+            start_url=start_url,
+            output_dir=output_dir,
+            ignore_prefixes=ignore_prefixes,
+            reference_dir=reference_dir,
+            upload_build_id=upload_build_id)
         item.root = True
         coordinator.input_queue.put(item)
         result = coordinator.output_queue.get()
@@ -355,7 +393,9 @@ def main(argv):
     gflags.MarkFlagAsRequired('phantomjs_binary')
     gflags.MarkFlagAsRequired('phantomjs_script')
     gflags.MarkFlagAsRequired('pdiff_binary')
+    # TODO: Make a temporary output dir if just uploading the screenshots.
     gflags.MarkFlagAsRequired('output_dir')
+    # If upload_build_id is set, then require release_server_prefix
 
     try:
         argv = FLAGS(argv)
@@ -371,7 +411,11 @@ def main(argv):
         logging.getLogger().setLevel(logging.DEBUG)
 
     real_main(
-        argv[1], FLAGS.ignore_prefixes, FLAGS.output_dir, FLAGS.reference_dir)
+        start_url=argv[1],
+        output_dir=FLAGS.output_dir,
+        reference_dir=FLAGS.reference_dir,
+        ignore_prefixes=FLAGS.ignore_prefixes,
+        upload_build_id=FLAGS.upload_build_id)
 
 
 if __name__ == '__main__':

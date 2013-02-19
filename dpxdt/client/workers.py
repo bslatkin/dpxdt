@@ -23,11 +23,15 @@ import subprocess
 import sys
 import threading
 import time
+import urllib
 import urllib2
 
 # Local Libraries
 import gflags
 FLAGS = gflags.FLAGS
+import poster.encode
+import poster.streaminghttp
+poster.streaminghttp.register_openers()
 
 
 gflags.DEFINE_float(
@@ -149,8 +153,10 @@ class FetchItem(WorkItem):
 
         Args:
             url: URL to fetch.
-            post: Optional. When supplied, a dictionary of post parameters to
-                include in the request.
+            post: Optional. Dictionary of post parameters to include in the
+                request, with keys and values coerced to strings. If any
+                values are open file handles, the post data will be formatted
+                as multipart/form-data.
             timeout_seconds: Optional. How long until the fetch should timeout.
         """
         WorkItem.__init__(self)
@@ -180,14 +186,31 @@ class FetchThread(WorkerThread):
 
     def handle_item(self, item):
         start_time = time.time()
-        data = None
+
         if item.post:
-            data = urllib.urlencode(item.post)
+            adjusted_data = {}
+            use_form_data = False
+
+            for key, value in item.post.iteritems():
+                if value is None:
+                    continue
+                if isinstance(value, file):
+                    use_form_data = True
+                adjusted_data[key] = value
+
+            if use_form_data:
+                datagen, headers = poster.encode.multipart_encode(
+                    adjusted_data)
+                request = urllib2.Request(item.url, datagen, headers)
+            else:
+                request = urllib2.Request(
+                    item.url, urllib.urlencode(adjusted_data))
+        else:
+            request = urllib2.Request(item.url)
 
         try:
             try:
-                conn = urllib2.urlopen(
-                    item.url, data=data, timeout=item.timeout_seconds)
+                conn = urllib2.urlopen(request, timeout=item.timeout_seconds)
                 item.status_code = conn.getcode()
                 item.headers = conn.info()
                 if item.status_code == 200:
