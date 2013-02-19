@@ -26,9 +26,8 @@ import flask
 from flask import Flask, request
 
 # Local modules
-import server
-app = server.app
-db = server.db
+from . import app
+from . import db
 import utils
 
 

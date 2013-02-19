@@ -18,9 +18,8 @@
 import datetime
 
 # Local modules
-import server
-app = server.app
-db = server.db
+from . import app
+from . import db
 
 
 class Build(db.Model):
@@ -81,7 +80,7 @@ class Run(db.Model):
     """
 
     id = db.Column(db.Integer, primary_key=True)
-    release_id = db.Column(db.Integer, nullable=False)
+    release_id = db.Column(db.Integer, db.ForeignKey('release.id'))
     name = db.Column(db.String, nullable=False)
 
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)

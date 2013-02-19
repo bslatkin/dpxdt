@@ -376,6 +376,13 @@ class Barrier(list):
     def get_item(self):
         """Returns the item to send back into the workflow generator."""
         if self.was_list:
+            blocking_items = self[:]
+            self[:] = []
+            for item in blocking_items:
+                if isinstance(item, WorkflowItem):
+                    self.append(item.result)
+                else:
+                    self.append(item)
             return self
         else:
             return self[0]

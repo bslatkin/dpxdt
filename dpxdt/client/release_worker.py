@@ -46,17 +46,20 @@ class UploadFileError(Error):
 class ReportRunError(Error):
     """Reporting a run failed for some reason."""
 
+class RunsDoneError(Error):
+    """Marking that all runs are done failed for some reason."""
+
 
 class StreamingSha1File(file):
     """File sub-class that sha1 hashes the data as it's read."""
 
-    def __init__(self, *args, **kargs):
+    def __init__(self, *args, **kwargs):
         """Replacement for open()."""
         file.__init__(self, *args, **kwargs)
         self.sha1 = hashlib.sha1()
 
-    def read(self, size=None):
-        data = file.read(self, size=size)
+    def read(self, *args):
+        data = file.read(self, *args)
         self.sha1.update(data)
         return data
 
@@ -119,7 +122,7 @@ class UploadFileWorkflow(workers.WorkflowItem):
             upload = yield workers.FetchItem(
                 FLAGS.release_server_prefix + '/upload',
                 post={'file': handle},
-                timeout=120)
+                timeout_seconds=120)
 
             if upload.json and upload.json.get('error'):
                 raise UploadFileError(upload.json.get('error'))
@@ -191,6 +194,18 @@ class RunsDoneWorkflow(workers.WorkflowItem):
     """TODO"""
 
     def run(self, build_id, release_name, release_number):
-        pass
-        # report the status to the server
-        # return the URL to view
+        call = yield workers.FetchItem(
+            FLAGS.release_server_prefix + '/runs_done',
+            post={
+                'build_id': build_id,
+                'release_name': release_name,
+                'release_number': release_number,
+            })
+
+        if call.json and call.json.get('error'):
+            raise RunsDoneError(call.json.get('error'))
+
+        if not call.json or not call.json.get('success'):
+            raise RunsDoneError('Bad response: %r' % call)
+
+        raise workers.Return('this would be a URL')

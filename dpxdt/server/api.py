@@ -83,9 +83,8 @@ import flask
 from flask import Flask, request
 
 # Local modules
-import server
-app = server.app
-db = server.db
+from . import app
+from . import db
 import models
 import work_queue
 import utils
@@ -304,7 +303,7 @@ def runs_done():
 
     release.status = models.Release.PROCESSING
     db.session.add(release)
-    _check_release_done_processing(release)
+    _check_release_done_processing(release.id)
     db.session.commit()
 
     logging.info('Runs done for release: build_id=%s, release_name=%r, '
