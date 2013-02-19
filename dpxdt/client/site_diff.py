@@ -341,7 +341,6 @@ class SiteDiff(workers.WorkflowItem):
         if upload_build_id:
             reports = []
             for pdiff_result in results:
-                print 'Result is:', pdiff_result
                 run_name, output_path, log_path, config_path = pdiff_result
                 reports.append(release_worker.ReportRunWorkflow(
                     upload_build_id, release_name, release_number,
