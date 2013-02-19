@@ -29,6 +29,7 @@ from flask import Flask, request
 import server
 app = server.app
 db = server.db
+import utils
 
 
 class Error(Exception):
@@ -59,7 +60,7 @@ class WorkQueue(db.Model):
     queue_name = db.Column(db.String(100), primary_key=True, nullable=False)
     live = db.Column(db.Boolean, default=True, nullable=False)
     eta = db.Column(db.DateTime, default=datetime.datetime.utcnow,
-                                    nullable=False)
+                    nullable=False)
 
     source = db.Column(db.String)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
@@ -67,6 +68,9 @@ class WorkQueue(db.Model):
     lease_attempts = db.Column(db.Integer, default=0, nullable=False)
     last_owner = db.Column(db.String)
     last_lease = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    heartbeat = db.Column(db.Text)
+    heartbeat_number = db.Column(db.Integer)
 
     payload = db.Column(db.LargeBinary)
     content_type = db.Column(db.String)
@@ -164,13 +168,15 @@ def lease(queue_name, owner, timeout):
     task.lease_attempts += 1
     task.last_owner = owner
     task.last_lease = now
+    task.heartbeat = None
+    task.heartbeat_number = 0
     db.session.add(task)
 
     return _task_to_dict(task)
 
 
-def finish(queue_name, task_id, owner):
-    """Marks a work item on a queue as finished.
+def _get_task_with_policy(queue_name, task_id, owner):
+    """Fetches the specified task and enforces ownership policy.
 
     Args:
         queue_name: Name of the queue the work item is on.
@@ -178,8 +184,7 @@ def finish(queue_name, task_id, owner):
         owner: Who or what has the current lease on the task.
 
     Returns:
-        True if the task has been finished for the first time; False if the
-        task was already finished.
+        The valid WorkQueue task that is currently owned.
 
     Raises:
         TaskDoesNotExistError if the task does not exist.
@@ -202,6 +207,61 @@ def finish(queue_name, task_id, owner):
         raise NotOwnerError('queue=%s, task_id=%s, owner=%s' % (
                             task.queue_name, task_id, task.last_owner))
 
+    return task
+
+
+def heartbeat(queue_name, task_id, owner, message, index):
+    """Sets the heartbeat status of the task.
+
+    Args:
+        queue_name: Name of the queue the work item is on.
+        task_id: ID of the task that is finished.
+        owner: Who or what has the current lease on the task.
+        message: Message to report as the task's current status.
+        index: Number of this message in the sequence of messages from the
+            current task owner, starting at zero. This lets the API receive
+            heartbeats out of order, yet ensure that the most recent message
+            is actually saved to the database. This requires the owner issuing
+            heartbeat messages to issue heartbeat indexes sequentially.
+
+    Returns:
+        True if the heartbeat message was set, False if it is lower than the
+        current heartbeat index.
+
+    Raises:
+        TaskDoesNotExistError if the task does not exist.
+        LeaseExpiredError if the lease is no longer active.
+        NotOwnerError if the specified owner no longer owns the task.
+    """
+    task = _get_task_with_policy(queue_name, task_id, owner)
+    if task.heartbeat_number > index:
+        return False
+
+    task.heartbeat = message
+    task.heartbeat_number = index
+    db.session.add(task)
+    return True
+
+
+def finish(queue_name, task_id, owner):
+    """Marks a work item on a queue as finished.
+
+    Args:
+        queue_name: Name of the queue the work item is on.
+        task_id: ID of the task that is finished.
+        owner: Who or what has the current lease on the task.
+
+    Returns:
+        True if the task has been finished for the first time; False if the
+        task was already finished.
+
+    Raises:
+        TaskDoesNotExistError if the task does not exist.
+        LeaseExpiredError if the lease is no longer active.
+        NotOwnerError if the specified owner no longer owns the task.
+    """
+    task = _get_task_with_policy(queue_name, task_id, owner)
+
     if not task.live:
         logging.warning('Finishing already dead task. queue=%s, task_id=%s, '
                         'owner=%s', task.queue_name, task_id, owner)
@@ -216,22 +276,20 @@ def finish(queue_name, task_id, owner):
 def handle_add(queue_name):
     """Adds a task to a queue."""
     # TODO: Require an API key on the basic auth header
+    source = request.form.get('source', request.remote_addr, type=str)
     try:
         task_id = add(
             queue_name,
             payload=request.form.get('payload', type=str),
             content_type=request.form.get('content_type', type=str),
-            source=request.form.get('source', request.remote_addr, type=str),
+            source=source,
             task_id=request.form.get('task_id', type=str))
     except Error, e:
-        error = '%s: %s' % (e.__class__.__name__, e)
-        logging.error('Could not add task request=%r. %s', request, error)
-        response = flask.jsonify(error=error)
-        response.status_code = 400
-        return response
+        return utils.jsonify_error(e)
 
     db.session.commit()
-    logging.info('Task added: queue=%s, task_id=%s', queue_name, task_id)
+    logging.info('Task added: queue=%s, task_id=%s, source=%s',
+                 queue_name, task_id, source)
     return flask.jsonify(task_id=task_id)
 
 
@@ -239,10 +297,14 @@ def handle_add(queue_name):
 def handle_lease(queue_name):
     """Leases a task from a queue."""
     # TODO: Require an API key on the basic auth header
-    task = lease(
-        queue_name,
-        request.form.get('owner', request.remote_addr, type=str),
-        request.form.get('timeout', 60, type=int))
+    owner = request.form.get('owner', request.remote_addr, type=str)
+    try:
+        task = lease(
+            queue_name,
+            owner,
+            request.form.get('timeout', 60, type=int))
+    except Error, e:
+        return utils.jsonify_error(e)
 
     if not task:
         return flask.jsonify(tasks=[])
@@ -251,26 +313,41 @@ def handle_lease(queue_name):
         task['payload'] = json.loads(task['payload'])
 
     db.session.commit()
-    logging.info('Task leased: queue=%s, task_id=%s',
-                 queue_name, task['task_id'])
+    logging.debug('Task leased: queue=%s, task_id=%s, owner=%s',
+                  queue_name, task['task_id'], owner)
     return flask.jsonify(tasks=[task])
+
+
+@app.route('/api/work_queue/<string:queue_name>/heartbeat', methods=['POST'])
+def handle_heartbeat(queue_name):
+    """Updates the heartbeat message for a task."""
+    # TODO: Require an API key on the basic auth header
+    try:
+        heartbeat(
+            queue_name,
+            request.form.get('task_id', type=str),
+            request.form.get('owner', request.remote_addr, type=str),
+            request.form.get('message', type=int),
+            request.form.get('index', type=int))
+    except Error, e:
+        return utils.jsonify_error(e)
+
+    db.session.commit()
+    return flask.jsonify(success=True)
 
 
 @app.route('/api/work_queue/<string:queue_name>/finish', methods=['POST'])
 def handle_finish(queue_name):
     """Marks a task on a queue as finished."""
     # TODO: Require an API key on the basic auth header
+    task_id = request.form.get('task_id', type=str)
+    owner = request.form.get('owner', request.remote_addr, type=str)
     try:
-        finish(
-            queue_name,
-            request.form.get('task_id', type=str),
-            request.form.get('owner', request.remote_addr, type=str))
+        finish(queue_name, task_id, owner)
     except Error, e:
-        error = '%s: %s' % (e.__class__.__name__, e)
-        logging.error('Could not add task request=%r. %s', request, error)
-        response = flask.jsonify(error=error)
-        response.status_code = 400
-        return response
+        return utils.jsonify_error(e)
 
     db.session.commit()
+    logging.debug('Task finished: queue=%s, task_id=%s, owner=%s',
+                  queue_name, task_id, owner)
     return flask.jsonify(success=True)
