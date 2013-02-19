@@ -231,6 +231,9 @@ class PdiffWorkflow(workers.WorkflowItem):
 
         print 'Captured: %s' % url
 
+        # if upload is true, kick off release_worker.ReportRunWorkflow
+        # reference_dir (local diffs) and upload are mutually exclusive
+
         if not reference_dir:
             return
 
@@ -274,6 +277,9 @@ class SiteDiff(workers.WorkflowItem):
         sys.stdout.flush()
 
         while pending_urls:
+            # TODO: Enforce a job-wide timeout on the whole process of
+            # URL discovery, to make sure infinitely deep sites do not
+            # cause this job to never stop.
             seen_urls.update(pending_urls)
             output = yield [workers.FetchItem(u) for u in pending_urls]
             pending_urls.clear()
@@ -301,6 +307,9 @@ class SiteDiff(workers.WorkflowItem):
         print ('Found %d total URLs, %d good HTML pages; starting '
                'screenshots' % (len(seen_urls), len(good_urls)))
 
+        # if uploading, create a new release with the name supplied
+        # using CreateReleaseWorkflow
+
         found_urls = os.path.join(output_dir, 'url_paths.txt')
         good_paths = set(urlparse.urlparse(u).path for u in good_urls)
         with open(found_urls, 'w') as urls_file:
@@ -311,7 +320,16 @@ class SiteDiff(workers.WorkflowItem):
             results.append(PdiffWorkflow(url, output_dir, reference_dir))
         yield results
 
+        # if uploading, mark that all runs are done with
+        # RunsDoneWorkflow
+        # print a URL for the release instead of a path
+
         print 'Results in %s' % output_dir
+
+
+# TODO: Add a second mode where the SiteDiff workflow is wrapped in a queue
+# worker so site diffs can happen entirely through the work queue. Add a
+# register function to include this in the server's coordinator.
 
 
 def real_main(url, ignore_prefixes, output_dir, reference_dir,

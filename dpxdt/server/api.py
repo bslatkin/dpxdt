@@ -285,7 +285,7 @@ def report_run():
             previous_id = last_good_run.id
 
     fields = dict(
-        name=name,
+        name=name,  # xxx This name needs to be something else
         release_id=release.id,
         image=current_image,
         log=current_log,

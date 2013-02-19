@@ -50,7 +50,8 @@ class CreateReleaseWorkflow(workers.WorkflowItem):
 class ReportRunWorkflow(workers.WorkflowItem):
     """TODO"""
 
-    def run(self, build_id, name, number, screenshot_path, screenshot_log):
+    def run(self, build_id, release_name, release_number,
+            screenshot_path, screenshot_log):
         # upload the screenshot
         # upload the log
         # save the result as a run
@@ -59,9 +60,16 @@ class ReportRunWorkflow(workers.WorkflowItem):
 class ReportPdiffWorkflow(workers.WorkflowItem):
     """TODO"""
 
-    def run(self, reference_path, run_path, run_id):
-        # Make a temp directory
+    def run(self, diff_path, diff_log, run_id):
         # upload the diff image
         # upload the diff log
         # report the fact that it's done
-        # Delete the temp directory
+
+
+class RunsDoneWorkflow(workers.WorkflowItem):
+    """TODO"""
+
+    def run(self, build_id, release_name, release_number):
+        # report the status to the server
+
+

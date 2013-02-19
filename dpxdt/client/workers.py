@@ -364,6 +364,15 @@ class Barrier(list):
             self.error = item.error
 
 
+# TODO: Add FireAndForget class that can wrap a WorkItem. Instructs the
+# WorkflowThread to run the given WorkItem on its target queue, but to
+# ignore all exceptions it raises and not wait until it completes to let
+# the current worker to continue processing. The result of the yield will
+# be None. Use this to add heart-beat work items to background queues.
+# Include a locally incrementing number so the server side can ignore
+# heartbeat updates that are old, in the case the queue gets out of order.
+
+
 class WorkflowThread(WorkerThread):
     """Worker thread for running workflows."""
 
