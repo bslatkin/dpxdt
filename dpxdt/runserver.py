@@ -13,18 +13,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""TODO
+"""Runs the dpxdt API server, optionally with local queue workers.
+
+
+Example usage with local workers:
 
 PYTHONPATH=./lib:$PYTHONPATH \
 ./dpxdt/runserver.py \
     --phantomjs_binary=path/to/phantomjs-1.8.1-macosx/bin/phantomjs \
     --phantomjs_script=path/to/client/capture.js \
-    --pdiff_binary=path/to/pdiff/perceptualdiff
+    --pdiff_binary=path/to/pdiff/perceptualdiff \
+    --local_queue_workers \
+    --pdiff_queue_url=http://localhost:5000/api/work_queue/run-pdiff \
+    --capture_queue_url=http://localhost:5000/api/work_queue/run-capture
+
+
+Example usage just as an API server:
+
+PYTHONPATH=./lib:$PYTHONPATH \
+./dpxdt/runserver.py
+
 """
 
 import logging
 import sys
-import threading
 
 # Local Libraries
 import gflags
@@ -49,12 +61,6 @@ gflags.DEFINE_bool(
 
 
 def run_workers():
-    # TODO: Move these asserts into register() calls.
-    assert FLAGS.phantomjs_binary
-    assert FLAGS.phantomjs_script
-    assert FLAGS.pdiff_binary
-    assert FLAGS.pdiff_queue_url
-
     coordinator = workers.GetCoordinator()
     capture_worker.register(coordinator)
     pdiff_worker.register(coordinator)

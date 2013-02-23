@@ -234,6 +234,7 @@ def report_run():
 
     # Schedule pdiff if there isn't already an image.
     if needs_diff:
+        # TODO: Move this queue name to a flag.
         work_queue.add('run-pdiff', dict(
             build_id=build_id,
             release_name=release_name,

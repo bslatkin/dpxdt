@@ -74,6 +74,8 @@ class CaptureThread(workers.ProcessThread):
 
 def register(coordinator):
     """Registers this module as a worker with the given coordinator."""
+    assert FLAGS.phantomjs_binary
+    assert FLAGS.phantomjs_script
     capture_queue = Queue.Queue()
     coordinator.register(CaptureItem, capture_queue)
     coordinator.worker_threads.append(

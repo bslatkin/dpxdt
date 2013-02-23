@@ -72,6 +72,7 @@ class PdiffThread(workers.ProcessThread):
 
 def register(coordinator):
     """Registers this module as a worker with the given coordinator."""
+    assert FLAGS.pdiff_binary
     pdiff_queue = Queue.Queue()
     coordinator.register(PdiffItem, pdiff_queue)
     coordinator.worker_threads.append(

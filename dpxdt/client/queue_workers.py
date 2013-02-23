@@ -73,7 +73,7 @@ class HeartbeatWorkflow(workers.WorkflowItem):
             raise HeartbeatError('Bad response: %r' % call)
 
 
-class RemoteQueueWorkflow(WorkflowItem):
+class RemoteQueueWorkflow(workers.WorkflowItem):
     """Runs a local workflow based on work items in a remote queue.
 
     Args:
@@ -135,7 +135,7 @@ class RemoteQueueWorkflow(WorkflowItem):
                 continue
 
             finish_item = yield workers.FetchItem(
-                queue_url + '/finish, post={'task_id': task_id})
+                queue_url + '/finish', post={'task_id': task_id})
             if finish_item.json and finish_item.json['error']:
                 logging.error('Could not finish work with '
                               'queue_url=%r, task_id=%r. %s',
@@ -145,7 +145,7 @@ class RemoteQueueWorkflow(WorkflowItem):
                           'task_id=%r', queue_url, task_id)
 
 
-class DoPdiffQueueWorkflow(WorkflowItem):
+class DoPdiffQueueWorkflow(workers.WorkflowItem):
     """TODO"""
 
     def run(self, build_id=None, release_name=None, release_number=None,
@@ -159,7 +159,7 @@ class DoPdiffQueueWorkflow(WorkflowItem):
 
             yield heartbeat('Fetching reference and run images')
             yield [
-                workers.FetchItem(reference_url, result_path=ref_path)
+                workers.FetchItem(reference_url, result_path=ref_path),
                 workers.FetchItem(run_url, result_path=run_path)
             ]
 
@@ -180,7 +180,7 @@ class DoPdiffQueueWorkflow(WorkflowItem):
             shutil.rmtree(output_path, True)
 
 
-class DoCaptureQueueWorkflow(WorkflowItem):
+class DoCaptureQueueWorkflow(workers.WorkflowItem):
     """TODO"""
 
     def run(self, build_id=None, release_name=None, release_number=None,
@@ -216,13 +216,13 @@ def register(coordinator):
     if FLAGS.pdiff_queue_url:
         item = RemoteQueueWorkflow(
             FLAGS.pdiff_queue_url,
-            release_worker.DoPdiffQueueWorkflow)
+            DoPdiffQueueWorkflow)
         item.root = True
         coordinator.input_queue.put(item)
 
     if FLAGS.capture_queue_url:
         item = RemoteQueueWorkflow(
             FLAGS.capture_queue_url,
-            release_worker.DoCaptureQueueWorkflow)
+            DoCaptureQueueWorkflow)
         item.root = True
         coordinator.input_queue.put(item)

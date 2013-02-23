@@ -65,7 +65,7 @@ class WorkItem(object):
         if isinstance(obj, dict):
             result = []
             for key, value in obj.iteritems():
-                result.append("'%s': %s" % (key, WorkItem._print_tree(value)))
+                result.append("%s=%s" % (key, WorkItem._print_tree(value)))
             return '{%s}' % ', '.join(result)
         else:
             value_str = repr(obj)
@@ -193,7 +193,7 @@ class FetchThread(WorkerThread):
     def handle_item(self, item):
         start_time = time.time()
 
-        if item.post:
+        if item.post is not None:
             adjusted_data = {}
             use_form_data = False
 
