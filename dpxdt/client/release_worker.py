@@ -46,6 +46,9 @@ class UploadFileError(Error):
 class ReportRunError(Error):
     """Reporting a run failed for some reason."""
 
+class ReportPdiffError(Error):
+    """Reporting a pdiff failed for some reason."""
+
 class RunsDoneError(Error):
     """Marking that all runs are done failed for some reason."""
 
@@ -181,17 +184,66 @@ class ReportRunWorkflow(workers.WorkflowItem):
 
 
 class ReportPdiffWorkflow(workers.WorkflowItem):
-    """TODO"""
+    """Reports a pdiff's result status.
 
-    def run(self, diff_path, diff_log, run_id):
-        pass
-        # upload the diff image
-        # upload the diff log
-        # report the fact that it's done
+    Args:
+        build_id: ID of the build.
+        release_name: Name of the release.
+        release_number: Number of the release candidate.
+        run_name: Name of the pdiff being uploaded.
+        diff_path: Path to the diff to upload. May be None if there is no diff.
+        log_path: Path to the diff log to upload. May be None if there is
+            no diff to report.
+
+    Raises:
+        ReportPdiffError if the pdiff status could not be reported.
+    """
+
+    def run(self, build_id, release_name, release_number, run_name,
+            diff_path, log_path):
+        diff_id = None
+        log_id = None
+        no_diff = None
+        if (diff_path and log_path and
+                os.path.isfile(diff_path) and os.path.isfile(log_path)):
+            diff_id, log_id = yield [
+                UploadFileWorkflow(diff_path),
+                UploadFileWorkflow(log_path),
+            ]
+        else:
+            no_diff = 'true'
+
+        call = yield workers.FetchItem(
+            FLAGS.release_server_prefix + '/report_pdiff',
+            post={
+                'build_id': build_id,
+                'release_name': release_name,
+                'release_number': release_number,
+                'run_name': run_name,
+                'diff_image': diff_id,
+                'diff_log': log_id,
+                'no_diff': no_diff,
+            })
+
+        if call.json and call.json.get('error'):
+            raise ReportPdiffError(call.json.get('error'))
+
+        if not call.json or not call.json.get('success'):
+            raise ReportPdiffError('Bad response: %r' % call)
 
 
 class RunsDoneWorkflow(workers.WorkflowItem):
-    """TODO"""
+    """Reports all runs are done for a release candidate.
+
+    Args:
+        build_id: ID of the build.
+        release_name: Name of the release.
+        release_number: Number of the release candidate.
+
+    Raises:
+        RunsDoneError if the release candidate could not have its runs
+        marked done.
+    """
 
     def run(self, build_id, release_name, release_number):
         call = yield workers.FetchItem(
@@ -208,4 +260,6 @@ class RunsDoneWorkflow(workers.WorkflowItem):
         if not call.json or not call.json.get('success'):
             raise RunsDoneError('Bad response: %r' % call)
 
+        # TODO: Have this return the URL of the release (which may have
+        # pdiffs still in flight).
         raise workers.Return('this would be a URL')

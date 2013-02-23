@@ -69,6 +69,9 @@ class Artifact(db.Model):
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     data = db.Column(db.LargeBinary)
     content_type = db.Column(db.String)
+    # TODO: Actually save the blob files somewhere else, like S3. Add a
+    # queue worker that uploads them there and purges the database. Move to
+    # saving blobs in a directory by content-addressable filename.
 
 
 class Run(db.Model):

@@ -16,9 +16,11 @@
 """Workers for driving screen captures, perceptual diffs, and related work."""
 
 import Queue
+import contextlib
 import heapq
 import json
 import logging
+import shutil
 import subprocess
 import sys
 import threading
@@ -148,7 +150,7 @@ class WorkerThread(threading.Thread):
 class FetchItem(WorkItem):
     """Work item that is handled by fetching a URL."""
 
-    def __init__(self, url, post=None, timeout_seconds=30):
+    def __init__(self, url, post=None, timeout_seconds=30, result_path=None):
         """Initializer.
 
         Args:
@@ -158,11 +160,15 @@ class FetchItem(WorkItem):
                 values are open file handles, the post data will be formatted
                 as multipart/form-data.
             timeout_seconds: Optional. How long until the fetch should timeout.
+            result_path: When supplied, the output of the fetch should be
+                streamed to a file on disk with the given path. Use this
+                to prevent many fetches from causing memory problems.
         """
         WorkItem.__init__(self)
         self.url = url
         self.post = post
         self.timeout_seconds = timeout_seconds
+        self.result_path = result_path
         self.status_code = None
         self.data = None
         self.headers = None
@@ -210,11 +216,16 @@ class FetchThread(WorkerThread):
 
         try:
             try:
-                conn = urllib2.urlopen(request, timeout=item.timeout_seconds)
-                item.status_code = conn.getcode()
-                item.headers = conn.info()
-                if item.status_code == 200:
-                    item.data = conn.read()
+                with contextlib.closing(urllib2.urlopen(
+                        request, timeout=item.timeout_seconds)) as conn:
+                    item.status_code = conn.getcode()
+                    item.headers = conn.info()
+                    if item.status_code == 200:
+                        if item.result_path:
+                            with open(item.result_path) as result_file:
+                                shutil.copyfileobj(conn, result_file)
+                        else:
+                            item.data = conn.read()
             except urllib2.HTTPError, e:
                 item.status_code = e.code
             except urllib2.URLError:

@@ -22,6 +22,7 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
+import pdiff_worker
 import release_worker
 import workers
 
@@ -92,13 +93,31 @@ class RemoteQueueWorkflow(WorkflowItem):
 class DoPdiffQueueWorkflow(WorkflowItem):
     """TODO"""
 
-    def run(self, reference_url, run_url, run_id):
-        # create a temp dir
-        # fetch reference url
-        # fetch run url
-        # run pdiff_worker.PdiffItem
-        # run release_worker.ReportPdiffWorkflow on the files
-        # delete temp dir
+    def run(self, build_id=None, release_name=None, release_number=None,
+            run_name=None, reference_url=None, run_url=None):
+        output_path = tempfile.mkdtemp()
+        try:
+            ref_path = os.path.join(output_path, 'ref')
+            run_path = os.path.join(output_path, 'run')
+            diff_path = os.path.join(output_path, 'diff')
+            log_path = os.path.join(output_path, 'log')
+
+            ref_item, run_item = yield [
+                workers.FetchItem(reference_url, result_path=ref_path)
+                workers.FetchItem(run_url, result_path=run_path)
+            ]
+
+            pdiff = yield pdiff_worker.PdiffItem(
+                log_path, ref_path, run_path, diff_path)
+            if not os.path.isfile(diff_path) and pdiff.returncode != 0:
+                # TODO: Real exception
+                assert False, 'Error!'
+
+            yield release_worker.ReportPdiffWorkflow(
+                build_id, release_name, release_number, run_name,
+                diff_path, log_path)
+        finally:
+            shutil.rmtree(output_path, True)
 
 
 class DoCaptureQueueWorkflow(WorkflowItem):

@@ -33,6 +33,7 @@ FLAGS = gflags.FLAGS
 # Local modules
 from client import capture_worker
 from client import pdiff_worker
+from client import queue_workers
 from client import workers
 import server
 
@@ -48,13 +49,16 @@ gflags.DEFINE_bool(
 
 
 def run_workers():
+    # TODO: Move these asserts into register() calls.
     assert FLAGS.phantomjs_binary
     assert FLAGS.phantomjs_script
     assert FLAGS.pdiff_binary
+    assert FLAGS.pdiff_queue_url
 
     coordinator = workers.GetCoordinator()
     capture_worker.register(coordinator)
     pdiff_worker.register(coordinator)
+    queue_workers.register(coordinator)
     coordinator.start()
     logging.debug('Workers started')
 

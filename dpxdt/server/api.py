@@ -209,6 +209,7 @@ def report_run():
         .order_by(models.Release.created.desc())
         .first())
     previous_id = None
+    last_image = None
     if last_good_release:
         last_good_run = (
             models.Run.query
@@ -216,6 +217,7 @@ def report_run():
             .first())
         if last_good_run:
             previous_id = last_good_run.id
+            last_image = last_good_run.image
 
     run = models.Run(
         name=run_name,
@@ -236,7 +238,9 @@ def report_run():
             build_id=build_id,
             release_name=release_name,
             release_number=release_number,
-            run_name=run_name,
+            run_name=flask.run_name,
+            reference_url=url_for('download', sha1sum=current_image),
+            run_url=url_for('download', sha1sum=last_image),
         ))
 
     db.session.commit()
@@ -367,3 +371,15 @@ def upload():
     logging.info('Upload received: artifact_id=%s, content_type=%s',
                  sha1sum, content_type)
     return flask.jsonify(sha1sum=sha1sum)
+
+
+@app.route('/api/download')
+def download():
+    """Downloads an artifact by it's content hash."""
+    # TODO: Require an API key on the basic auth header
+    # TODO: Enforce build/release ownership of or access to the file
+    sha1sum = request.args.get('sha1sum')
+    artifact = models.Artifact.query.get(sha1sum)
+    if not artifact:
+        abort(404)
+    return flask.Response(artifact.data, content_type=artifact.content_type)
