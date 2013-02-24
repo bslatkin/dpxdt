@@ -199,16 +199,16 @@ def _get_task_with_policy(queue_name, task_id, owner):
         queue_name=queue_name,
         task_id=task_id).first()
     if not task:
-        raise TaskDoesNotExistError('task_id=%s' % task_id)
+        raise TaskDoesNotExistError('task_id=%r' % task_id)
 
     # Lease delta should be positive, meaning it has not yet expired!
     lease_delta = now - task.eta
     if lease_delta > datetime.timedelta(0):
-        raise LeaseExpiredError('queue=%s, task_id=%s expired %s' % (
+        raise LeaseExpiredError('queue=%r, task_id=%r expired %s' % (
                                 task.queue_name, task_id, lease_delta))
 
     if task.last_owner != owner:
-        raise NotOwnerError('queue=%s, task_id=%s, owner=%s' % (
+        raise NotOwnerError('queue=%r, task_id=%r, owner=%r' % (
                             task.queue_name, task_id, task.last_owner))
 
     return task
@@ -267,8 +267,8 @@ def finish(queue_name, task_id, owner):
     task = _get_task_with_policy(queue_name, task_id, owner)
 
     if not task.live:
-        logging.warning('Finishing already dead task. queue=%s, task_id=%s, '
-                        'owner=%s', task.queue_name, task_id, owner)
+        logging.warning('Finishing already dead task. queue=%r, task_id=%r, '
+                        'owner=%r', task.queue_name, task_id, owner)
         return False
 
     task.live = False
@@ -292,7 +292,7 @@ def handle_add(queue_name):
         return utils.jsonify_error(e)
 
     db.session.commit()
-    logging.info('Task added: queue=%s, task_id=%s, source=%s',
+    logging.info('Task added: queue=%r, task_id=%r, source=%r',
                  queue_name, task_id, source)
     return flask.jsonify(task_id=task_id)
 
@@ -317,7 +317,7 @@ def handle_lease(queue_name):
         task['payload'] = json.loads(task['payload'])
 
     db.session.commit()
-    logging.debug('Task leased: queue=%s, task_id=%s, owner=%s',
+    logging.debug('Task leased: queue=%r, task_id=%r, owner=%r',
                   queue_name, task['task_id'], owner)
     return flask.jsonify(tasks=[task])
 
@@ -340,7 +340,7 @@ def handle_heartbeat(queue_name):
         return utils.jsonify_error(e)
 
     db.session.commit()
-    logging.debug('Task heartbeat: queue=%s, task_id=%s, message=%s, index=%d',
+    logging.debug('Task heartbeat: queue=%r, task_id=%r, message=%r, index=%d',
                   queue_name, task_id, message, index)
     return flask.jsonify(success=True)
 
@@ -357,6 +357,6 @@ def handle_finish(queue_name):
         return utils.jsonify_error(e)
 
     db.session.commit()
-    logging.debug('Task finished: queue=%s, task_id=%s, owner=%s',
+    logging.debug('Task finished: queue=%r, task_id=%r, owner=%r',
                   queue_name, task_id, owner)
     return flask.jsonify(success=True)

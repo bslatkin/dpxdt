@@ -145,11 +145,11 @@ def _check_release_done_processing(release_id):
     """Moves a release candidate to reviewing if all runs are done."""
     release = models.Release.query.get(release_id)
     if not release:
-        logging.error('Could not find release_id=%s', release_id)
+        logging.error('Could not find release_id=%r', release_id)
         return False
 
     if release.status != models.Release.PROCESSING:
-        logging.error('Already done processing: release_id=%s', release_id)
+        logging.error('Already done processing: release_id=%r', release_id)
         return False
 
     query = models.Run.query.filter_by(release_id=release.id)
@@ -259,7 +259,7 @@ def report_run():
     db.session.commit()
 
     logging.info('Created run: build_id=%r, release_name=%r, '
-                 'release_number=%d, run_name=%s',
+                 'release_number=%d, run_name=%r',
                  build_id, release_name, release_number, run_name)
 
     return flask.jsonify(success=True)
@@ -296,8 +296,8 @@ def report_pdiff():
     db.session.add(run)
 
     logging.info('Saved pdiff: build_id=%r, release_name=%r, '
-                 'release_number=%d, run_name=%s, '
-                 'no_diff=%s, diff_image=%s, diff_log=%s',
+                 'release_number=%d, run_name=%r, '
+                 'no_diff=%r, diff_image=%r, diff_log=%r',
                  build_id, release_name, release_number, run_name,
                  no_diff, run.diff_image, run.diff_log)
 
@@ -366,7 +366,7 @@ def upload():
     sha1sum = hashlib.sha1(data).hexdigest()
     exists = models.Artifact.query.filter_by(id=sha1sum).first()
     if exists:
-        logging.info('Upload already exists: artifact_id=%s', sha1sum)
+        logging.info('Upload already exists: artifact_id=%r', sha1sum)
         return flask.jsonify(sha1sum=sha1sum)
 
     # TODO: Mark that this owner/build has access to this sha1sum, to prevent
@@ -381,7 +381,7 @@ def upload():
     db.session.add(artifact)
     db.session.commit()
 
-    logging.info('Upload received: artifact_id=%s, content_type=%s',
+    logging.info('Upload received: artifact_id=%r, content_type=%r',
                  sha1sum, content_type)
     return flask.jsonify(sha1sum=sha1sum)
 
