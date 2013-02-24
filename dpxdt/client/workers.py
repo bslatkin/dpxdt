@@ -104,6 +104,12 @@ class WorkerThread(threading.Thread):
         self.interrupted = False
         self.polltime = FLAGS.polltime
 
+    def stop(self):
+        """Stops the thread but does not join it."""
+        if self.interrupted:
+            return
+        self.interrupted = True
+
     def run(self):
         while not self.interrupted:
             try:
@@ -303,6 +309,7 @@ class TimerItem(WorkItem):
 
     def __init__(self, delay_seconds):
         WorkItem.__init__(self)
+        self.delay_seconds = delay_seconds
         self.ready_time = time.time() + delay_seconds
 
 
@@ -318,7 +325,7 @@ class TimerThread(WorkerThread):
         now = time.time()
         while self.timers:
             ready_time, _ = self.timers[0]
-            wait_time = now - ready_time
+            wait_time = ready_time - now
             if wait_time <= 0:
                 _, item = heapq.heappop(self.timers)
                 self.output_queue.put(item)
@@ -462,6 +469,9 @@ class WorkflowThread(WorkerThread):
         for thread in self.worker_threads:
             thread.interrupted = True
         self.interrupted = True
+
+    def join(self):
+        """Joins the coordinator thread and all worker threads."""
         for thread in self.worker_threads:
             thread.join()
         self.join()
@@ -548,6 +558,7 @@ def GetCoordinator():
 
     coordinator = WorkflowThread(workflow_queue, complete_queue)
     coordinator.register(FetchItem, fetch_queue)
+    coordinator.register(TimerItem, timer_queue)
 
     # TODO: Make number of threads configurable.
     # TODO: Enable multiple coodinator threads.

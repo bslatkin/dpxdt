@@ -18,12 +18,13 @@
 To run:
 
 PYTHONPATH=./lib:$PYTHONPATH \
-./tests/workers_test.py \
+./tests/workers_test.py
 """
 
 import Queue
 import logging
 import sys
+import time
 import unittest
 
 # Local Libraries
@@ -78,6 +79,7 @@ class WorkflowThreadTest(unittest.TestCase):
     def tearDown(self):
         """Cleans up the test harness."""
         self.coordinator.stop()
+        self.coordinator.join()
 
     def testMultiLevelWorkflow(self):
         """Tests a multi-level workflow."""
@@ -114,6 +116,49 @@ class WorkflowThreadTest(unittest.TestCase):
             finished.check_result()
         except Exception, e:
             self.assertEquals('Dying on 3', str(e))
+
+
+class TimerThreadTest(unittest.TestCase):
+    """Tests for the TimerThread."""
+
+    def setUp(self):
+        """Tests setting up the test harness."""
+        self.timer_queue = Queue.Queue()
+        self.output_queue = Queue.Queue()
+        self.worker = workers.TimerThread(self.timer_queue, self.output_queue)
+
+    def testSimple(self):
+        """Tests simple waiting."""
+        self.worker.start()
+        one = workers.TimerItem(0.8)
+        two = workers.TimerItem(0.5)
+        three = workers.TimerItem(0.1)
+
+        # T = 0, one = 0
+        begin = time.time()
+        self.timer_queue.put(one)
+        time.sleep(0.2)
+        # T = 0.2, one = 0.2, two = 0
+        self.timer_queue.put(two)
+        time.sleep(0.2)
+        # T = 0.4, one = 0.4, two = 0.2
+        self.timer_queue.put(three)
+        time.sleep(0.2)
+        # T = 0.6, one = 0.6, two = 0.4, three = 0.1 ready!
+        output_three = self.output_queue.get()
+        time.sleep(0.1)
+        # T = 0.7, one = 0.7, two = 0.5 ready!
+        output_two = self.output_queue.get()
+        # T = 0.8, one = 0.8 ready!
+        output_one = self.output_queue.get()
+        end = time.time()
+
+        self.assertEquals(one.delay_seconds, output_one.delay_seconds)
+        self.assertEquals(two.delay_seconds, output_two.delay_seconds)
+        self.assertEquals(three.delay_seconds, output_three.delay_seconds)
+
+        elapsed = end - begin
+        self.assertTrue(1.0 > elapsed > 0.7)
 
 
 def main(argv):
