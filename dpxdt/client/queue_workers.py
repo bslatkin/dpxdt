@@ -36,6 +36,10 @@ gflags.DEFINE_string(
     'capture_queue_url', None,
     'URL of remote webpage capture work queue to process.')
 
+gflags.DEFINE_integer(
+    'queue_poll_seconds', 60,
+    'How often to poll an empty work queue for new tasks.')
+
 
 class Error(Exception):
     """Base-class for exceptions in this module."""
@@ -89,7 +93,7 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
             next_item = yield workers.FetchItem(queue_url + '/lease', post={})
 
             something_to_do = False
-            if next_item.json and next_item.json['error']:
+            if next_item.json and next_item.json.get('error'):
                 logging.error('Could not fetch work from queue_url=%r. '
                               '%s', queue_url, next_item.json['error'])
             elif next_item.json and next_item.json['tasks']:
@@ -216,13 +220,15 @@ def register(coordinator):
     if FLAGS.pdiff_queue_url:
         item = RemoteQueueWorkflow(
             FLAGS.pdiff_queue_url,
-            DoPdiffQueueWorkflow)
+            DoPdiffQueueWorkflow,
+            poll_period=FLAGS.queue_poll_seconds)
         item.root = True
         coordinator.input_queue.put(item)
 
     if FLAGS.capture_queue_url:
         item = RemoteQueueWorkflow(
             FLAGS.capture_queue_url,
-            DoCaptureQueueWorkflow)
+            DoCaptureQueueWorkflow,
+            poll_period=FLAGS.queue_poll_seconds)
         item.root = True
         coordinator.input_queue.put(item)
