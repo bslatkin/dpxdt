@@ -16,6 +16,9 @@
 """Workers that consumer a release server's work queue."""
 
 import logging
+import os
+import shutil
+import tempfile
 
 # Local Libraries
 import gflags
@@ -61,7 +64,7 @@ class CaptureFailedError(Error):
 class HeartbeatWorkflow(workers.WorkflowItem):
     """TODO"""
 
-    def run(self, queue_heartbeat_url, task_id, message, index):
+    def run(self, queue_url, task_id, message, index):
         call = yield workers.FetchItem(
             queue_url + '/heartbeat',
             post={
@@ -106,12 +109,10 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
             task_list = next_item.json['tasks']
             assert len(task_list) == 1
             task = task_list[0]
-
-            task_id = task.pop('task_id')
+            task_id = task['task_id']
             logging.debug('Starting work item from queue_url=%r, '
-                          'task_id=%r, payload=%r, workflow=%r',
-                          queue_url, task_id, task,
-                          local_queue_workflow)
+                          'task=%r, workflow=%r',
+                          queue_url, task, local_queue_workflow)
 
             # Define a heartbeat closure that will return a workflow for
             # reporting status. This will auto-increment the index on each
@@ -124,26 +125,31 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
                 logging.debug('queue_url=%r, task_id=%r, message: %s',
                               queue_url, task_id, message)
                 return HeartbeatWorkflow(
-                    queue_url + '/heartbeat', task_id, message, next_index)
+                    queue_url, task_id, message, next_index)
 
-            task.update(heartbeat=heartbeat)
+            payload = task['payload']
+            payload.update(heartbeat=heartbeat)
 
             try:
-                yield local_queue_workflow(**task)
+                yield local_queue_workflow(**payload)
             except Exception, e:
                 logging.exception('Exception while processing work from '
-                                  'queue_url=%r, task_id=%r',
-                                  queue_url, task_id)
-                yield heartbeat('Task failed. %s: %s' %
-                                (e.__class__.__name__, str(e)))
+                                  'queue_url=%r, task=%r', queue_url, task)
+                try:
+                    yield heartbeat('Task failed. %s: %s' %
+                                    (e.__class__.__name__, str(e)))
+                except:
+                    logging.exception('Failed to report error because '
+                                      'heartbeat failed.')
+
                 continue
 
             finish_item = yield workers.FetchItem(
                 queue_url + '/finish', post={'task_id': task_id})
-            if finish_item.json and finish_item.json['error']:
+            if finish_item.json and finish_item.json.get('error'):
                 logging.error('Could not finish work with '
-                              'queue_url=%r, task_id=%r. %s',
-                              queue_url, finish_item.json['error'], task_id)
+                              'queue_url=%r, task=%r. %s',
+                              queue_url, finish_item.json['error'], task)
 
             logging.debug('Finished work item with queue_url=%r, '
                           'task_id=%r', queue_url, task_id)
@@ -153,7 +159,8 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
     """TODO"""
 
     def run(self, build_id=None, release_name=None, release_number=None,
-            run_name=None, reference_url=None, run_url=None, heartbeat=None):
+            run_name=None, reference_sha1sum=None, run_sha1sum=None,
+            heartbeat=None):
         output_path = tempfile.mkdtemp()
         try:
             ref_path = os.path.join(output_path, 'ref')
@@ -163,8 +170,10 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
 
             yield heartbeat('Fetching reference and run images')
             yield [
-                workers.FetchItem(reference_url, result_path=ref_path),
-                workers.FetchItem(run_url, result_path=run_path)
+                release_worker.DownloadArtifactWorkflow(
+                    reference_sha1sum, result_path=ref_path),
+                release_worker.DownloadArtifactWorkflow(
+                    run_sha1sum, result_path=run_path)
             ]
 
             yield heartbeat('Running perceptual diff process')
@@ -188,7 +197,7 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
     """TODO"""
 
     def run(self, build_id=None, release_name=None, release_number=None,
-            run_name=None, config_url=None, heartbeat=None):
+            run_name=None, config_sha1sum=None, heartbeat=None):
         output_path = tempfile.mkdtemp()
         try:
             image_path = os.path.join(output_path, 'capture')
@@ -196,8 +205,8 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
             config_path = os.path.join(output_path, 'config')
 
             yield heartbeat('Fetching webpage capture config')
-            yield workers.FetchItem(
-                config_url, result_path=config_path)
+            yield release_worker.DownloadArtifactWorkflow(
+                config_sha1sum, result_path=config_path)
 
             yield heartbeat('Running webpage capture process')
 

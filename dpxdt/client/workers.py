@@ -16,7 +16,6 @@
 """Workers for driving screen captures, perceptual diffs, and related work."""
 
 import Queue
-import contextlib
 import heapq
 import json
 import logging
@@ -222,21 +221,20 @@ class FetchThread(WorkerThread):
 
         try:
             try:
-                with contextlib.closing(urllib2.urlopen(
-                        request, timeout=item.timeout_seconds)) as conn:
-                    item.status_code = conn.getcode()
-                    item.headers = conn.info()
-                    if item.status_code == 200:
-                        if item.result_path:
-                            with open(item.result_path) as result_file:
-                                shutil.copyfileobj(conn, result_file)
-                        else:
-                            item.data = conn.read()
+                conn = urllib2.urlopen(request, timeout=item.timeout_seconds)
             except urllib2.HTTPError, e:
-                item.status_code = e.code
-            except urllib2.URLError:
-                # TODO: Do something smarter here, like report a 400 error.
-                pass
+                conn = e
+
+            try:
+                item.status_code = conn.getcode()
+                item.headers = conn.info()
+                if item.result_path:
+                    with open(item.result_path, 'wb') as result_file:
+                        shutil.copyfileobj(conn, result_file)
+                else:
+                    item.data = conn.read()
+            finally:
+                conn.close()
 
             return item
         finally:

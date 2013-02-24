@@ -181,6 +181,10 @@ def _get_task_with_policy(queue_name, task_id, owner):
         queue_name: Name of the queue the work item is on.
         task_id: ID of the task that is finished.
         owner: Who or what has the current lease on the task.
+        before_expiration: When True, assert that we are before the task lease
+            has expired. When False, assert that we are after the lease
+            has expired. Use False when acquiring a new lease, and True
+            when asserting an existing lease.
 
     Returns:
         The valid WorkQueue task that is currently owned.
@@ -197,10 +201,11 @@ def _get_task_with_policy(queue_name, task_id, owner):
     if not task:
         raise TaskDoesNotExistError('task_id=%s' % task_id)
 
-    delta = task.eta - now
-    if delta < datetime.timedelta(0):
+    # Lease delta should be positive, meaning it has not yet expired!
+    lease_delta = now - task.eta
+    if lease_delta > datetime.timedelta(0):
         raise LeaseExpiredError('queue=%s, task_id=%s expired %s' % (
-                                task.queue_name, task_id, delta))
+                                task.queue_name, task_id, lease_delta))
 
     if task.last_owner != owner:
         raise NotOwnerError('queue=%s, task_id=%s, owner=%s' % (
@@ -321,17 +326,22 @@ def handle_lease(queue_name):
 def handle_heartbeat(queue_name):
     """Updates the heartbeat message for a task."""
     # TODO: Require an API key on the basic auth header
+    task_id = request.form.get('task_id', type=str)
+    message = request.form.get('message', type=str)
+    index = request.form.get('index', type=int)
     try:
         heartbeat(
             queue_name,
-            request.form.get('task_id', type=str),
+            task_id,
             request.form.get('owner', request.remote_addr, type=str),
-            request.form.get('message', type=int),
-            request.form.get('index', type=int))
+            message,
+            index)
     except Error, e:
         return utils.jsonify_error(e)
 
     db.session.commit()
+    logging.debug('Task heartbeat: queue=%s, task_id=%s, message=%s, index=%d',
+                  queue_name, task_id, message, index)
     return flask.jsonify(success=True)
 
 

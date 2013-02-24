@@ -101,7 +101,7 @@ def create_build():
     db.session.add(build)
     db.session.commit()
 
-    logging.info('Created build: build_id=%s, name=%r', build.id, name)
+    logging.info('Created build: build_id=%r, name=%r', build.id, name)
 
     return flask.jsonify(build_id=build.id, name=name)
 
@@ -132,7 +132,7 @@ def create_release():
     db.session.add(release)
     db.session.commit()
 
-    logging.info('Created release: build_id=%s, release_name=%r, '
+    logging.info('Created release: build_id=%r, release_name=%r, '
                  'release_number=%d', build_id, release_name, release.number)
 
     return flask.jsonify(
@@ -157,8 +157,8 @@ def _check_release_done_processing(release_id):
         if run.needs_diff:
             return False
 
-    logging.info('Release done processing, now reviewing: build_id=%s, '
-                 'name=%s, number=%d', release.build_id, release.name,
+    logging.info('Release done processing, now reviewing: build_id=%r, '
+                 'name=%r, number=%d', release.build_id, release.name,
                  release.number)
 
     release.status = models.Release.REVIEWING
@@ -211,11 +211,23 @@ def report_run():
     previous_id = None
     last_image = None
     if last_good_release:
+        logging.debug('Found last good release for: build_id=%r, '
+                      'release_name=%r, release_number=%d, '
+                      'last_good_release_id=%d',
+                      build_id, release_name, release_number,
+                      last_good_release.id)
         last_good_run = (
             models.Run.query
             .filter_by(release_id=last_good_release.id, name=run_name)
             .first())
         if last_good_run:
+            logging.debug('Found last good run for: build_id=%r, '
+                          'release_name=%r, release_number=%d, '
+                          'last_good_release_id=%d, last_good_run_id=%r, '
+                          'last_good_image=%r',
+                          build_id, release_name, release_number,
+                          last_good_release.id, last_good_run.id,
+                          last_good_run.image)
             previous_id = last_good_run.id
             last_image = last_good_run.image
 
@@ -226,27 +238,27 @@ def report_run():
         log=current_log,
         config=current_config,
         previous_id=previous_id,
-        needs_diff=needs_diff,
+        needs_diff=bool(needs_diff and last_image),
         diff_image=diff_image,
         diff_log=diff_log)
     db.session.add(run)
     db.session.flush()
 
     # Schedule pdiff if there isn't already an image.
-    if needs_diff:
+    if needs_diff and last_image:
         # TODO: Move this queue name to a flag.
         work_queue.add('run-pdiff', dict(
             build_id=build_id,
             release_name=release_name,
             release_number=release_number,
-            run_name=flask.run_name,
-            reference_url=url_for('download', sha1sum=current_image),
-            run_url=url_for('download', sha1sum=last_image),
+            run_name=run_name,
+            reference_sha1sum=current_image,
+            run_sha1sum=last_image,
         ))
 
     db.session.commit()
 
-    logging.info('Created run: build_id=%s, release_name=%r, '
+    logging.info('Created run: build_id=%r, release_name=%r, '
                  'release_number=%d, run_name=%s',
                  build_id, release_name, release_number, run_name)
 
@@ -283,7 +295,7 @@ def report_pdiff():
 
     db.session.add(run)
 
-    logging.info('Saved pdiff: build_id=%s, release_name=%r, '
+    logging.info('Saved pdiff: build_id=%r, release_name=%r, '
                  'release_number=%d, run_name=%s, '
                  'no_diff=%s, diff_image=%s, diff_log=%s',
                  build_id, release_name, release_number, run_name,
@@ -311,7 +323,7 @@ def runs_done():
     _check_release_done_processing(release.id)
     db.session.commit()
 
-    logging.info('Runs done for release: build_id=%s, release_name=%r, '
+    logging.info('Runs done for release: build_id=%r, release_name=%r, '
                  'release_number=%d', build_id, release_name, release_number)
 
     return flask.jsonify(success=True)
@@ -336,7 +348,7 @@ def release_done():
     db.session.add(release)
     db.session.commit()
 
-    logging.info('Release marked as %s: build_id=%s, release_name=%s, '
+    logging.info('Release marked as %s: build_id=%r, release_name=%r, '
                  'number=%d', status, build_id, release_name, release_number)
 
     return flask.jsonify(success=True)

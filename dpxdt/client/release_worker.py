@@ -52,6 +52,9 @@ class ReportPdiffError(Error):
 class RunsDoneError(Error):
     """Marking that all runs are done failed for some reason."""
 
+class DownloadArtifactError(Error):
+    """Downloading an artifact failed for some reason."""
+
 
 class StreamingSha1File(file):
     """File sub-class that sha1 hashes the data as it's read."""
@@ -263,3 +266,23 @@ class RunsDoneWorkflow(workers.WorkflowItem):
         # TODO: Have this return the URL of the release (which may have
         # pdiffs still in flight).
         raise workers.Return('this would be a URL')
+
+
+class DownloadArtifactWorkflow(workers.WorkflowItem):
+    """Downloads an artifact to a given path.
+
+    Args:
+        sha1sum: Content hash of the artifact to fetch.
+        result_path: Path where the artifact should be saved on disk.
+
+    Returns:
+        DownloadArtifactError if the artifact could not be found or
+        fetched for some reason.
+    """
+
+    def run(self, sha1sum, result_path):
+        download_url = '%s/download?sha1sum=%s' % (
+            FLAGS.release_server_prefix, sha1sum)
+        call = yield workers.FetchItem(download_url, result_path=result_path)
+        if call.status_code != 200:
+            raise DownloadArtifactError('Bad response: %r', call)

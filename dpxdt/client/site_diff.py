@@ -15,7 +15,8 @@
 
 """Utility for doing incremental diffs for a live website.
 
-Example usage:
+
+Example local usage:
 
 ./site_diff.py \
     --phantomjs_binary=path/to/phantomjs-1.8.1-macosx/bin/phantomjs \
@@ -23,6 +24,18 @@ Example usage:
     --pdiff_binary=path/to/pdiff/perceptualdiff \
     --output_dir=path/to/your/output \
     http://www.example.com/my/website/here
+
+
+Example usage with API server:
+
+./site_diff.py \
+    --phantomjs_binary=path/to/phantomjs-1.8.1-macosx/bin/phantomjs \
+    --phantomjs_script=path/to/client/capture.js \
+    --pdiff_binary=path/to/pdiff/perceptualdiff \
+    --output_dir=path/to/your/output \
+    --upload_build_id=1234 \
+    http://www.example.com/my/website/here
+
 """
 
 import HTMLParser
