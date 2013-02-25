@@ -78,10 +78,6 @@ gflags.DEFINE_string(
     'upload_build_id', None,
     'ID of the build to upload this screenshot set to as a new release.')
 
-gflags.DEFINE_bool(
-    'verbose', False,
-    'When set, do verbose logging output.')
-
 
 class Error(Exception):
     """Base class for exceptions in this module."""
@@ -222,7 +218,7 @@ def prune_urls(url_set, start_url, allowed_list, ignored_list):
 class PdiffWorkflow(workers.WorkflowItem):
     """Workflow for generating Pdiffs."""
 
-    def run(self, url, output_dir, reference_dir):
+    def run(self, url, output_dir, reference_dir, heartbeat=None):
         parts = urlparse.urlparse(url)
         clean_url = (
             parts.path.replace('/', '_').replace('\\', '_')
@@ -248,7 +244,7 @@ class PdiffWorkflow(workers.WorkflowItem):
         if capture.returncode != 0:
             raise CaptureFailedError('Failed to capture url=%r' % url)
 
-        print 'Captured: %s' % url
+        yield heartbeat('Captured: %s' % url)
 
         if not reference_dir:
             raise workers.Return((
@@ -277,19 +273,35 @@ class PdiffWorkflow(workers.WorkflowItem):
             diff_output)
 
         if diff.returncode != 0 and os.path.exists(diff_output):
-            print 'Found diff for path=%r, diff=%r' % (parts.path, diff_output)
+            yield heartbeat('Found diff for path=%r, diff=%r' %
+                            (parts.path, diff_output))
 
 
 class SiteDiff(workers.WorkflowItem):
-    """Workflow for coordinating the site diff."""
+    """Workflow for coordinating the site diff.
+
+    Args:
+        start_url: URL to begin the site diff scan.
+        output_dir: Directory path where the results should be saved.
+        ignore_prefixes: Optional. List of URL prefixes to ignore during
+            the crawl; start_url should be a common prefix with all of these.
+        reference_dir: Optional, mutually exclusive with upload_build_id.
+            Directory of a previous run of this workflow with images to
+            compare this one to.
+        upload_build_id: Optional. Build ID of the site being compared. When
+            supplied a new release will be cut for this build comparing it
+            to the last good release.
+        heartbeat: Function to call with progress status.
+    """
 
     def run(self,
             start_url,
             output_dir,
             ignore_prefixes,
-            reference_dir,
-            upload_build_id):
-        # TODO: Assert reference_dir or upload_build_id but not both.
+            reference_dir=None,
+            upload_build_id=None,
+            heartbeat=None):
+        assert bool(reference_dir) ^ bool(upload_build_id)
 
         if not ignore_prefixes:
             ignore_prefixes = []
@@ -301,8 +313,7 @@ class SiteDiff(workers.WorkflowItem):
         seen_urls = set()
         good_urls = set()
 
-        sys.stdout.write('Scanning for content')
-        sys.stdout.flush()
+        yield heartbeat('Scanning for content')
 
         while pending_urls:
             # TODO: Enforce a job-wide timeout on the whole process of
@@ -317,11 +328,12 @@ class SiteDiff(workers.WorkflowItem):
 
             for item in output:
                 if not item.data:
-                    logging.info('No data from url=%r', item.url)
+                    logging.debug('No data from url=%r', item.url)
                     continue
 
                 if item.headers.gettype() != 'text/html':
-                    logging.info('Skipping non-HTML document url=%r', item.url)
+                    logging.debug('Skipping non-HTML document url=%r',
+                                  item.url)
                     continue
 
                 good_urls.add(item.url)
@@ -331,12 +343,13 @@ class SiteDiff(workers.WorkflowItem):
                 new = pruned - seen_urls
                 pending_urls.update(new)
 
-        print
-        print ('Found %d total URLs, %d good HTML pages; starting '
-               'screenshots' % (len(seen_urls), len(good_urls)))
+        yield heartbeat(
+            'Found %d total URLs, %d good HTML pages; starting '
+            'screenshots' % (len(seen_urls), len(good_urls)))
 
         if upload_build_id:
             # TODO: Make the release name prettier.
+            # TODO: Parameterize the release name.
             result = yield release_worker.CreateReleaseWorkflow(
                 upload_build_id, str(datetime.datetime.utcnow()))
             _, release_name, release_number = result
@@ -348,10 +361,12 @@ class SiteDiff(workers.WorkflowItem):
 
         results = []
         for url in good_urls:
-            results.append(PdiffWorkflow(url, output_dir, reference_dir))
+            results.append(PdiffWorkflow(url, output_dir, reference_dir,
+                           heartbeat=heartbeat))
         results = yield results
 
         if upload_build_id:
+            yield heartbeat('Uploading captured screenshots')
             reports = []
             for pdiff_result in results:
                 run_name, output_path, log_path, config_path = pdiff_result
@@ -360,12 +375,13 @@ class SiteDiff(workers.WorkflowItem):
                     run_name, output_path, log_path, config_path))
             yield reports
 
+            yield heartbeat('Marking runs as complete')
             release_url = yield release_worker.RunsDoneWorkflow(
                 upload_build_id, release_name, release_number)
 
-            print 'Results will be at %s' % release_url
+            yield heartbeat('Results will be at %s' % release_url)
         else:
-            print 'Results in %s' % output_dir
+            yield heartbeat('Results in %s' % output_dir)
 
 
 # TODO: Add a second mode where the SiteDiff workflow is wrapped in a queue
@@ -386,13 +402,17 @@ def real_main(start_url=None,
     pdiff_worker.register(coordinator)
     coordinator.start()
 
+    def heartbeat(message):
+        print message
+
     try:
         item = SiteDiff(
             start_url=start_url,
             output_dir=output_dir,
             ignore_prefixes=ignore_prefixes,
             reference_dir=reference_dir,
-            upload_build_id=upload_build_id)
+            upload_build_id=upload_build_id,
+            heartbeat=heartbeat)
         item.root = True
         coordinator.input_queue.put(item)
         result = coordinator.output_queue.get()

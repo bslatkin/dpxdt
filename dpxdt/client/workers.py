@@ -36,12 +36,16 @@ poster.streaminghttp.register_openers()
 
 
 gflags.DEFINE_float(
+    'fetch_frequency', 1.0,
+    'Maximum number of fetches to make per second per thread.')
+
+gflags.DEFINE_float(
     'polltime', 1.0,
     'How long to sleep between polling for work or subprocesses')
 
-gflags.DEFINE_float(
-    'fetch_frequency', 1.0,
-    'Maximum number of fetches to make per second per thread.')
+gflags.DEFINE_bool(
+    'verbose', False,
+    'When set, do verbose logging output.')
 
 
 

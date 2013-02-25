@@ -41,11 +41,6 @@ from client import queue_workers
 from client import workers
 
 
-gflags.DEFINE_bool(
-    'verbose', False,
-    'When set, do verbose logging output.')
-
-
 def run_workers():
     coordinator = workers.GetCoordinator()
     capture_worker.register(coordinator)

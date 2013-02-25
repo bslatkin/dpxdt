@@ -28,20 +28,25 @@ FLAGS = gflags.FLAGS
 import capture_worker
 import pdiff_worker
 import release_worker
+import site_diff
 import workers
 
-
-gflags.DEFINE_string(
-    'pdiff_queue_url', None,
-    'URL of remote perceptual diff work queue to process.')
 
 gflags.DEFINE_string(
     'capture_queue_url', None,
     'URL of remote webpage capture work queue to process.')
 
+gflags.DEFINE_string(
+    'pdiff_queue_url', None,
+    'URL of remote perceptual diff work queue to process.')
+
 gflags.DEFINE_integer(
     'queue_poll_seconds', 60,
     'How often to poll an empty work queue for new tasks.')
+
+gflags.DEFINE_string(
+    'site_diff_queue_url', None,
+    'URL of remote site diff work queue to process.')
 
 
 class Error(Exception):
@@ -93,14 +98,21 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
 
     def run(self, queue_url, local_queue_workflow, poll_period=60):
         while True:
-            next_item = yield workers.FetchItem(queue_url + '/lease', post={})
+            try:
+                next_item = yield workers.FetchItem(
+                    queue_url + '/lease', post={})
+            except Exception, e:
+                logging.error('Could not fetch work from queue_url=%r. %s: %s',
+                              queue_url, e.__class__.__name__, e)
+                next_item = None
 
             something_to_do = False
-            if next_item.json and next_item.json.get('error'):
-                logging.error('Could not fetch work from queue_url=%r. '
-                              '%s', queue_url, next_item.json['error'])
-            elif next_item.json and next_item.json['tasks']:
-                something_to_do = True
+            if next_item:
+                if next_item.json and next_item.json.get('error'):
+                    logging.error('Could not fetch work from queue_url=%r. '
+                                  '%s', queue_url, next_item.json['error'])
+                elif next_item.json and next_item.json['tasks']:
+                    something_to_do = True
 
             if not something_to_do:
                 yield workers.TimerItem(poll_period)
@@ -141,18 +153,24 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
                 except:
                     logging.exception('Failed to report error because '
                                       'heartbeat failed.')
+                else:
+                    continue
 
-                continue
-
-            finish_item = yield workers.FetchItem(
-                queue_url + '/finish', post={'task_id': task_id})
-            if finish_item.json and finish_item.json.get('error'):
+            try:
+                finish_item = yield workers.FetchItem(
+                    queue_url + '/finish', post={'task_id': task_id})
+            except Exception, e:
                 logging.error('Could not finish work with '
-                              'queue_url=%r, task=%r. %s',
-                              queue_url, finish_item.json['error'], task)
-
-            logging.debug('Finished work item with queue_url=%r, '
-                          'task_id=%r', queue_url, task_id)
+                              'queue_url=%r, task=%r. %s: %s',
+                              queue_url, task, e.__class__.__name__, e)
+            else:
+                if finish_item.json and finish_item.json.get('error'):
+                    logging.error('Could not finish work with '
+                                  'queue_url=%r, task=%r. %s',
+                                  queue_url, finish_item.json['error'], task)
+                else:
+                    logging.debug('Finished work item with queue_url=%r, '
+                                  'task_id=%r', queue_url, task_id)
 
 
 class DoPdiffQueueWorkflow(workers.WorkflowItem):
@@ -248,9 +266,41 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
             shutil.rmtree(output_path, True)
 
 
+class DoSiteDiffQueueWorkflow(workers.WorkflowItem):
+    """Runs a site diff from queue parameters.
+
+    Args:
+        build_Id: ID of the build.
+        start_url: URL to begin the scan.
+        ignore_prefixes: List of prefixes to ignore during the scan.
+        heartbeat: Fucntion to call with progress status.
+    """
+
+    def run(self, build_id=None, start_url=None, ignore_prefixes=None,
+            heartbeat=None):
+        output_path = tempfile.mkdtemp()
+        try:
+            yield site_diff.SiteDiff(
+                start_url,
+                output_path,
+                ignore_prefixes,
+                upload_build_id=build_id,
+                heartbeat=heartbeat)
+        finally:
+            shutil.rmtree(output_path, True)
+
+
 def register(coordinator):
     """Registers this module as a worker with the given coordinator."""
     # TODO: Add a flag to support up to N parallel queue workers.
+    if FLAGS.capture_queue_url:
+        item = RemoteQueueWorkflow(
+            FLAGS.capture_queue_url,
+            DoCaptureQueueWorkflow,
+            poll_period=FLAGS.queue_poll_seconds)
+        item.root = True
+        coordinator.input_queue.put(item)
+
     if FLAGS.pdiff_queue_url:
         item = RemoteQueueWorkflow(
             FLAGS.pdiff_queue_url,
@@ -259,10 +309,10 @@ def register(coordinator):
         item.root = True
         coordinator.input_queue.put(item)
 
-    if FLAGS.capture_queue_url:
+    if FLAGS.site_diff_queue_url:
         item = RemoteQueueWorkflow(
-            FLAGS.capture_queue_url,
-            DoCaptureQueueWorkflow,
+            FLAGS.site_diff_queue_url,
+            DoSiteDiffQueueWorkflow,
             poll_period=FLAGS.queue_poll_seconds)
         item.root = True
         coordinator.input_queue.put(item)

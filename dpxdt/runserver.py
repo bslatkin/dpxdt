@@ -55,10 +55,6 @@ gflags.DEFINE_bool(
     'When true, run queue worker threads locally in the same process '
     'as the server.')
 
-gflags.DEFINE_bool(
-    'verbose', False,
-    'When set, do verbose logging output.')
-
 
 def run_workers():
     coordinator = workers.GetCoordinator()
