@@ -156,7 +156,20 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
 
 
 class DoPdiffQueueWorkflow(workers.WorkflowItem):
-    """TODO"""
+    """Runs the perceptual diff from queue parameters.
+
+    Args:
+        build_id: ID of the build.
+        release_name: Name of the release.
+        release_number: Number of the release candidate.
+        run_name: Run to run perceptual diff for.
+        reference_sha1sum: Content hash of the previously good image.
+        run_sha1sum: Content hash of the new image.
+        heartbeat: Function to call with progress status.
+
+    Raises:
+        PdiffFailedError if the perceptual diff process failed.
+    """
 
     def run(self, build_id=None, release_name=None, release_number=None,
             run_name=None, reference_sha1sum=None, run_sha1sum=None,
@@ -194,7 +207,19 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
 
 
 class DoCaptureQueueWorkflow(workers.WorkflowItem):
-    """TODO"""
+    """Runs a webpage screenshot process from queue parameters.
+
+    Args:
+        build_id: ID of the build.
+        release_name: Name of the release.
+        release_number: Number of the release candidate.
+        run_name: Run to run perceptual diff for.
+        config_sha1sum: Content hash of the config for the new screenshot.
+        heartbeat: Function to call with progress status.
+
+    Raises:
+        CaptureFailedError if the screenshot process failed.
+    """
 
     def run(self, build_id=None, release_name=None, release_number=None,
             run_name=None, config_sha1sum=None, heartbeat=None):
