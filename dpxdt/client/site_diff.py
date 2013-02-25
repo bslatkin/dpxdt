@@ -301,7 +301,7 @@ class SiteDiff(workers.WorkflowItem):
             reference_dir=None,
             upload_build_id=None,
             heartbeat=None):
-        assert bool(reference_dir) ^ bool(upload_build_id)
+        assert not upload_build_id or (upload_build_id and not reference_dir)
 
         if not ignore_prefixes:
             ignore_prefixes = []
