@@ -476,7 +476,7 @@ class WorkflowThread(WorkerThread):
         """Joins the coordinator thread and all worker threads."""
         for thread in self.worker_threads:
             thread.join()
-        self.join()
+        WorkerThread.join(self)
 
     def register(self, work_type, queue):
         """Registers where work for a specific type can be executed.

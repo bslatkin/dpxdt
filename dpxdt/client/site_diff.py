@@ -323,9 +323,6 @@ class SiteDiff(workers.WorkflowItem):
             output = yield [workers.FetchItem(u) for u in pending_urls]
             pending_urls.clear()
 
-            sys.stdout.write('.')
-            sys.stdout.flush()
-
             for item in output:
                 if not item.data:
                     logging.debug('No data from url=%r', item.url)
@@ -389,6 +386,14 @@ class SiteDiff(workers.WorkflowItem):
 # register function to include this in the server's coordinator.
 
 
+class PrintWorkflow(workers.WorkflowItem):
+    """Prints a message to stdout."""
+
+    def run(self, message):
+        yield []  # Make this into a generator
+        print message
+
+
 def real_main(start_url=None,
               output_dir=None,
               ignore_prefixes=None,
@@ -402,9 +407,6 @@ def real_main(start_url=None,
     pdiff_worker.register(coordinator)
     coordinator.start()
 
-    def heartbeat(message):
-        print message
-
     try:
         item = SiteDiff(
             start_url=start_url,
@@ -412,7 +414,7 @@ def real_main(start_url=None,
             ignore_prefixes=ignore_prefixes,
             reference_dir=reference_dir,
             upload_build_id=upload_build_id,
-            heartbeat=heartbeat)
+            heartbeat=PrintWorkflow)
         item.root = True
         coordinator.input_queue.put(item)
         result = coordinator.output_queue.get()

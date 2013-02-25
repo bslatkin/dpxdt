@@ -59,11 +59,14 @@ class HtmlRewritingTest(unittest.TestCase):
                 return None
             return list(result)[0]
 
+        self.assertEquals('http://www.example.com/my-url/dummy_page2.html',
+                          test('dummy_page2.html'))
+
         self.assertEquals('http://www.example.com/',
-                                            test('/'))
+                          test('/'))
 
         self.assertEquals('http://www.example.com/mypath-here',
-                                            test('/mypath-here'))
+                          test('/mypath-here'))
 
         self.assertEquals(None, test('#fragment-only'))
 
