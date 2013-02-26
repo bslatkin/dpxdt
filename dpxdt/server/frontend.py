@@ -13,23 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""TODO
+"""TODO"""
 
-# To use for the first time, or when the schema changes during development:
-from dpxdt import server
-server.db.create_all()
+import logging
 
-"""
+# Local libraries
+import flask
+from flask import Flask, render_template, request
 
-from flask import Flask
-from flask.ext.sqlalchemy import SQLAlchemy
-
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-
-db = SQLAlchemy(app)
-
-import api
-import frontend
+# Local modules
+from . import app
+from . import db
+import models
 import work_queue
+import utils
+
+
+@app.route('/build/new')
+def new_build():
+    context = {
+        'hello': 1234,
+    }
+    return render_template('base.html', **context)
