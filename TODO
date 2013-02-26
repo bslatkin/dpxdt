@@ -1,6 +1,22 @@
-Hosted pdiff
-API server you post to with a description like:
+Backend
+- Split site-diff to use server-side capture queue, so it can be much faster in aggregate
+- Make runs-done callable twice, first time to register it will happen, second time to report an image
+- Have all runs reported work even when the runs don't have an image
 
+Frontend
+- Create a new build crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
+- View all releases in a build; highlights last good release, shows newest building release
+- Look at all images in a release candidate; list of names and status (same, different)
+- Compare mode, shows A vs. B of before and after; lets operator mark UI as acceptable or not; use hot-keys to quickly scroll through images
+
+
+-------
+
+Speculative outline:
+
+Hosted pdiff
+
+API server you post to with a description like:
 - build name
 - release name
 - common code to define across all tests
@@ -19,87 +35,12 @@ API server you post to with a description like:
 - API key
 - email address
 - callback URL
-
 - returns a polling status ID, candidate ID, and URL to fetch for results
 
-All screenshots deleted after 3 days unless you're in pro mode.
+Features:
+- All screenshots deleted after 3 days unless you're in pro mode.
+- 500 errors automatically retried up to N times.
+- Sends an email on failure or success, depending on config.
+- Can be hooked into a github commit callback for pages.
 
-
-Candidate ID is auto-allocated, always increasing.
-
-
-Website hosts a pdiff.
-
-Bisect mode shows all diffs in a timeline, lets you quickly scan through the list to find where something changed.
-
-500 errors automatically retried up to N times.
-
-Sends an email on failure or success, depending on config.
-
-Can be hooked into a github commit callback for pages.
-
-The callback URL would be a one-time URL that's preconfigured with a payload. As soon as a post comes in on that URL, it would diff against the old version. In this case you wouldn't have the old one still alive for contacting, so you'd just pdiff on the last screenshot with the same contents. If the config changed then you wouldn't be able to do it.
-
-User impersonation.
-- Need server-side support for user impersonation.
-- Can pass special headers on request to emulate this.
-
-
-How it works
-- Server on EC2 that runs the binary with phantomjs and pdiff
-- Server polls for work on the AE pull queue via a URL (https)
-- Each server is provisioned with its own key to give it access to the URL; transmitted over basic auth
-- Each build/release split into N tasks so they can be done in parallel
-- Completion status done with POST of results to preformulated URL
-- On each post we run a task to see if all posts are done
-- Posts are ignored if they're repeats
-
-
-Example use-cases
-- diff my whole site; crawl a webpage, generate all URLs it contains, take a screenshot
-  - do it again after a design change to compare it to the past and double-check what's changed
-  - sitediff http://example.com/mysite --ignore '/foobar/stuff /meeper/blah'
-  - space-separated ignore list
-  - prefix is where to start the crawl for all URLs
-  - only will look for HTML content types
-
-
-Ordering for writing something useful:
-1. Local client for running phantom JS and generating screenshots from config file
-2. Server side for hosting images with API key provisioning
-3. Have local client auto-post up to server side
-  - Ship the whole log file back to the server side for debugging
-4. Task queue system for workers and shared pool
-5. Use spot instances to do the work
-
-
-self-hosted version
-1. Server could write to SQL to run behind the firewall
-2. Allow workers to run locally for firewall traversal
-
-
-Two modes of operation:
-- Incremental: Take a new set of images, then do the diff against what's already saved server side from the last build/release
-  - Need a workflow to mark off goldens from the last release as the latest set of good images
-- Differential: Take an old set and a new set separately and then diff them both
-
-
-Client components:
-- capture: runs on config file, drives phantom JS, saves a screenshots and metadata
-- differ: runs diff on two screenshots, uploads the result to the server
-- client: runs capture, then differ
-
-
-How to run phantomjs
---ignore-ssl-errors=false
---disk-cache=false
-
-
-Disable the FS module?
-
-phantomjs capture.js url testscript.js output.png
-pdiff before/after to output file
-
-
-Upload task. Path.
 
