@@ -228,6 +228,9 @@ class FetchThread(WorkerThread):
                 conn = urllib2.urlopen(request, timeout=item.timeout_seconds)
             except urllib2.HTTPError, e:
                 conn = e
+            except urllib2.URLError, e:
+                item.status_code = 400
+                return item
 
             try:
                 item.status_code = conn.getcode()
