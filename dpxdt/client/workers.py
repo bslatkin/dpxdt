@@ -85,7 +85,8 @@ class WorkItem(object):
 
     def check_result(self):
         # TODO: For WorkflowItems, remove generator.throw(*item.error) from
-        # the stack trace since it's noise.
+        # the stack trace since it's noise. General approach outlined here:
+        # https://github.com/mitsuhiko/jinja2/blob/master/jinja2/debug.py
         if self.error:
             raise self.error[0], self.error[1], self.error[2]
 
