@@ -32,6 +32,9 @@ FLAGS = gflags.FLAGS
 import workers
 
 
+gflags.DEFINE_integer(
+    'capture_threads', 1, 'Number of website screenshot threads to run')
+
 gflags.DEFINE_string(
     'phantomjs_binary', None, 'Path to the phantomjs binary')
 
@@ -76,7 +79,9 @@ def register(coordinator):
     """Registers this module as a worker with the given coordinator."""
     assert FLAGS.phantomjs_binary
     assert FLAGS.phantomjs_script
+    assert FLAGS.capture_threads > 0
     capture_queue = Queue.Queue()
     coordinator.register(CaptureItem, capture_queue)
-    coordinator.worker_threads.append(
-        CaptureThread(capture_queue, coordinator.input_queue))
+    for i in xrange(FLAGS.capture_threads):
+        coordinator.worker_threads.append(
+            CaptureThread(capture_queue, coordinator.input_queue))

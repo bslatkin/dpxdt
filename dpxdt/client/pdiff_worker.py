@@ -35,6 +35,9 @@ import workers
 gflags.DEFINE_string(
     'pdiff_binary', None, 'Path to the perceptualdiff binary')
 
+gflags.DEFINE_integer(
+    'pdiff_threads', 1, 'Number of perceptual diff threads to run')
+
 
 
 class PdiffItem(workers.ProcessItem):
@@ -73,7 +76,9 @@ class PdiffThread(workers.ProcessThread):
 def register(coordinator):
     """Registers this module as a worker with the given coordinator."""
     assert FLAGS.pdiff_binary
+    assert FLAGS.pdiff_threads > 0
     pdiff_queue = Queue.Queue()
     coordinator.register(PdiffItem, pdiff_queue)
-    coordinator.worker_threads.append(
-        PdiffThread(pdiff_queue, coordinator.input_queue))
+    for i in xrange(FLAGS.pdiff_threads):
+        coordinator.worker_threads.append(
+            PdiffThread(pdiff_queue, coordinator.input_queue))

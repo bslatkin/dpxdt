@@ -4,7 +4,6 @@ Backend
 - Have all runs reported work even when the runs don't have an image
 
 Frontend
-- Have the phantomjs process disable Google Analytics cookies, so you don't spam your analytics logs when taking screenshots
 - Create a new build crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
 - View all releases in a build; highlights last good release, shows newest building release
 - Look at all images in a release candidate; list of names and status (same, different)
@@ -43,5 +42,3 @@ Features:
 - 500 errors automatically retried up to N times.
 - Sends an email on failure or success, depending on config.
 - Can be hooked into a github commit callback for pages.
-
-

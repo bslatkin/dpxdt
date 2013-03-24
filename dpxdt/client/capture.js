@@ -52,6 +52,37 @@ if (config.viewportSize) {
     };
 }
 
+// Echo all console messages from the page to our log.
+page.onConsoleMessage = function(message, line, source) {
+    console.log('>> CONSOLE: ' + message);
+};
+
+// Do not load Google Analytics URLs. We don't want to pollute stats.
+page.onResourceRequested = function(requestData, networkRequest) {
+    var badUrls = [
+        'http://www.google-analytics.com/ga.js',
+        'https://www.google-analytics.com/ga.js',
+    ];
+    for (var i = 0, n = badUrls.length; i < n; i++) {
+        var bad = badUrls[i];
+        if (requestData.url == bad) {
+            console.log('Blocking URL: ' + bad);
+            networkRequest.abort();
+            return;
+        }
+    }
+}
+
+// Log all resources loaded as part of this request, for debugging.
+page.onResourceReceived = function(response) {
+    if (response.url.indexOf('data:') == 0) {
+        console.log('Loaded data URI');
+    } else {
+        console.log('Loaded: ' + response.url + '\n' +
+                    JSON.stringify(response));
+    }
+};
+
 // TODO: Custom headers
 // TODO: Path to code to inject
 // TODO: Username/password using HTTP basic auth
@@ -59,9 +90,10 @@ if (config.viewportSize) {
 // TODO: CSS selectors to hide
 // TODO: User agent spoofing shortcut
 
-
 // Screenshot
 page.open(config.targetUrl, function(status) {
+    console.log('Finished loading page: ' + config.targetUrl);
+
     // TODO: Inject code
     // TODO: Wait for completion
     // TODO: Check status
