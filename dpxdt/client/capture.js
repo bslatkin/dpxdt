@@ -66,7 +66,7 @@ page.onResourceRequested = function(requestData, networkRequest) {
     for (var i = 0, n = badUrls.length; i < n; i++) {
         var bad = badUrls[i];
         if (requestData.url == bad) {
-            console.log('Blocking URL: ' + bad);
+            console.log('Blocking: ' + bad);
             networkRequest.abort();
             return;
         }
@@ -75,11 +75,13 @@ page.onResourceRequested = function(requestData, networkRequest) {
 
 // Log all resources loaded as part of this request, for debugging.
 page.onResourceReceived = function(response) {
+    if (response.stage != 'end') {
+        return;
+    }
     if (response.url.indexOf('data:') == 0) {
         console.log('Loaded data URI');
     } else {
-        console.log('Loaded: ' + response.url + '\n' +
-                    JSON.stringify(response));
+        console.log('Loaded: ' + response.url);
     }
 };
 
