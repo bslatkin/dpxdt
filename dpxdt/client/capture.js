@@ -62,9 +62,11 @@ if (config.viewportSize) {
 
 // Screenshot
 page.open(config.targetUrl, function(status) {
-    // Inject code
-    // Wait for completion
-    // Check status
-    page.render(outputPath);
-    phantom.exit(0);
+    // TODO: Inject code
+    // TODO: Wait for completion
+    // TODO: Check status
+    setTimeout(function() {
+        page.render(outputPath);
+        phantom.exit(0);
+    }, 1000);
 });

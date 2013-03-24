@@ -285,11 +285,16 @@ class ProcessThread(WorkerThread):
             args = self.get_args(item)
             logging.debug('%s item=%r Running subprocess: %r',
                           self.worker_name, item, args)
-            process = subprocess.Popen(
-                args,
-                stderr=subprocess.STDOUT,
-                stdout=output_file,
-                close_fds=True)
+            try:
+                process = subprocess.Popen(
+                    args,
+                    stderr=subprocess.STDOUT,
+                    stdout=output_file,
+                    close_fds=True)
+            except:
+                logging.error('%s item=%r Failed to run subprocess: %r',
+                              self.worker_name, item, args)
+                raise
 
             while True:
                 process.poll()

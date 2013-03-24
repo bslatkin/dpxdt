@@ -47,6 +47,7 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 import urlparse
 
 # Local Libraries
@@ -59,6 +60,12 @@ import pdiff_worker
 import release_worker
 import workers
 
+
+gflags.DEFINE_integer(
+    'crawl_depth', -1,
+    'How deep to crawl. Depth of 0 means only the given page. 1 means pages '
+    'that are one click away, 2 means two clicks, and so on. Set to -1 to '
+    'scan every URL with the supplied prefix.')
 
 gflags.DEFINE_spaceseplist(
     'ignore_prefixes', [],
@@ -237,7 +244,7 @@ class PdiffWorkflow(workers.WorkflowItem):
             }))
 
         capture = yield capture_worker.CaptureItem(
-            output_base + '_run.log',
+            output_base + '_run.txt',
             config_path,
             output_base + '_run.png')
 
@@ -256,21 +263,23 @@ class PdiffWorkflow(workers.WorkflowItem):
         if not os.path.exists(last_run):
             return
 
-        last_log = ref_base + '_run.log'
+        last_log = ref_base + '_run.txt'
         if not os.path.exists(last_log):
             return
 
         ref_output = output_base + '_ref.png'
-        ref_log = output_base + '_ref.log'
+        ref_log = output_base + '_ref.txt'
         shutil.copy(last_run, ref_output)
         shutil.copy(last_log, ref_log)
 
         diff_output = output_base + '_diff.png'
         diff = yield pdiff_worker.PdiffItem(
-            output_base + '_diff.log',
+            output_base + '_diff.txt',
             ref_output,
             capture.output_path,
             diff_output)
+
+        yield heartbeat('Diffed: %s' % url)
 
         if diff.returncode != 0 and os.path.exists(diff_output):
             yield heartbeat('Found diff for path=%r, diff=%r' %
@@ -315,7 +324,9 @@ class SiteDiff(workers.WorkflowItem):
 
         yield heartbeat('Scanning for content')
 
-        while pending_urls:
+        limit_depth = FLAGS.crawl_depth >= 0
+        depth = 0
+        while (not limit_depth or depth <= FLAGS.crawl_depth) and pending_urls:
             # TODO: Enforce a job-wide timeout on the whole process of
             # URL discovery, to make sure infinitely deep sites do not
             # cause this job to never stop.
@@ -339,6 +350,9 @@ class SiteDiff(workers.WorkflowItem):
                     found, start_url, [start_url], ignore_prefixes)
                 new = pruned - seen_urls
                 pending_urls.update(new)
+
+            yield heartbeat('Finished crawl at depth %d' % depth)
+            depth += 1
 
         yield heartbeat(
             'Found %d total URLs, %d good HTML pages; starting '
@@ -427,8 +441,6 @@ def main(argv):
     gflags.MarkFlagAsRequired('phantomjs_binary')
     gflags.MarkFlagAsRequired('phantomjs_script')
     gflags.MarkFlagAsRequired('pdiff_binary')
-    # TODO: Make a temporary output dir if just uploading the screenshots.
-    gflags.MarkFlagAsRequired('output_dir')
     # If upload_build_id is set, then require release_server_prefix
 
     try:
@@ -444,9 +456,13 @@ def main(argv):
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
+    output_dir = FLAGS.output_dir
+    if not output_dir:
+        output_dir = tempfile.mkdtemp()
+
     real_main(
         start_url=argv[1],
-        output_dir=FLAGS.output_dir,
+        output_dir=output_dir,
         reference_dir=FLAGS.reference_dir,
         ignore_prefixes=FLAGS.ignore_prefixes,
         upload_build_id=FLAGS.upload_build_id)
