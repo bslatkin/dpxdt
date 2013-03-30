@@ -8,7 +8,61 @@ build description
 
 
 {% block body %}
+<div class="row">
+    <div class="span12">
+        <h1>Build: {{ build.name }}</h1>
+    </div>
+</div>
 
-build!
+{% if release_name_list %}
+    <div class="row">
+        <div class="span12">
+            <h4>Releases</h4>
+        </div>
+    </div>
+    {% for release_name in release_name_list %}
+        {% with candidate_list=release_dict[release_name] %}
+            <div class="row build-release-section">
+                <div class="span12">
+                    <div class="row">
+                        <div class="span2">
+                            {{ release_name }}
+                        </div>
+                        <div class="span2">
+                            {% if candidate_list|length == 1 %}
+                                1 candidate
+                            {% elif candidate_list|length > 1 %}
+                                {{ candidate_list|length }} candidates
+                            {% else %}
+                                No candidates
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% for candidate in candidate_list %}
+                        <div class="row build-candidate-section">
+                            <div class="span2 offset2">
+                                <a href="{{ url_for('view_candidate', id=build.id, name=candidate.name, number=candidate.number) }}">Attempt {{ candidate.number }}</a>
+                            </div>
+                            <div class="span2" title="Created time">
+                                {{ candidate.created.strftime('%Y-%m-%d T %H:%M Z') }}
+                            </div>
+                            <div class="span2" title="Current status">
+                                {{ candidate.status|title }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endwith %}
+    {% endfor %}
+{% else %}
+    <div class="row">
+        <div class="span6">
+            <div class="alert alert-info alert-block">
+                There are no releases for this build.
+            </div>
+        </div>
+    </div>
+{% endif %}
 
 {% endblock body %}

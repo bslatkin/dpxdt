@@ -34,7 +34,7 @@ class Build(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     name = db.Column(db.String)
-    # TODO: Add owner
+    # TODO: Add owner, creation time, last modified
 
 
 class Release(db.Model):
@@ -60,6 +60,7 @@ class Release(db.Model):
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     status = db.Column(db.Enum(*STATES), default=RECEIVING, nullable=False)
     build_id = db.Column(db.Integer, db.ForeignKey('build.id'), nullable=False)
+    # TODO: Add last modified time, last time a candidate was added
 
 
 class Artifact(db.Model):
