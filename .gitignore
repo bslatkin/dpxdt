@@ -8,3 +8,4 @@ FreeImage/Dist/*
 CVS
 .DS_Store
 *.pyc
+dpxdt/server/secrets.py

@@ -19,11 +19,13 @@ import logging
 
 # Local libraries
 import flask
-from flask import Flask, render_template, request
+from flask import Flask, redirect, render_template, request, url_for
+from flask.ext.wtf import Form
 
 # Local modules
 from . import app
 from . import db
+import forms
 import models
 
 
@@ -34,11 +36,17 @@ def homepage():
     return render_template('home.html', **context)
 
 
-@app.route('/new')
+
+@app.route('/new', methods=['GET', 'POST'])
 def new_build():
-    context = {
-    }
-    return render_template('new_build.html', **context)
+    form = forms.BuildForm()
+    if form.validate_on_submit():
+        build_id = 1
+        return redirect(url_for('build', id=build_id))
+
+    return render_template(
+        'new_build.html',
+        build_form=form)
 
 
 @app.route('/build')

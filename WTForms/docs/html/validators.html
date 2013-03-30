@@ -1,0 +1,487 @@
+
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>WTForms Documentation</title>
+    <link rel="stylesheet" href="_static/main.css" type="text/css">
+    <link rel="stylesheet" href="_static/docstyles.css" type="text/css">
+    <link rel="stylesheet" href="_static/print.css" type="text/css" media="print">
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css">
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:   '#',
+        VERSION:    '1.0.3'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/searchtools.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="contents" title="Global table of contents" href="contents.html">
+    <link rel="index" title="Global index" href="genindex.html">
+    <link rel="search" title="Search" href="search.html">
+    <link rel="top" title="WTForms 1.0.3 documentation" href="index.html">
+    <link rel="next" title="Widgets" href="widgets.html">
+    <link rel="prev" title="Fields" href="fields.html">
+    
+  </head>
+  <body>
+    <div id="body">
+      <div id="header">
+        <h1 id="logo"><a href="index.html"
+          title="back to the documentation overview"><img src="_static/wtforms.png" alt="WTForms" /></a></h1>
+        <ul id="menu">
+          <li><a href="http://wtforms.simplecodes.com/">Website</li>
+          <li><a href="index.html">Documentation</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="http://groups.google.com/group/wtforms/">Mailing List</a></li>
+          <li><a href="http://bitbucket.org/simplecodes/wtforms/">Code</a></li>
+        </ul>
+      </div>
+      <div id="content">
+        <div id="toc">
+          <h3>Table Of Contents</h3>
+          <div class="inner"><ul>
+<li><a class="reference internal" href="#">Validators</a><ul>
+<li><a class="reference internal" href="#built-in-validators">Built-in validators</a></li>
+<li><a class="reference internal" href="#custom-validators">Custom validators</a><ul>
+<li><a class="reference internal" href="#setting-flags-on-the-field-with-validators">Setting flags on the field with validators</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+        
+  <div class="section" id="module-wtforms.validators">
+<span id="validators"></span><h1>Validators<a class="headerlink" href="#module-wtforms.validators" title="Permalink to this headline">¶</a></h1>
+<p>A validator simply takes an input, verifies it fulfills some criterion, such as
+a maximum length for a string and returns. Or, if the validation fails, raises
+a <a class="reference internal" href="#wtforms.validators.ValidationError" title="wtforms.validators.ValidationError"><tt class="xref py py-class docutils literal"><span class="pre">ValidationError</span></tt></a>. This system is very simple and
+flexible, and allows you to chain any number of validators on fields.</p>
+<dl class="class">
+<dt id="wtforms.validators.ValidationError">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">ValidationError</tt><big>(</big><em>message=u''</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#wtforms.validators.ValidationError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when a validator fails to validate its input.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.validators.StopValidation">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">StopValidation</tt><big>(</big><em>message=u''</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#wtforms.validators.StopValidation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Causes the validation chain to stop.</p>
+<p>If StopValidation is raised, no more validators in the validation chain are
+called. If raised with a message, the message will be added to the errors
+list.</p>
+</dd></dl>
+
+<div class="section" id="built-in-validators">
+<h2>Built-in validators<a class="headerlink" href="#built-in-validators" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="wtforms.validators.DataRequired">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">DataRequired</tt><big>(</big><em>message=None</em><big>)</big><a class="headerlink" href="#wtforms.validators.DataRequired" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates that the field contains data. This validator will stop the
+validation chain on error.</p>
+<p>If the data is empty, also removes prior errors (such as processing errors)
+from the field.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>message</strong> &#8211; Error message to raise in case of a validation error.</td>
+</tr>
+</tbody>
+</table>
+<p>This also sets the <tt class="docutils literal"><span class="pre">required</span></tt> <a class="reference internal" href="fields.html#wtforms.fields.Field.flags" title="wtforms.fields.Field.flags"><tt class="xref py py-attr docutils literal"><span class="pre">flag</span></tt></a> on
+fields it is used on.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.validators.Email">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">Email</tt><big>(</big><em>message=None</em><big>)</big><a class="headerlink" href="#wtforms.validators.Email" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates an email address. Note that this uses a very primitive regular
+expression and should only be used in instances where you later verify by
+other means, such as email activation or lookups.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>message</strong> &#8211; Error message to raise in case of a validation error.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.validators.EqualTo">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">EqualTo</tt><big>(</big><em>fieldname</em>, <em>message=None</em><big>)</big><a class="headerlink" href="#wtforms.validators.EqualTo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compares the values of two fields.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>fieldname</strong> &#8211; The name of the other field to compare to.</li>
+<li><strong>message</strong> &#8211; Error message to raise in case of a validation error. Can be
+interpolated with <cite>%(other_label)s</cite> and <cite>%(other_name)s</cite> to provide a
+more helpful error.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>This validator can be used to facilitate in one of the most common
+scenarios, the password change form:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">ChangePassword</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="n">PasswordField</span><span class="p">(</span><span class="s">&#39;New Password&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">Required</span><span class="p">(),</span> <span class="n">EqualTo</span><span class="p">(</span><span class="s">&#39;confirm&#39;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s">&#39;Passwords must match&#39;</span><span class="p">)])</span>
+    <span class="n">confirm</span>  <span class="o">=</span> <span class="n">PasswordField</span><span class="p">(</span><span class="s">&#39;Repeat Password&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In the example, we use the Required validator to prevent the EqualTo
+validator from trying to see if the passwords do not match if there was no
+passwords specified at all. Because Required stops the validation chain,
+EqualTo is not run in the case the password field is left empty.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.validators.InputRequired">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">InputRequired</tt><big>(</big><em>message=None</em><big>)</big><a class="headerlink" href="#wtforms.validators.InputRequired" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates that input was provided for this field.</p>
+<p>Note there is a distinction between this and DataRequired in that
+InputRequired looks that form-input data was provided, and DataRequired
+looks at the post-coercion data.</p>
+<p>This also sets the <tt class="docutils literal"><span class="pre">required</span></tt> <a class="reference internal" href="fields.html#wtforms.fields.Field.flags" title="wtforms.fields.Field.flags"><tt class="xref py py-attr docutils literal"><span class="pre">flag</span></tt></a> on
+fields it is used on.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.validators.IPAddress">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">IPAddress</tt><big>(</big><em>ipv6=False</em>, <em>message=None</em><big>)</big><a class="headerlink" href="#wtforms.validators.IPAddress" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates an IPv4 (IPv6 too with ipv6=True) address.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ipv6</strong> &#8211; If True, accept IPv6 as valid also.</li>
+<li><strong>message</strong> &#8211; Error message to raise in case of a validation error.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.validators.Length">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">Length</tt><big>(</big><em>min=-1</em>, <em>max=-1</em>, <em>message=None</em><big>)</big><a class="headerlink" href="#wtforms.validators.Length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates the length of a string.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>min</strong> &#8211; The minimum required length of the string. If not provided, minimum
+length will not be checked.</li>
+<li><strong>max</strong> &#8211; The maximum length of the string. If not provided, maximum length
+will not be checked.</li>
+<li><strong>message</strong> &#8211; Error message to raise in case of a validation error. Can be
+interpolated using <cite>%(min)d</cite> and <cite>%(max)d</cite> if desired. Useful defaults
+are provided depending on the existence of min and max.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.validators.MacAddress">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">MacAddress</tt><big>(</big><em>message=None</em><big>)</big><a class="headerlink" href="#wtforms.validators.MacAddress" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates a MAC address.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>message</strong> &#8211; Error message to raise in case of a validation error.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.validators.NumberRange">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">NumberRange</tt><big>(</big><em>min=None</em>, <em>max=None</em>, <em>message=None</em><big>)</big><a class="headerlink" href="#wtforms.validators.NumberRange" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates that a number is of a minimum and/or maximum value, inclusive.
+This will work with any comparable number type, such as floats and
+decimals, not just integers.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>min</strong> &#8211; The minimum required value of the number. If not provided, minimum
+value will not be checked.</li>
+<li><strong>max</strong> &#8211; The maximum value of the number. If not provided, maximum value
+will not be checked.</li>
+<li><strong>message</strong> &#8211; Error message to raise in case of a validation error. Can be
+interpolated using <cite>%(min)s</cite> and <cite>%(max)s</cite> if desired. Useful defaults
+are provided depending on the existence of min and max.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.validators.Optional">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">Optional</tt><big>(</big><em>strip_whitespace=True</em><big>)</big><a class="headerlink" href="#wtforms.validators.Optional" title="Permalink to this definition">¶</a></dt>
+<dd><p>Allows empty input and stops the validation chain from continuing.</p>
+<p>If input is empty, also removes prior errors (such as processing errors)
+from the field.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>strip_whitespace</strong> &#8211; If True (the default) also stop the validation chain on input which
+consists of only whitespace.</td>
+</tr>
+</tbody>
+</table>
+<p>This also sets the <tt class="docutils literal"><span class="pre">optional</span></tt> <a class="reference internal" href="fields.html#wtforms.fields.Field.flags" title="wtforms.fields.Field.flags"><tt class="xref py py-attr docutils literal"><span class="pre">flag</span></tt></a> on
+fields it is used on.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.validators.Regexp">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">Regexp</tt><big>(</big><em>regex</em>, <em>flags=0</em>, <em>message=None</em><big>)</big><a class="headerlink" href="#wtforms.validators.Regexp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates the field against a user provided regexp.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>regex</strong> &#8211; The regular expression string to use. Can also be a compiled regular
+expression pattern.</li>
+<li><strong>flags</strong> &#8211; The regexp flags to use, for example re.IGNORECASE. Ignored if
+<cite>regex</cite> is not a string.</li>
+<li><strong>message</strong> &#8211; Error message to raise in case of a validation error.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.validators.URL">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">URL</tt><big>(</big><em>require_tld=True</em>, <em>message=None</em><big>)</big><a class="headerlink" href="#wtforms.validators.URL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple regexp based url validation. Much like the email validator, you
+probably want to validate the url later by other means if the url must
+resolve.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>require_tld</strong> &#8211; If true, then the domain-name portion of the URL must contain a .tld
+suffix.  Set this to false if you want to allow domains like
+<cite>localhost</cite>.</li>
+<li><strong>message</strong> &#8211; Error message to raise in case of a validation error.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.validators.UUID">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">UUID</tt><big>(</big><em>message=None</em><big>)</big><a class="headerlink" href="#wtforms.validators.UUID" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates a UUID.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>message</strong> &#8211; Error message to raise in case of a validation error.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.validators.AnyOf">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">AnyOf</tt><big>(</big><em>values</em>, <em>message=None</em>, <em>values_formatter=None</em><big>)</big><a class="headerlink" href="#wtforms.validators.AnyOf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compares the incoming data to a sequence of valid inputs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>values</strong> &#8211; A sequence of valid inputs.</li>
+<li><strong>message</strong> &#8211; Error message to raise in case of a validation error. <cite>%(values)s</cite>
+contains the list of values.</li>
+<li><strong>values_formatter</strong> &#8211; Function used to format the list of values in the error message.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.validators.NoneOf">
+<em class="property">class </em><tt class="descclassname">wtforms.validators.</tt><tt class="descname">NoneOf</tt><big>(</big><em>values</em>, <em>message=None</em>, <em>values_formatter=None</em><big>)</big><a class="headerlink" href="#wtforms.validators.NoneOf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compares the incoming data to a sequence of invalid inputs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>values</strong> &#8211; A sequence of invalid inputs.</li>
+<li><strong>message</strong> &#8211; Error message to raise in case of a validation error. <cite>%(values)s</cite>
+contains the list of values.</li>
+<li><strong>values_formatter</strong> &#8211; Function used to format the list of values in the error message.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="custom-validators">
+<span id="id1"></span><h2>Custom validators<a class="headerlink" href="#custom-validators" title="Permalink to this headline">¶</a></h2>
+<p>We will step through the evolution of writing a length-checking validator
+similar to the built-in <a class="reference internal" href="#wtforms.validators.Length" title="wtforms.validators.Length"><tt class="xref py py-class docutils literal"><span class="pre">Length</span></tt></a> validator, starting from a
+case-specific one to a generic reusable validator.</p>
+<p>Let&#8217;s start with a simple form with a name field and its validation:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">MyForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s">&#39;Name&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">Required</span><span class="p">()])</span>
+
+    <span class="k">def</span> <span class="nf">validate_name</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">50</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="s">&#39;Name must be less than 50 characters&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Above, we show the use of an <a class="reference internal" href="forms.html#inline-validators"><em>in-line validator</em></a> to do
+validation of a single field. In-line validators are good for validating
+special cases, but are not easily reusable.  If, in the example above, the
+<cite>name</cite> field were to be split into two fields for first name and surname, you
+would have to duplicate your work to check two lengths.</p>
+<p>So let&#8217;s start on the process of splitting the validator out for re-use:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">my_length_check</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">50</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="s">&#39;Field must be less than 50 characters&#39;</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">MyForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s">&#39;Name&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">Required</span><span class="p">(),</span> <span class="n">my_length_check</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>All we&#8217;ve done here is move the exact same code out of the class and as a
+function. Since a validator can be any callable which accepts the two
+positional arguments form and field, this is perfectly fine, but the validator
+is very special-cased.</p>
+<p>Instead, we can turn our validator into a more powerful one by making it a
+factory which returns a callable:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">length</span><span class="p">(</span><span class="nb">min</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">max</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+    <span class="n">message</span> <span class="o">=</span> <span class="s">&#39;Must be between </span><span class="si">%d</span><span class="s"> and </span><span class="si">%d</span><span class="s"> characters long.&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_length</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">l</span> <span class="o">&lt;</span> <span class="nb">min</span> <span class="ow">or</span> <span class="nb">max</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">l</span> <span class="o">&gt;</span> <span class="nb">max</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_length</span>
+
+<span class="k">class</span> <span class="nc">MyForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s">&#39;Name&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">Required</span><span class="p">(),</span> <span class="n">length</span><span class="p">(</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">)])</span>
+</pre></div>
+</div>
+<p>Now we have a configurable length-checking validator that handles both minimum
+and maximum lengths. When <tt class="docutils literal"><span class="pre">length(max=50)</span></tt> is passed in your validators list,
+it returns the enclosed <cite>_length</cite> function as a closure, which is used in the
+field&#8217;s validation chain.</p>
+<p>This is now an acceptable validator, but we recommend that for reusability, you
+use the pattern of allowing the error message to be customized via passing a
+<tt class="docutils literal"><span class="pre">message=</span></tt> parameter:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">Length</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">min</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">max</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="nb">min</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="nb">max</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">message</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="s">u&#39;Field must be between </span><span class="si">%i</span><span class="s"> and </span><span class="si">%i</span><span class="s"> characters long.&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">l</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">l</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+
+<span class="n">length</span> <span class="o">=</span> <span class="n">Length</span>
+</pre></div>
+</div>
+<p>In addition to allowing the error message to be customized, we&#8217;ve now converted
+the length validator to a class. This wasn&#8217;t necessary, but we did this to
+illustrate how one would do so. Because fields will accept any callable as a
+validator, callable classes are just as applicable. For complex validators, or
+using inheritance, you may prefer this.</p>
+<p>We aliased the <tt class="docutils literal"><span class="pre">Length</span></tt> class back to the original <tt class="docutils literal"><span class="pre">length</span></tt> name in the
+above example. This allows you to keep API compatibility as you move your
+validators from factories to classes, and thus we recommend this for those
+writing validators they will share.</p>
+<div class="section" id="setting-flags-on-the-field-with-validators">
+<h3>Setting flags on the field with validators<a class="headerlink" href="#setting-flags-on-the-field-with-validators" title="Permalink to this headline">¶</a></h3>
+<p>Sometimes, it&#8217;s useful to know if a validator is present on a given field, like
+for use in template code. To do this, validators are allowed to specify flags
+which will then be available on the <a class="reference internal" href="fields.html#wtforms.fields.Field.flags" title="wtforms.fields.Field.flags"><tt class="xref py py-attr docutils literal"><span class="pre">field's</span> <span class="pre">flags</span> <span class="pre">object</span></tt></a>.  Some of the built-in validators such as
+<tt class="xref py py-class docutils literal"><span class="pre">Required</span></tt> already do this.</p>
+<p>To specify flags on your validator, set the <tt class="docutils literal"><span class="pre">field_flags</span></tt> attribute on your
+validator. When the Field is constructed, the flags with the same name will be
+set to True on your field. For example, let&#8217;s imagine a validator that
+validates that input is valid BBCode. We can set a flag on the field then to
+signify that the field accepts BBCode:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># class implementation</span>
+<span class="k">class</span> <span class="nc">ValidBBCode</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">field_flags</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;accepts_bbcode&#39;</span><span class="p">,</span> <span class="p">)</span>
+
+    <span class="k">pass</span> <span class="c"># validator implementation here</span>
+
+<span class="c"># factory implementation</span>
+<span class="k">def</span> <span class="nf">valid_bbcode</span><span class="p">():</span>
+    <span class="k">def</span> <span class="nf">_valid_bbcode</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">pass</span> <span class="c"># validator implementation here</span>
+
+    <span class="n">_valid_bbcode</span><span class="o">.</span><span class="n">field_flags</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;accepts_bbcode&#39;</span><span class="p">,</span> <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_valid_bbcode</span>
+</pre></div>
+</div>
+<p>Then we can check it in our template, so we can then place a note to the user:</p>
+<div class="highlight-html+jinja"><div class="highlight"><pre><span class="cp">{{</span> <span class="nv">field</span><span class="o">(</span><span class="nv">rows</span><span class="o">=</span><span class="m">7</span><span class="o">,</span> <span class="nv">cols</span><span class="o">=</span><span class="m">70</span><span class="o">)</span> <span class="cp">}}</span>
+<span class="cp">{%</span> <span class="k">if</span> <span class="nv">field.flags.accepts_bbcode</span> <span class="cp">%}</span>
+    <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;note&quot;</span><span class="nt">&gt;</span>This field accepts BBCode formatting as input.<span class="nt">&lt;/div&gt;</span>
+<span class="cp">{%</span> <span class="k">endif</span> <span class="cp">%}</span>
+</pre></div>
+</div>
+<p>Some considerations on using flags:</p>
+<ul class="simple">
+<li>Flags can only set boolean values, and another validator cannot unset them.</li>
+<li>If multiple fields set the same flag, its value is still True.</li>
+<li>Flags are set from validators only in <tt class="xref py py-meth docutils literal"><span class="pre">Field.__init__()</span></tt>, so inline
+validators and extra passed-in validators cannot set them.</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+        <div style="clear: both"></div>
+      </div>
+      <div id="footer">
+        © Copyright 2010 by the <a href="http://wtforms.simplecodes.com">WTForms Team</a>,
+        documentation generated by <a href="http://sphinx.pocoo.org/">Sphinx</a>
+      </div>
+    </div>
+  </body>
+</html>

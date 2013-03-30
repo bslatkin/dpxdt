@@ -1,0 +1,439 @@
+
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>WTForms Documentation</title>
+    <link rel="stylesheet" href="_static/main.css" type="text/css">
+    <link rel="stylesheet" href="_static/docstyles.css" type="text/css">
+    <link rel="stylesheet" href="_static/print.css" type="text/css" media="print">
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css">
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:   '#',
+        VERSION:    '1.0.3'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/searchtools.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="contents" title="Global table of contents" href="contents.html">
+    <link rel="index" title="Global index" href="genindex.html">
+    <link rel="search" title="Search" href="search.html">
+    <link rel="top" title="WTForms 1.0.3 documentation" href="index.html">
+    <link rel="next" title="Internationalization (i18n)" href="i18n.html">
+    <link rel="prev" title="Solving Specific Problems" href="specific_problems.html">
+    
+  </head>
+  <body>
+    <div id="body">
+      <div id="header">
+        <h1 id="logo"><a href="index.html"
+          title="back to the documentation overview"><img src="_static/wtforms.png" alt="WTForms" /></a></h1>
+        <ul id="menu">
+          <li><a href="http://wtforms.simplecodes.com/">Website</li>
+          <li><a href="index.html">Documentation</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="http://groups.google.com/group/wtforms/">Mailing List</a></li>
+          <li><a href="http://bitbucket.org/simplecodes/wtforms/">Code</a></li>
+        </ul>
+      </div>
+      <div id="content">
+        <div id="toc">
+          <h3>Table Of Contents</h3>
+          <div class="inner"><ul>
+<li><a class="reference internal" href="#">Crash Course</a><ul>
+<li><a class="reference internal" href="#download-installation">Download / Installation</a></li>
+<li><a class="reference internal" href="#key-concepts">Key Concepts</a></li>
+<li><a class="reference internal" href="#getting-started">Getting Started</a><ul>
+<li><a class="reference internal" href="#using-forms">Using Forms</a><ul>
+<li><a class="reference internal" href="#editing-existing-objects">Editing existing objects</a></li>
+<li><a class="reference internal" href="#exploring-in-the-console">Exploring in the console</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#how-forms-get-data">How Forms get data</a></li>
+<li><a class="reference internal" href="#validators">Validators</a></li>
+<li><a class="reference internal" href="#rendering-fields">Rendering Fields</a></li>
+<li><a class="reference internal" href="#displaying-errors">Displaying Errors</a></li>
+<li><a class="reference internal" href="#custom-validators">Custom Validators</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#next-steps">Next Steps</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+        
+  <div class="section" id="crash-course">
+<span id="id1"></span><h1>Crash Course<a class="headerlink" href="#crash-course" title="Permalink to this headline">¶</a></h1>
+<p>So you’ve cracked your knuckles and started working on that awesome python
+webapp you want to write. You get through writing a few pages and finally you
+need to tackle that loathsome task: form input handling and validation. Enter
+WTForms.</p>
+<p>But why do I need <em>yet another</em> framework? Well, some webapp frameworks take
+the approach of associating database models with form handling. While this can
+be handy for very basic create/update views, chances are not every form you
+need can map directly to a database model. Or maybe you already use a generic
+form handling framework but you want to customize the HTML generation of those
+form fields, and define your own validation.</p>
+<p>With WTForms, your form field HTML can be generated for you, but we let you
+customize it in your templates. This allows you to maintain separation of code
+and presentation, and keep those messy parameters out of your python code.
+Because we strive for loose coupling, you should be able to do that in any
+templating engine you like, as well.</p>
+<div class="section" id="download-installation">
+<span id="id2"></span><h2>Download / Installation<a class="headerlink" href="#download-installation" title="Permalink to this headline">¶</a></h2>
+<p>The easiest way to install WTForms is by using easy_install or pip:</p>
+<div class="highlight-ruby"><div class="highlight"><pre><span class="n">easy_install</span> <span class="no">WTForms</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="no">WTForms</span>
+</pre></div>
+</div>
+<p>You can also <a class="reference external" href="http://pypi.python.org/pypi/WTForms">download</a> WTForms manually
+from PyPI and then run <tt class="docutils literal"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></tt>.</p>
+<p>If you&#8217;re the sort that likes to risk it all and run the latest version from
+Mercurial, you can grab a <a class="reference external" href="http://bitbucket.org/simplecodes/wtforms/get/tip.zip">packaged up version</a>
+of the tip, or head over to <a class="reference external" href="http://bitbucket.org/simplecodes/wtforms">Bitbucket</a>
+and clone the repository.</p>
+</div>
+<div class="section" id="key-concepts">
+<h2>Key Concepts<a class="headerlink" href="#key-concepts" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><strong>Forms</strong> are the core container of WTForms. Forms represent a collection of
+fields, which can be accessed on the form dictionary-style or atrribute
+style.</li>
+<li><strong>Fields</strong> do most of the heavy lifting. Each field represents a <em>data type</em>
+and the field handles coercing form input to that datatype. For example,
+<cite>IntegerField</cite> and <cite>TextField</cite> represent two different data types. Fields
+contain a number of useful properties, such as a label, description, and a
+list of validation errors, in addition to the data the field contains.</li>
+<li>Every field has a <strong>Widget</strong> instance. The widget&#8217;s job is rendering an HTML
+representation of that field. Widget instances can be specified for each
+field but every field has one by default which makes sense. Some fields are
+simply conveniences, for example <cite>TextAreaField</cite> is simply a <cite>TextField</cite>
+with the default widget being a <cite>TextArea</cite>.</li>
+<li>In order to specify validation rules, fields contain a list of <strong>Validators</strong>.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<p>Let&#8217;s get right down to business and define our first form:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">wtforms</span> <span class="kn">import</span> <span class="n">Form</span><span class="p">,</span> <span class="n">BooleanField</span><span class="p">,</span> <span class="n">TextField</span><span class="p">,</span> <span class="n">validators</span>
+
+<span class="k">class</span> <span class="nc">RegistrationForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">username</span>     <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s">&#39;Username&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">Length</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">25</span><span class="p">)])</span>
+    <span class="n">email</span>        <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s">&#39;Email Address&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">Length</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">35</span><span class="p">)])</span>
+    <span class="n">accept_rules</span> <span class="o">=</span> <span class="n">BooleanField</span><span class="p">(</span><span class="s">&#39;I accept the site rules&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">Required</span><span class="p">()])</span>
+</pre></div>
+</div>
+<p>When you create a form, you define the fields in a way that is similar to the
+way many ORM’s have you define their columns; By defining class variables which
+are instantiations of the fields.</p>
+<p>Because forms are regular Python classes, you can easily extend them as you
+would expect:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">ProfileForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">birthday</span>  <span class="o">=</span> <span class="n">DateTimeField</span><span class="p">(</span><span class="s">&#39;Your Birthday&#39;</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s">&#39;%m/</span><span class="si">%d</span><span class="s">/%y&#39;</span><span class="p">)</span>
+    <span class="n">signature</span> <span class="o">=</span> <span class="n">TextAreaField</span><span class="p">(</span><span class="s">&#39;Forum Signature&#39;</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">AdminProfileForm</span><span class="p">(</span><span class="n">ProfileForm</span><span class="p">):</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s">&#39;Username&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">Length</span><span class="p">(</span><span class="nb">max</span><span class="o">=</span><span class="mi">40</span><span class="p">)])</span>
+    <span class="n">level</span>    <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span><span class="s">&#39;User Level&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">NumberRange</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">10</span><span class="p">)])</span>
+</pre></div>
+</div>
+<p>Via subclassing, <cite>AdminProfileForm</cite>, gains all the fields already defined in
+<cite>ProfileForm</cite>. This allows you to easily share common subsets of fields between
+forms, such as the example above, where we are adding admin-only fields to
+<cite>ProfileForm</cite>.</p>
+<div class="section" id="using-forms">
+<h3>Using Forms<a class="headerlink" href="#using-forms" title="Permalink to this headline">¶</a></h3>
+<p>Using a form is as simple as instantiating it. Consider the following
+django-like view, using the <cite>RegistrationForm</cite> we defined earlier:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">register</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="n">form</span> <span class="o">=</span> <span class="n">RegistrationForm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;POST&#39;</span> <span class="ow">and</span> <span class="n">form</span><span class="o">.</span><span class="n">validate</span><span class="p">():</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="p">()</span>
+        <span class="n">user</span><span class="o">.</span><span class="n">username</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">username</span><span class="o">.</span><span class="n">data</span>
+        <span class="n">user</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">email</span><span class="o">.</span><span class="n">data</span>
+        <span class="n">user</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="n">redirect</span><span class="p">(</span><span class="s">&#39;register&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">render_response</span><span class="p">(</span><span class="s">&#39;register.html&#39;</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>First, we instantiate the form, providing it with any data available in
+<tt class="docutils literal"><span class="pre">request.POST</span></tt>. We then check if the request is made using POST, and if it is,
+we validate the form, and check that the user accepted the rules. If successful,
+we create a new User and assign the data from the validated form to it, and save
+it.</p>
+<div class="section" id="editing-existing-objects">
+<h4>Editing existing objects<a class="headerlink" href="#editing-existing-objects" title="Permalink to this headline">¶</a></h4>
+<p>Our earlier registration example showed how to accept input and validate it for
+new entries, but what if we want to edit an existing object? Easy:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">edit_profile</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_user</span>
+    <span class="n">form</span> <span class="o">=</span> <span class="n">ProfileForm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">,</span> <span class="n">user</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;POST&#39;</span> <span class="ow">and</span> <span class="n">form</span><span class="o">.</span><span class="n">validate</span><span class="p">():</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">populate_obj</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+        <span class="n">user</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="n">redirect</span><span class="p">(</span><span class="s">&#39;edit_profile&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">render_response</span><span class="p">(</span><span class="s">&#39;edit_profile.html&#39;</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here, we instantiate the form by providing both request.POST and the user object
+to the form. By doing this, the form will get any data that isn&#8217;t present in the
+post data from the <cite>user</cite> object.</p>
+<p>We&#8217;re also using the form&#8217;s <cite>populate_obj</cite> method to re-populate the user
+object with the contents of the validated form. This method is provided for
+convenience, for use when the field names match the names on the object you&#8217;re
+providing with data. Typically, you will want to assign the values manually, but
+for this simple case it&#8217;s perfect. It can also be useful for CRUD and admin
+forms.</p>
+</div>
+<div class="section" id="exploring-in-the-console">
+<h4>Exploring in the console<a class="headerlink" href="#exploring-in-the-console" title="Permalink to this headline">¶</a></h4>
+<p>WTForms forms are very simple container objects, and perhaps the easiest way to
+find out what&#8217;s available to you in a form is to play around with a form in the
+console:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">wtforms</span> <span class="kn">import</span> <span class="n">Form</span><span class="p">,</span> <span class="n">TextField</span><span class="p">,</span> <span class="n">validators</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">UsernameForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">username</span> <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s">&#39;Username&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">Length</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">5</span><span class="p">)],</span> <span class="n">default</span><span class="o">=</span><span class="s">u&#39;test&#39;</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">form</span> <span class="o">=</span> <span class="n">UsernameForm</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">form</span><span class="p">[</span><span class="s">&#39;username&#39;</span><span class="p">]</span>
+<span class="go">&lt;wtforms.fields.TextField object at 0x827eccc&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">form</span><span class="o">.</span><span class="n">username</span><span class="o">.</span><span class="n">data</span>
+<span class="go">u&#39;test&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">form</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">form</span><span class="o">.</span><span class="n">errors</span>
+<span class="go">{&#39;username&#39;: [u&#39;Field must be at least 5 characters long.&#39;]}</span>
+</pre></div>
+</div>
+<p>What we&#8217;ve found here is that when you instantiate a form, it contains
+instances of all the fields, which can be accessed via either dictionary-style
+or attribute-style. These fields have their own properties, as does the enclosing form.</p>
+<p>When we validate the form, it returns False, meaning at least one validator was
+not satisfied. form.errors will give you a summary of all the errors.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">form2</span> <span class="o">=</span> <span class="n">UsernameForm</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="s">u&#39;Robert&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">form2</span><span class="o">.</span><span class="n">data</span>
+<span class="go">{&#39;username&#39;: u&#39;Robert&#39;}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">form2</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>This time, we passed a new value for username when instantiating UserForm, and
+it was sufficient to validate the form.</p>
+</div>
+</div>
+<div class="section" id="how-forms-get-data">
+<h3>How Forms get data<a class="headerlink" href="#how-forms-get-data" title="Permalink to this headline">¶</a></h3>
+<p>In addition to providing data using the first two arguments (<cite>formdata</cite> and
+<cite>obj</cite>), you can pass keyword arguments to populate the form. Note though that a
+few names are reserved: <cite>formdata</cite>, <cite>obj</cite>, and <cite>prefix</cite>.</p>
+<p><cite>formdata</cite> takes precendence over <cite>obj</cite>, which itself takes precedence over
+keyword arguments. For example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">change_username</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_user</span>
+    <span class="n">form</span> <span class="o">=</span> <span class="n">ChangeUsernameForm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="s">&#39;silly&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;POST&#39;</span> <span class="ow">and</span> <span class="n">form</span><span class="o">.</span><span class="n">validate</span><span class="p">():</span>
+        <span class="n">user</span><span class="o">.</span><span class="n">username</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">username</span><span class="o">.</span><span class="n">data</span>
+        <span class="n">user</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s">&#39;change_username&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">render_response</span><span class="p">(</span><span class="s">&#39;change_username.html&#39;</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>While you almost never use all three methods together in practice, it
+illustrates how WTForms looks up the <cite>username</cite> field:</p>
+<ol class="arabic simple">
+<li>If a form was submitted (request.POST is not empty), process the form
+input. Even if there was no form input for this field in particular, if
+there exists form input of any sort, then we will process the form input.</li>
+<li>If there was no form input, then try the following in order:<ol class="arabic">
+<li>Check if <cite>user</cite> has an attribute named <cite>username</cite>.</li>
+<li>Check if a keyword argument named <cite>username</cite> was provided.</li>
+<li>Finally, if everything else fails, use the default value provided by the
+field, if any.</li>
+</ol>
+</li>
+</ol>
+</div>
+<div class="section" id="validators">
+<h3>Validators<a class="headerlink" href="#validators" title="Permalink to this headline">¶</a></h3>
+<p>Validation in WTForms is done by providing a field with a set of validators to
+run when the containing form is validated. You provide these via the field
+constructor&#8217;s second argument, <cite>validators</cite>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">ChangeEmailForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s">&#39;Email&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">Length</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">120</span><span class="p">),</span> <span class="n">validators</span><span class="o">.</span><span class="n">Email</span><span class="p">()])</span>
+</pre></div>
+</div>
+<p>You can provide any number of validators to a field. Typically, you will want to
+provide a custom error message:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">ChangeEmailForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s">&#39;Email&#39;</span><span class="p">,</span> <span class="p">[</span>
+        <span class="n">validators</span><span class="o">.</span><span class="n">Length</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s">u&#39;Little short for an email address?&#39;</span><span class="p">)),</span>
+        <span class="n">validators</span><span class="o">.</span><span class="n">Email</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s">u&#39;That</span><span class="se">\&#39;</span><span class="s">s not a valid email address.&#39;</span><span class="p">))</span>
+    <span class="p">])</span>
+</pre></div>
+</div>
+<p>It is generally preferable to provide your own messages, as the default messages
+by necessity are generic. This is also the way to provide localised error
+messages.</p>
+<p>For a list of all the built-in validators, check the <a class="reference internal" href="validators.html#module-wtforms.validators" title="wtforms.validators"><tt class="xref py py-mod docutils literal"><span class="pre">Validators</span> <span class="pre">Reference</span></tt></a></p>
+</div>
+<div class="section" id="rendering-fields">
+<h3>Rendering Fields<a class="headerlink" href="#rendering-fields" title="Permalink to this headline">¶</a></h3>
+<p>Rendering a field is as simple as coercing it to a string:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">wtforms</span> <span class="kn">import</span> <span class="n">Form</span><span class="p">,</span> <span class="n">TextField</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">SimpleForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="n">content</span> <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s">&#39;content&#39;</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">form</span> <span class="o">=</span> <span class="n">SimpleForm</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="s">&#39;foobar&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">str</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+<span class="go">&#39;&lt;input id=&quot;content&quot; name=&quot;content&quot; type=&quot;text&quot; value=&quot;foobar&quot; /&gt;&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">unicode</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+<span class="go">u&#39;&lt;input id=&quot;content&quot; name=&quot;content&quot; type=&quot;text&quot; value=&quot;foobar&quot; /&gt;&#39;</span>
+</pre></div>
+</div>
+<p>However, the real power comes from rendering the field with its <a class="reference internal" href="fields.html#wtforms.fields.Field.__call__" title="wtforms.fields.Field.__call__"><tt class="xref py py-meth docutils literal"><span class="pre">__call__()</span></tt></a>
+method. By calling the field, you can provide keyword arguments, which will be
+injected as html parameters in the output:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">form</span><span class="o">.</span><span class="n">content</span><span class="p">(</span><span class="n">style</span><span class="o">=</span><span class="s">&quot;width: 200px;&quot;</span><span class="p">,</span> <span class="n">class_</span><span class="o">=</span><span class="s">&quot;bar&quot;</span><span class="p">)</span>
+<span class="go">u&#39;&lt;input class=&quot;bar&quot; id=&quot;content&quot; name=&quot;content&quot; style=&quot;width: 200px;&quot; type=&quot;text&quot; value=&quot;foobar&quot; /&gt;&#39;</span>
+</pre></div>
+</div>
+<p>Now let&#8217;s apply this power to rendering a form in a <a class="reference external" href="http://jinja.pocoo.org/">Jinja</a>
+template. First, our form:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">LoginForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s">&#39;Username&#39;</span><span class="p">)</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="n">PasswordField</span><span class="p">(</span><span class="s">&#39;Password&#39;</span><span class="p">)</span>
+
+<span class="n">form</span> <span class="o">=</span> <span class="n">LoginForm</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>And the template:</p>
+<div class="highlight-html+jinja"><div class="highlight"><pre><span class="nt">&lt;form</span> <span class="na">method=</span><span class="s">&quot;POST&quot;</span> <span class="na">action=</span><span class="s">&quot;/login&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;div&gt;</span><span class="cp">{{</span> <span class="nv">form.username.label</span> <span class="cp">}}</span>: <span class="cp">{{</span> <span class="nv">form.username</span><span class="o">(</span><span class="nv">class</span><span class="o">=</span><span class="s2">&quot;css_class&quot;</span><span class="o">)</span> <span class="cp">}}</span><span class="nt">&lt;/div&gt;</span>
+    <span class="nt">&lt;div&gt;</span><span class="cp">{{</span> <span class="nv">form.password.label</span> <span class="cp">}}</span>: <span class="cp">{{</span> <span class="nv">form.password</span><span class="o">()</span> <span class="cp">}}</span><span class="nt">&lt;/div&gt;</span>
+<span class="nt">&lt;/form&gt;</span>
+</pre></div>
+</div>
+<p>Alternately, if you&#8217;re using Django templates, you can use the <cite>form_field</cite>
+templatetag we provide in our Django extension, when you want to pass keyword
+arguments:</p>
+<div class="highlight-html+django"><div class="highlight"><pre><span class="cp">{%</span> <span class="k">load</span> <span class="nv">wtforms</span> <span class="cp">%}</span>
+<span class="nt">&lt;form</span> <span class="na">method=</span><span class="s">&quot;POST&quot;</span> <span class="na">action=</span><span class="s">&quot;/login&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;div&gt;</span>
+        <span class="cp">{{</span> <span class="nv">form.username.label</span> <span class="cp">}}</span>:
+        <span class="cp">{%</span> <span class="k">form_field</span> <span class="nv">form.username</span> <span class="nv">class</span><span class="o">=</span><span class="s2">&quot;css_class&quot;</span> <span class="cp">%}</span>
+    <span class="nt">&lt;/div&gt;</span>
+    <span class="nt">&lt;div&gt;</span>
+        <span class="cp">{{</span> <span class="nv">form.password.label</span> <span class="cp">}}</span>:
+        <span class="cp">{{</span> <span class="nv">form.password</span> <span class="cp">}}</span>
+    <span class="nt">&lt;/div&gt;</span>
+<span class="nt">&lt;/form&gt;</span>
+</pre></div>
+</div>
+<p>Both of these will output:</p>
+<div class="highlight-html"><div class="highlight"><pre><span class="nt">&lt;form</span> <span class="na">method=</span><span class="s">&quot;POST&quot;</span> <span class="na">action=</span><span class="s">&quot;/login&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;div&gt;</span>
+        <span class="nt">&lt;label</span> <span class="na">for=</span><span class="s">&quot;username&quot;</span><span class="nt">&gt;</span>Username<span class="nt">&lt;/label&gt;</span>:
+        <span class="nt">&lt;input</span> <span class="na">class=</span><span class="s">&quot;css_class&quot;</span> <span class="na">id=</span><span class="s">&quot;username&quot;</span> <span class="na">name=</span><span class="s">&quot;username&quot;</span> <span class="na">type=</span><span class="s">&quot;text&quot;</span> <span class="na">value=</span><span class="s">&quot;&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;/div&gt;</span>
+    <span class="nt">&lt;div&gt;</span>
+        <span class="nt">&lt;label</span> <span class="na">for=</span><span class="s">&quot;password&quot;</span><span class="nt">&gt;</span>Password<span class="nt">&lt;/label&gt;</span>:
+        <span class="nt">&lt;input</span> <span class="na">id=</span><span class="s">&quot;password&quot;</span> <span class="na">name=</span><span class="s">&quot;password&quot;</span> <span class="na">type=</span><span class="s">&quot;password&quot;</span> <span class="na">value=</span><span class="s">&quot;&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;/div&gt;</span>
+<span class="nt">&lt;/form&gt;</span>
+</pre></div>
+</div>
+<p>WTForms is template engine agnostic, and will work with anything that allows
+attribute access, string coercion, and/or function calls. The <cite>form_field</cite>
+templatetag is provided as a convenience as you can&#8217;t pass arguments in Django
+templates.</p>
+</div>
+<div class="section" id="displaying-errors">
+<h3>Displaying Errors<a class="headerlink" href="#displaying-errors" title="Permalink to this headline">¶</a></h3>
+<p>Now that we have a template for our form, let&#8217;s add error messages:</p>
+<div class="highlight-html+jinja"><div class="highlight"><pre><span class="nt">&lt;form</span> <span class="na">method=</span><span class="s">&quot;POST&quot;</span> <span class="na">action=</span><span class="s">&quot;/login&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;div&gt;</span><span class="cp">{{</span> <span class="nv">form.username.label</span> <span class="cp">}}</span>: <span class="cp">{{</span> <span class="nv">form.username</span><span class="o">(</span><span class="nv">class</span><span class="o">=</span><span class="s2">&quot;css_class&quot;</span><span class="o">)</span> <span class="cp">}}</span><span class="nt">&lt;/div&gt;</span>
+    <span class="cp">{%</span> <span class="k">if</span> <span class="nv">form.username.errors</span> <span class="cp">%}</span>
+        <span class="nt">&lt;ul</span> <span class="na">class=</span><span class="s">&quot;errors&quot;</span><span class="nt">&gt;</span><span class="cp">{%</span> <span class="k">for</span> <span class="nv">error</span> <span class="k">in</span> <span class="nv">form.username.errors</span> <span class="cp">%}</span><span class="nt">&lt;li&gt;</span><span class="cp">{{</span> <span class="nv">error</span> <span class="cp">}}</span><span class="nt">&lt;/li&gt;</span><span class="cp">{%</span> <span class="k">endfor</span> <span class="cp">%}</span><span class="nt">&lt;/ul&gt;</span>
+    <span class="cp">{%</span> <span class="k">endif</span> <span class="cp">%}</span>
+
+    <span class="nt">&lt;div&gt;</span><span class="cp">{{</span> <span class="nv">form.password.label</span> <span class="cp">}}</span>: <span class="cp">{{</span> <span class="nv">form.password</span><span class="o">()</span> <span class="cp">}}</span><span class="nt">&lt;/div&gt;</span>
+    <span class="cp">{%</span> <span class="k">if</span> <span class="nv">form.password.errors</span> <span class="cp">%}</span>
+        <span class="nt">&lt;ul</span> <span class="na">class=</span><span class="s">&quot;errors&quot;</span><span class="nt">&gt;</span><span class="cp">{%</span> <span class="k">for</span> <span class="nv">error</span> <span class="k">in</span> <span class="nv">form.password.errors</span> <span class="cp">%}</span><span class="nt">&lt;li&gt;</span><span class="cp">{{</span> <span class="nv">error</span> <span class="cp">}}</span><span class="nt">&lt;/li&gt;</span><span class="cp">{%</span> <span class="k">endfor</span> <span class="cp">%}</span><span class="nt">&lt;/ul&gt;</span>
+    <span class="cp">{%</span> <span class="k">endif</span> <span class="cp">%}</span>
+<span class="nt">&lt;/form&gt;</span>
+</pre></div>
+</div>
+<p>If you prefer one big list of errors at the top, this is also easy:</p>
+<div class="highlight-html+jinja"><div class="highlight"><pre><span class="cp">{%</span> <span class="k">if</span> <span class="nv">form.errors</span> <span class="cp">%}</span>
+    <span class="nt">&lt;ul</span> <span class="na">class=</span><span class="s">&quot;errors&quot;</span><span class="nt">&gt;</span>
+        <span class="cp">{%</span> <span class="k">for</span> <span class="nv">field_name</span><span class="o">,</span> <span class="nv">field_errors</span> <span class="k">in</span> <span class="nv">form.errors</span><span class="o">|</span><span class="nf">dictsort</span> <span class="k">if</span> <span class="nv">field_errors</span> <span class="cp">%}</span>
+            <span class="cp">{%</span> <span class="k">for</span> <span class="nv">error</span> <span class="k">in</span> <span class="nv">field_errors</span> <span class="cp">%}</span>
+                <span class="nt">&lt;li&gt;</span><span class="cp">{{</span> <span class="nv">form</span><span class="o">[</span><span class="nv">field_name</span><span class="o">]</span><span class="nv">.label</span> <span class="cp">}}</span>: <span class="cp">{{</span> <span class="nv">error</span> <span class="cp">}}</span><span class="nt">&lt;/li&gt;</span>
+            <span class="cp">{%</span> <span class="k">endfor</span> <span class="cp">%}</span>
+        <span class="cp">{%</span> <span class="k">endfor</span> <span class="cp">%}</span>
+    <span class="nt">&lt;/ul&gt;</span>
+<span class="cp">{%</span> <span class="k">endif</span> <span class="cp">%}</span>
+</pre></div>
+</div>
+<p>As error handling can become a rather verbose affair, it is preferable to use
+Jinja macros (or equivalent) to reduce boilerplate in your templates.
+(<a class="reference internal" href="specific_problems.html#jinja-macros-example"><em>example</em></a>)</p>
+</div>
+<div class="section" id="custom-validators">
+<h3>Custom Validators<a class="headerlink" href="#custom-validators" title="Permalink to this headline">¶</a></h3>
+<p>There are two ways to provide custom validators. By defining a custom validator
+and using it on a field:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">wtforms.validators</span> <span class="kn">import</span> <span class="n">ValidationError</span>
+
+<span class="k">def</span> <span class="nf">is_42</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span> <span class="o">!=</span> <span class="mi">42</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="s">&#39;Must be 42&#39;</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">FourtyTwoForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span><span class="s">&#39;Number&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">is_42</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Or by providing an in-form field-specific validator:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">FourtyTwoForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span><span class="s">&#39;Number&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">validate_num</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span> <span class="o">!=</span> <span class="mi">42</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="s">u&#39;Must be 42&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For more complex validators that take parameters, check the <a class="reference internal" href="validators.html#custom-validators"><em>Custom validators</em></a> section.</p>
+</div>
+</div>
+<div class="section" id="next-steps">
+<h2>Next Steps<a class="headerlink" href="#next-steps" title="Permalink to this headline">¶</a></h2>
+<p>The crash course has just skimmed the surface on how you can begin using
+WTForms to handle form input and validation in your application. For more
+information, you&#8217;ll want to check the following:</p>
+<blockquote>
+<div><ul class="simple">
+<li>The <a class="reference internal" href="index.html#doc-index"><em>WTForms documentation</em></a> has API documentation for the entire library.</li>
+<li><a class="reference internal" href="specific_problems.html#specific-problems"><em>Solving Specific Problems</em></a> can help you tackle specific
+integration issues with WTForms and other frameworks.</li>
+<li>The <a class="reference external" href="http://groups.google.com/group/wtforms/">mailing list</a> is where you can get help, discuss bugs in WTForms, and
+propose new features.</li>
+</ul>
+</div></blockquote>
+</div>
+</div>
+
+
+        <div style="clear: both"></div>
+      </div>
+      <div id="footer">
+        © Copyright 2010 by the <a href="http://wtforms.simplecodes.com">WTForms Team</a>,
+        documentation generated by <a href="http://sphinx.pocoo.org/">Sphinx</a>
+      </div>
+    </div>
+  </body>
+</html>

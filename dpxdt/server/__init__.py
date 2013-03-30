@@ -21,12 +21,15 @@ server.db.create_all()
 
 """
 
+import secrets
+
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.config['SECRET_KEY'] = secrets.CSRF_SECRET_KEY
 
 db = SQLAlchemy(app)
 

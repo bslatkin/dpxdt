@@ -1,0 +1,166 @@
+
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>WTForms Documentation</title>
+    <link rel="stylesheet" href="_static/main.css" type="text/css">
+    <link rel="stylesheet" href="_static/docstyles.css" type="text/css">
+    <link rel="stylesheet" href="_static/print.css" type="text/css" media="print">
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css">
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:   '#',
+        VERSION:    '1.0.3'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/searchtools.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="contents" title="Global table of contents" href="contents.html">
+    <link rel="index" title="Global index" href="genindex.html">
+    <link rel="search" title="Search" href="search.html">
+    <link rel="top" title="WTForms 1.0.3 documentation" href="index.html">
+    <link rel="prev" title="Crash Course" href="crash_course.html">
+    
+  </head>
+  <body>
+    <div id="body">
+      <div id="header">
+        <h1 id="logo"><a href="index.html"
+          title="back to the documentation overview"><img src="_static/wtforms.png" alt="WTForms" /></a></h1>
+        <ul id="menu">
+          <li><a href="http://wtforms.simplecodes.com/">Website</li>
+          <li><a href="index.html">Documentation</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="http://groups.google.com/group/wtforms/">Mailing List</a></li>
+          <li><a href="http://bitbucket.org/simplecodes/wtforms/">Code</a></li>
+        </ul>
+      </div>
+      <div id="content">
+        <div id="toc">
+          <h3>Table Of Contents</h3>
+          <div class="inner"><ul>
+<li><a class="reference internal" href="#">Internationalization (i18n)</a><ul>
+<li><a class="reference internal" href="#translating-user-provided-messages">Translating user-provided messages</a></li>
+<li><a class="reference internal" href="#translating-built-in-messages">Translating built-in messages</a><ul>
+<li><a class="reference internal" href="#writing-your-own-translations-provider">Writing your own translations provider</a></li>
+<li><a class="reference internal" href="#module-wtforms.ext.i18n.form">Using the built-in translations provider</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+        
+  <div class="section" id="internationalization-i18n">
+<h1>Internationalization (i18n)<a class="headerlink" href="#internationalization-i18n" title="Permalink to this headline">¶</a></h1>
+<p>Localizing strings in WTForms is a topic that frequently comes up in the
+mailing list. While WTForms does not provide its own localization library, you
+can integrate WTForms with almost any gettext-like framework easily.</p>
+<p>In WTForms, the majority of messages that are transmitted are provided by you,
+the user. However, there is support for translating some of the <em>built-in</em>
+messages in WTForms (such as errors which occur during data coercion) so that
+the user can make sure the user experience is consistent.</p>
+<div class="section" id="translating-user-provided-messages">
+<h2>Translating user-provided messages<a class="headerlink" href="#translating-user-provided-messages" title="Permalink to this headline">¶</a></h2>
+<p>This is not actually any specific feature in WTForms, but because the question
+is asked so frequently, we need to address it here: <strong>WTForms does -not-
+translate any user-provided strings.</strong></p>
+<p>This is not to say they can&#8217;t be translated, but that it&#8217;s up to you to deal
+with providing a translation for any passed-in messages. WTForms waits until
+the last moment (usually validation time) before doing anything with the passed
+in message (such as interpolating strings) thus giving you the opportunity to
+e.g. change your locale before validation occurs, if you are using a suitable
+&#8220;lazy proxy&#8221;.</p>
+<p>Here&#8217;s a simple example of how one would provide translated strings to WTForms:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">somelibrary</span> <span class="kn">import</span> <span class="n">ugettext_lazy</span> <span class="k">as</span> <span class="n">_</span>
+<span class="kn">from</span> <span class="nn">wtforms</span> <span class="kn">import</span> <span class="n">Form</span><span class="p">,</span> <span class="n">TextField</span><span class="p">,</span> <span class="n">IntegerField</span><span class="p">,</span> <span class="n">validators</span> <span class="k">as</span> <span class="n">v</span>
+
+<span class="k">class</span> <span class="nc">RegistrationForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s">u&#39;Name&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">Required</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s">u&#39;Please provide your name&#39;</span><span class="p">))])</span>
+    <span class="n">age</span> <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">_</span><span class="p">(</span><span class="s">u&#39;Age&#39;</span><span class="p">),</span>
+        <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">NumberRange</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s">u&#39;Must be at least </span><span class="si">%(min)d</span><span class="s"> years old.&#39;</span><span class="p">))]</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p>The field label is left un-perturbed until rendering time in a template, so you
+can easily provide translations for field labels if so desired. In addition,
+validator messages with format strings are not interpolated until the
+validation is run, so you can provide localization there as well.</p>
+</div>
+<div class="section" id="translating-built-in-messages">
+<h2>Translating built-in messages<a class="headerlink" href="#translating-built-in-messages" title="Permalink to this headline">¶</a></h2>
+<p>There are some messages in WTForms which are provided by the framework, namely
+default validator messages and errors occuring during the processing (data
+coercion) stage. For example, in the case of the IntegerField above, if someone
+entered a value which was not valid as an integer, then a message like &#8220;Not a
+valid integer value&#8221; would be displayed.</p>
+<div class="section" id="writing-your-own-translations-provider">
+<h3>Writing your own translations provider<a class="headerlink" href="#writing-your-own-translations-provider" title="Permalink to this headline">¶</a></h3>
+<p>For this case, we provide the ability to give a translations object on a
+subclass of Form, which will then be called to translate built-in strings.</p>
+<p>An example of writing a simple translations object:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">mylibrary</span> <span class="kn">import</span> <span class="n">ugettext</span><span class="p">,</span> <span class="n">ungettext</span>
+<span class="kn">from</span> <span class="nn">wtforms</span> <span class="kn">import</span> <span class="n">Form</span>
+
+<span class="k">class</span> <span class="nc">MyTranslations</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">gettext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">ugettext</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">ngettext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">singular</span><span class="p">,</span> <span class="n">plural</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">ungettext</span><span class="p">(</span><span class="n">singular</span><span class="p">,</span> <span class="n">plural</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">MyBaseForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_get_translations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">MyTranslations</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>You would then use this new base Form class as the base class for any forms you
+create, and any built-in messages from WTForms will be passed to your
+gettext/ngettext implementations.</p>
+<p>You control the object&#8217;s constructor, its lifecycle, and everything else about
+it, so you could, for example, pass the locale per-form instantiation to the
+translation object&#8217;s constructor, and anything else you need to do for
+translations to work for you.</p>
+</div>
+<div class="section" id="module-wtforms.ext.i18n.form">
+<span id="using-the-built-in-translations-provider"></span><h3>Using the built-in translations provider<a class="headerlink" href="#module-wtforms.ext.i18n.form" title="Permalink to this headline">¶</a></h3>
+<p>WTForms now includes a basic translations provider which uses the stdlib
+<cite>gettext</cite> module to localize strings based on locale information distributed
+with the package. As of this writing, we are waiting for more translations to
+be submitted, but we hope that soon we will provide given localizations</p>
+<p>To use the builtin translations provider, simply import
+<a class="reference internal" href="#wtforms.ext.i18n.form.Form" title="wtforms.ext.i18n.form.Form"><tt class="xref py py-class docutils literal"><span class="pre">wtforms.ext.i18n.form.Form</span></tt></a> and use that as your base Form class.</p>
+<dl class="class">
+<dt id="wtforms.ext.i18n.form.Form">
+<em class="property">class </em><tt class="descclassname">wtforms.ext.i18n.form.</tt><tt class="descname">Form</tt><big>(</big><em>formdata=None</em>, <em>obj=None</em>, <em>prefix=''</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#wtforms.ext.i18n.form.Form" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base form for a simple localized WTForms form.</p>
+<p>This will use the stdlib gettext library to retrieve an appropriate
+translations object for the language, by default using the locale
+information from the environment.</p>
+<p>If the LANGUAGES class variable is overridden and set to a sequence of
+strings, this will be a list of languages by priority to use instead, e.g:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">LANGUAGES</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;en_GB&#39;</span><span class="p">,</span> <span class="s">&#39;en&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Translations objects are cached to prevent having to get a new one for the
+same languages every instantiation.</p>
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+        <div style="clear: both"></div>
+      </div>
+      <div id="footer">
+        © Copyright 2010 by the <a href="http://wtforms.simplecodes.com">WTForms Team</a>,
+        documentation generated by <a href="http://sphinx.pocoo.org/">Sphinx</a>
+      </div>
+    </div>
+  </body>
+</html>

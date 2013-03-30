@@ -1,0 +1,213 @@
+
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>WTForms Documentation</title>
+    <link rel="stylesheet" href="_static/main.css" type="text/css">
+    <link rel="stylesheet" href="_static/docstyles.css" type="text/css">
+    <link rel="stylesheet" href="_static/print.css" type="text/css" media="print">
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css">
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:   '#',
+        VERSION:    '1.0.3'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/searchtools.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="contents" title="Global table of contents" href="contents.html">
+    <link rel="index" title="Global index" href="genindex.html">
+    <link rel="search" title="Search" href="search.html">
+    <link rel="top" title="WTForms 1.0.3 documentation" href="index.html">
+    <link rel="next" title="Extensions" href="ext.html">
+    <link rel="prev" title="Validators" href="validators.html">
+    
+  </head>
+  <body>
+    <div id="body">
+      <div id="header">
+        <h1 id="logo"><a href="index.html"
+          title="back to the documentation overview"><img src="_static/wtforms.png" alt="WTForms" /></a></h1>
+        <ul id="menu">
+          <li><a href="http://wtforms.simplecodes.com/">Website</li>
+          <li><a href="index.html">Documentation</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="http://groups.google.com/group/wtforms/">Mailing List</a></li>
+          <li><a href="http://bitbucket.org/simplecodes/wtforms/">Code</a></li>
+        </ul>
+      </div>
+      <div id="content">
+        <div id="toc">
+          <h3>Table Of Contents</h3>
+          <div class="inner"><ul>
+<li><a class="reference internal" href="#">Widgets</a><ul>
+<li><a class="reference internal" href="#built-in-widgets">Built-in widgets</a></li>
+<li><a class="reference internal" href="#custom-widgets">Custom widgets</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+        
+  <div class="section" id="module-wtforms.widgets">
+<span id="widgets"></span><h1>Widgets<a class="headerlink" href="#module-wtforms.widgets" title="Permalink to this headline">¶</a></h1>
+<p>Widgets are classes whose purpose are to render a field to its usable
+representation, usually XHTML.  When a field is called, the default behaviour
+is to delegate the rendering to its widget. This abstraction is provided so
+that widgets can easily be created to customize the rendering of existing
+fields.</p>
+<p><strong>Note</strong> All built-in widgets will return upon rendering a &#8220;HTML-safe&#8221; unicode
+string subclass that many templating frameworks (Jinja2, Mako, Genshi) will
+recognize as not needing to be auto-escaped.</p>
+<div class="section" id="built-in-widgets">
+<h2>Built-in widgets<a class="headerlink" href="#built-in-widgets" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="wtforms.widgets.ListWidget">
+<em class="property">class </em><tt class="descclassname">wtforms.widgets.</tt><tt class="descname">ListWidget</tt><big>(</big><em>html_tag=u'ul'</em>, <em>prefix_label=True</em><big>)</big><a class="headerlink" href="#wtforms.widgets.ListWidget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Renders a list of fields as a <cite>ul</cite> or <cite>ol</cite> list.</p>
+<p>This is used for fields which encapsulate many inner fields as subfields.
+The widget will try to iterate the field to get access to the subfields and
+call them to render them.</p>
+<p>If <cite>prefix_label</cite> is set, the subfield&#8217;s label is printed before the field,
+otherwise afterwards. The latter is useful for iterating radios or
+checkboxes.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.widgets.TableWidget">
+<em class="property">class </em><tt class="descclassname">wtforms.widgets.</tt><tt class="descname">TableWidget</tt><big>(</big><em>with_table_tag=True</em><big>)</big><a class="headerlink" href="#wtforms.widgets.TableWidget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Renders a list of fields as a set of table rows with th/td pairs.</p>
+<p>If <cite>with_table_tag</cite> is True, then an enclosing &lt;table&gt; is placed around the
+rows.</p>
+<p>Hidden fields will not be displayed with a row, instead the field will be 
+pushed into a subsequent table row to ensure XHTML validity. Hidden fields
+at the end of the field list will appear outside the table.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.widgets.Input">
+<em class="property">class </em><tt class="descclassname">wtforms.widgets.</tt><tt class="descname">Input</tt><big>(</big><em>input_type=None</em><big>)</big><a class="headerlink" href="#wtforms.widgets.Input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render a basic <tt class="docutils literal"><span class="pre">&lt;input&gt;</span></tt> field.</p>
+<p>This is used as the basis for most of the other input fields.</p>
+<p>By default, the <cite>_value()</cite> method will be called upon the associated field
+to provide the <tt class="docutils literal"><span class="pre">value=</span></tt> HTML attribute.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.widgets.TextInput">
+<em class="property">class </em><tt class="descclassname">wtforms.widgets.</tt><tt class="descname">TextInput</tt><a class="headerlink" href="#wtforms.widgets.TextInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render a single-line text input.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.widgets.PasswordInput">
+<em class="property">class </em><tt class="descclassname">wtforms.widgets.</tt><tt class="descname">PasswordInput</tt><big>(</big><em>hide_value=True</em><big>)</big><a class="headerlink" href="#wtforms.widgets.PasswordInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render a password input.</p>
+<p>For security purposes, this field will not reproduce the value on a form
+submit by default. To have the value filled in, set <cite>hide_value</cite> to
+<cite>False</cite>.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.widgets.HiddenInput">
+<em class="property">class </em><tt class="descclassname">wtforms.widgets.</tt><tt class="descname">HiddenInput</tt><a class="headerlink" href="#wtforms.widgets.HiddenInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render a hidden input.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.widgets.CheckboxInput">
+<em class="property">class </em><tt class="descclassname">wtforms.widgets.</tt><tt class="descname">CheckboxInput</tt><a class="headerlink" href="#wtforms.widgets.CheckboxInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render a checkbox.</p>
+<p>The <tt class="docutils literal"><span class="pre">checked</span></tt> HTML attribute is set if the field&#8217;s data is a non-false value.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.widgets.FileInput">
+<em class="property">class </em><tt class="descclassname">wtforms.widgets.</tt><tt class="descname">FileInput</tt><a class="headerlink" href="#wtforms.widgets.FileInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Renders a file input chooser field.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.widgets.SubmitInput">
+<em class="property">class </em><tt class="descclassname">wtforms.widgets.</tt><tt class="descname">SubmitInput</tt><a class="headerlink" href="#wtforms.widgets.SubmitInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Renders a submit button.</p>
+<p>The field&#8217;s label is used as the text of the submit button instead of the
+data on the field.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.widgets.TextArea">
+<em class="property">class </em><tt class="descclassname">wtforms.widgets.</tt><tt class="descname">TextArea</tt><a class="headerlink" href="#wtforms.widgets.TextArea" title="Permalink to this definition">¶</a></dt>
+<dd><p>Renders a multi-line text area.</p>
+<p><cite>rows</cite> and <cite>cols</cite> ought to be passed as keyword args when rendering.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.widgets.Select">
+<em class="property">class </em><tt class="descclassname">wtforms.widgets.</tt><tt class="descname">Select</tt><big>(</big><em>multiple=False</em><big>)</big><a class="headerlink" href="#wtforms.widgets.Select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Renders a select field.</p>
+<p>If <cite>multiple</cite> is True, then the <cite>size</cite> property should be specified on
+rendering to make the field useful.</p>
+<p>The field must provide an <cite>iter_choices()</cite> method which the widget will
+call on rendering; this method must yield tuples of
+<cite>(value, label, selected)</cite>.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="custom-widgets">
+<h2>Custom widgets<a class="headerlink" href="#custom-widgets" title="Permalink to this headline">¶</a></h2>
+<p>Widgets, much like validators, provide a simple callable contract. Widgets can
+take customization arguments through a constructor if needed as well. When
+the field is called or printed, it will call the widget with itself as the
+first argument and then any additional arguments passed to its caller as
+keywords.  Passing the field is done so that one instance of a widget might be
+used across many field instances.</p>
+<p>Let&#8217;s look at a widget which renders a text field with an additional class if
+there are errors:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">MyTextInput</span><span class="p">(</span><span class="n">TextInput</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error_class</span><span class="o">=</span><span class="s">u&#39;has_errors&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MyTextInput</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_class</span> <span class="o">=</span> <span class="n">error_class</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">errors</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;class&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;class_&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">u&#39;</span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_class</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MyTextInput</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__call__</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In the above example, we extended the behavior of the existing
+<a class="reference internal" href="#wtforms.widgets.TextInput" title="wtforms.widgets.TextInput"><tt class="xref py py-class docutils literal"><span class="pre">TextInput</span></tt></a> widget to append a CSS class as needed. However, widgets
+need not extend from an existing widget, and indeed don&#8217;t even have to be a
+class.  For example, here is a widget that renders a
+<a class="reference internal" href="fields.html#wtforms.fields.SelectMultipleField" title="wtforms.fields.SelectMultipleField"><tt class="xref py py-class docutils literal"><span class="pre">SelectMultipleField</span></tt></a> as a collection of checkboxes:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">select_multi_checkbox</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">ul_class</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s">&#39;type&#39;</span><span class="p">,</span> <span class="s">&#39;checkbox&#39;</span><span class="p">)</span>
+    <span class="n">field_id</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;id&#39;</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="n">html</span> <span class="o">=</span> <span class="p">[</span><span class="s">u&#39;&lt;ul </span><span class="si">%s</span><span class="s">&gt;&#39;</span> <span class="o">%</span> <span class="n">html_params</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">field_id</span><span class="p">,</span> <span class="n">class_</span><span class="o">=</span><span class="n">ul_class</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">value</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">checked</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">iter_choices</span><span class="p">():</span>
+        <span class="n">choice_id</span> <span class="o">=</span> <span class="s">u&#39;</span><span class="si">%s</span><span class="s">-</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">field_id</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="n">choice_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">checked</span><span class="p">:</span>
+            <span class="n">options</span><span class="p">[</span><span class="s">&#39;checked&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;checked&#39;</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">u&#39;&lt;li&gt;&lt;input </span><span class="si">%s</span><span class="s"> /&gt; &#39;</span> <span class="o">%</span> <span class="n">html_params</span><span class="p">(</span><span class="o">**</span><span class="n">options</span><span class="p">))</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">u&#39;&lt;label for=&quot;</span><span class="si">%s</span><span class="s">&quot;&gt;</span><span class="si">%s</span><span class="s">&lt;/label&gt;&lt;/li&gt;&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">field_id</span><span class="p">,</span> <span class="n">label</span><span class="p">))</span>
+    <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">u&#39;&lt;/ul&gt;&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s">u&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">html</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+        <div style="clear: both"></div>
+      </div>
+      <div id="footer">
+        © Copyright 2010 by the <a href="http://wtforms.simplecodes.com">WTForms Team</a>,
+        documentation generated by <a href="http://sphinx.pocoo.org/">Sphinx</a>
+      </div>
+    </div>
+  </body>
+</html>

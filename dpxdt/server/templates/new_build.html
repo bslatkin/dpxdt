@@ -9,6 +9,11 @@ create build description
 
 {% block body %}
 
-create build
+<form action="{{ url_for('new_build') }}" method="post">
+    {{ build_form.csrf_token }}
+    {{ build_form.name.label }}
+    {{ build_form.name }}
+    <input type="submit" value="Create build">
+</form>
 
 {% endblock body %}

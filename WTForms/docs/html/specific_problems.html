@@ -1,0 +1,188 @@
+
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>WTForms Documentation</title>
+    <link rel="stylesheet" href="_static/main.css" type="text/css">
+    <link rel="stylesheet" href="_static/docstyles.css" type="text/css">
+    <link rel="stylesheet" href="_static/print.css" type="text/css" media="print">
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css">
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:   '#',
+        VERSION:    '1.0.3'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/searchtools.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="contents" title="Global table of contents" href="contents.html">
+    <link rel="index" title="Global index" href="genindex.html">
+    <link rel="search" title="Search" href="search.html">
+    <link rel="top" title="WTForms 1.0.3 documentation" href="index.html">
+    <link rel="next" title="Crash Course" href="crash_course.html">
+    <link rel="prev" title="FAQ" href="faq.html">
+    
+  </head>
+  <body>
+    <div id="body">
+      <div id="header">
+        <h1 id="logo"><a href="index.html"
+          title="back to the documentation overview"><img src="_static/wtforms.png" alt="WTForms" /></a></h1>
+        <ul id="menu">
+          <li><a href="http://wtforms.simplecodes.com/">Website</li>
+          <li><a href="index.html">Documentation</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="http://groups.google.com/group/wtforms/">Mailing List</a></li>
+          <li><a href="http://bitbucket.org/simplecodes/wtforms/">Code</a></li>
+        </ul>
+      </div>
+      <div id="content">
+        <div id="toc">
+          <h3>Table Of Contents</h3>
+          <div class="inner"><ul>
+<li><a class="reference internal" href="#">Solving Specific Problems</a><ul>
+<li><a class="reference internal" href="#prelude-poke-it-with-a-stick">Prelude: Poke it with a Stick!</a></li>
+<li><a class="reference internal" href="#removing-fields-per-instance">Removing Fields Per-instance</a></li>
+<li><a class="reference internal" href="#dynamic-form-composition">Dynamic Form Composition</a></li>
+<li><a class="reference internal" href="#rendering-errors">Rendering Errors</a></li>
+<li><a class="reference internal" href="#specialty-field-tricks">Specialty Field Tricks</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+        
+  <div class="section" id="solving-specific-problems">
+<span id="specific-problems"></span><h1>Solving Specific Problems<a class="headerlink" href="#solving-specific-problems" title="Permalink to this headline">¶</a></h1>
+<p>What follows is a collection of recipes that will help you tackle specific
+challenges that may crop up when using WTForms along with various other python
+frameworks.</p>
+<div class="section" id="prelude-poke-it-with-a-stick">
+<h2>Prelude: Poke it with a Stick!<a class="headerlink" href="#prelude-poke-it-with-a-stick" title="Permalink to this headline">¶</a></h2>
+<p>The aim of WTForms is not to do it all, but rather to stick to the basics,
+while being compatible with as many frameworks as possible. We attempt to place
+useful things in the API so that developers can get what they want out of it,
+if the default behaviour is not desired.</p>
+<p>For example, many fields in WTForms are iterable to allow you to access
+enclosed fields inside them, providing you another way to customize their
+rendering. Many attributes on the fields are readily available for you to use
+in your templates. We encourage you to use the introspection abilities of the
+python interpreter to find new ways to manipulate fields. When introspection
+fails, you should try reading the source for insight into how things work and
+how you can use things to your advantage.</p>
+<p>If you come up with a solution that you feel is useful to others and wish to
+share it, please let us know via email or the mailing list, and we&#8217;ll add it
+to this document.</p>
+</div>
+<div class="section" id="removing-fields-per-instance">
+<h2>Removing Fields Per-instance<a class="headerlink" href="#removing-fields-per-instance" title="Permalink to this headline">¶</a></h2>
+<p>Sometimes, you create a form which has fields that aren&#8217;t useful in all
+circumstances or to all users. While it is indeed possible with form
+inheritance to define a form with exactly the fields you need, sometimes it is
+necessary to just tweak an existing form. Luckily, forms can have fields removed
+post-instantiation by using the <tt class="docutils literal"><span class="pre">del</span></tt> keyword:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">MagazineIssueForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">title</span>  <span class="o">=</span> <span class="n">TextField</span><span class="p">()</span>
+    <span class="n">year</span>   <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span><span class="s">&#39;Year&#39;</span><span class="p">)</span>
+    <span class="n">month</span>  <span class="o">=</span> <span class="n">SelectField</span><span class="p">(</span><span class="n">choices</span><span class="o">=</span><span class="n">MONTHS</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">edit_issue</span><span class="p">():</span>
+    <span class="n">publication</span> <span class="o">=</span> <span class="n">get_something_from_db</span><span class="p">()</span>
+    <span class="n">form</span> <span class="o">=</span> <span class="n">MagazineIssueForm</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">publication</span><span class="o">.</span><span class="n">frequency</span> <span class="o">==</span> <span class="s">&#39;annual&#39;</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">form</span><span class="o">.</span><span class="n">month</span>
+
+    <span class="c"># render our form</span>
+</pre></div>
+</div>
+<p>Removing a field from a form will cause it to not be validated, and it will not
+show up when iterating the form. It&#8217;s as if the field was never defined to
+begin with.  Note that you cannot add fields in this way, as all fields must
+exist on the form when processing input data.</p>
+</div>
+<div class="section" id="dynamic-form-composition">
+<h2>Dynamic Form Composition<a class="headerlink" href="#dynamic-form-composition" title="Permalink to this headline">¶</a></h2>
+<p>This is a rare occurrence, but sometimes it&#8217;s necessary to create or modify a
+form dynamically in your view. This is possible by creating internal
+subclasses:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">my_view</span><span class="p">():</span>
+    <span class="k">class</span> <span class="nc">F</span><span class="p">(</span><span class="n">MyBaseForm</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="n">F</span><span class="o">.</span><span class="n">username</span> <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s">&#39;username&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">iterate_some_model_dynamically</span><span class="p">():</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">TextField</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">title</span><span class="p">()))</span>
+
+    <span class="n">form</span> <span class="o">=</span> <span class="n">F</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+    <span class="c"># do view stuff</span>
+</pre></div>
+</div>
+<p>For more form composition tricks, refer to <a class="reference external" href="http://groups.google.com/group/wtforms/browse_thread/thread/7099776aacd989e0/772807dfb4b9635b?#772807dfb4b9635b">this mailing list post</a></p>
+</div>
+<div class="section" id="rendering-errors">
+<span id="jinja-macros-example"></span><h2>Rendering Errors<a class="headerlink" href="#rendering-errors" title="Permalink to this headline">¶</a></h2>
+<p>In your template, you will often find yourself faced with the repetitive task
+of rendering errors for a form field. Here&#8217;s a <a class="reference external" href="http://jinja.pocoo.org/2/">Jinja2</a> macro that may save you time:</p>
+<div class="highlight-html+jinja"><div class="highlight"><pre><span class="cp">{%</span> <span class="k">macro</span> <span class="nv">with_errors</span><span class="o">(</span><span class="nv">field</span><span class="o">)</span> <span class="cp">%}</span>
+    <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;form_field&quot;</span><span class="nt">&gt;</span>
+    <span class="cp">{%</span> <span class="k">if</span> <span class="nv">field.errors</span> <span class="cp">%}</span>
+        <span class="cp">{%</span> <span class="k">set</span> <span class="nv">css_class</span> <span class="o">=</span> <span class="s1">&#39;has_error &#39;</span> <span class="o">+</span> <span class="nv">kwargs.pop</span><span class="o">(</span><span class="s1">&#39;class&#39;</span><span class="o">,</span> <span class="s1">&#39;&#39;</span><span class="o">)</span> <span class="cp">%}</span>
+        <span class="cp">{{</span> <span class="nv">field</span><span class="o">(</span><span class="nv">class</span><span class="o">=</span><span class="nv">css_class</span><span class="o">,</span> <span class="o">**</span><span class="nv">kwargs</span><span class="o">)</span> <span class="cp">}}</span>
+        <span class="nt">&lt;ul</span> <span class="na">class=</span><span class="s">&quot;errors&quot;</span><span class="nt">&gt;</span><span class="cp">{%</span> <span class="k">for</span> <span class="nv">error</span> <span class="k">in</span> <span class="nv">field.errors</span> <span class="cp">%}</span><span class="nt">&lt;li&gt;</span><span class="cp">{{</span> <span class="nv">error</span><span class="o">|</span><span class="nf">e</span> <span class="cp">}}</span><span class="nt">&lt;/li&gt;</span><span class="cp">{%</span> <span class="k">endfor</span> <span class="cp">%}</span><span class="nt">&lt;/ul&gt;</span>
+    <span class="cp">{%</span> <span class="k">else</span> <span class="cp">%}</span>
+        <span class="cp">{{</span> <span class="nv">field</span><span class="o">(**</span><span class="nv">kwargs</span><span class="o">)</span> <span class="cp">}}</span>
+    <span class="cp">{%</span> <span class="k">endif</span> <span class="cp">%}</span>
+    <span class="nt">&lt;/div&gt;</span>
+<span class="cp">{%</span> <span class="k">endmacro</span> <span class="cp">%}</span>
+
+Usage: <span class="cp">{{</span> <span class="nv">with_errors</span><span class="o">(</span><span class="nv">form.field</span><span class="o">,</span> <span class="nv">style</span><span class="o">=</span><span class="s1">&#39;font-weight: bold&#39;</span><span class="o">)</span> <span class="cp">}}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="specialty-field-tricks">
+<h2>Specialty Field Tricks<a class="headerlink" href="#specialty-field-tricks" title="Permalink to this headline">¶</a></h2>
+<p>By using widget and field combinations, it is possible to create new
+behaviours and entirely new ways of displaying a form input to the user.</p>
+<p>A classic example is easily supported using the <cite>widget=</cite> keyword arg, such as
+making a hidden field which stores and coerces integer data:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">user_id</span> <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span><span class="n">widget</span><span class="o">=</span><span class="n">HiddenInput</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Alternatively, you can create a field which does this by subclassing:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">HiddenInteger</span><span class="p">(</span><span class="n">IntegerField</span><span class="p">):</span>
+    <span class="n">widget</span> <span class="o">=</span> <span class="n">HiddenInput</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Some fields support even more sophisticated customization.For example, what if
+a multiple-select was desired where instead of using a multi-row <tt class="docutils literal"><span class="pre">&lt;select&gt;</span></tt>,
+a series of checkboxes was used? By using widgets, one can get that behavior
+very easily:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">MultiCheckboxField</span><span class="p">(</span><span class="n">SelectMultipleField</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A multiple-select, except displays a list of checkboxes.</span>
+
+<span class="sd">    Iterating the field will produce subfields, allowing custom rendering of</span>
+<span class="sd">    the enclosed checkbox fields.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">widget</span> <span class="o">=</span> <span class="n">widgets</span><span class="o">.</span><span class="n">ListWidget</span><span class="p">(</span><span class="n">prefix_label</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+    <span class="n">option_widget</span> <span class="o">=</span> <span class="n">widgets</span><span class="o">.</span><span class="n">CheckboxInput</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>By overriding <cite>option_widget</cite>, our new multiple-select when iterated will now
+produce fields that render as checkboxes.</p>
+</div>
+</div>
+
+
+        <div style="clear: both"></div>
+      </div>
+      <div id="footer">
+        © Copyright 2010 by the <a href="http://wtforms.simplecodes.com">WTForms Team</a>,
+        documentation generated by <a href="http://sphinx.pocoo.org/">Sphinx</a>
+      </div>
+    </div>
+  </body>
+</html>

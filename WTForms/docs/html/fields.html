@@ -1,0 +1,872 @@
+
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>WTForms Documentation</title>
+    <link rel="stylesheet" href="_static/main.css" type="text/css">
+    <link rel="stylesheet" href="_static/docstyles.css" type="text/css">
+    <link rel="stylesheet" href="_static/print.css" type="text/css" media="print">
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css">
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:   '#',
+        VERSION:    '1.0.3'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/searchtools.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="contents" title="Global table of contents" href="contents.html">
+    <link rel="index" title="Global index" href="genindex.html">
+    <link rel="search" title="Search" href="search.html">
+    <link rel="top" title="WTForms 1.0.3 documentation" href="index.html">
+    <link rel="next" title="Validators" href="validators.html">
+    <link rel="prev" title="Forms" href="forms.html">
+    
+  </head>
+  <body>
+    <div id="body">
+      <div id="header">
+        <h1 id="logo"><a href="index.html"
+          title="back to the documentation overview"><img src="_static/wtforms.png" alt="WTForms" /></a></h1>
+        <ul id="menu">
+          <li><a href="http://wtforms.simplecodes.com/">Website</li>
+          <li><a href="index.html">Documentation</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="http://groups.google.com/group/wtforms/">Mailing List</a></li>
+          <li><a href="http://bitbucket.org/simplecodes/wtforms/">Code</a></li>
+        </ul>
+      </div>
+      <div id="content">
+        <div id="toc">
+          <h3>Table Of Contents</h3>
+          <div class="inner"><ul>
+<li><a class="reference internal" href="#">Fields</a><ul>
+<li><a class="reference internal" href="#field-definitions">Field definitions</a></li>
+<li><a class="reference internal" href="#the-field-base-class">The Field base class</a></li>
+<li><a class="reference internal" href="#basic-fields">Basic fields</a></li>
+<li><a class="reference internal" href="#field-enclosures">Field Enclosures</a></li>
+<li><a class="reference internal" href="#custom-fields">Custom Fields</a><ul>
+<li><a class="reference internal" href="#fields-with-custom-constructors">Fields With Custom Constructors</a></li>
+<li><a class="reference internal" href="#considerations-for-overriding-process">Considerations for overriding process()</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#additional-helper-classes">Additional Helper Classes</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+        
+  <div class="section" id="module-wtforms.fields">
+<span id="fields"></span><h1>Fields<a class="headerlink" href="#module-wtforms.fields" title="Permalink to this headline">¶</a></h1>
+<p>Fields are responsible for rendering and data conversion. They delegate to
+validators for data validation.</p>
+<div class="section" id="field-definitions">
+<h2>Field definitions<a class="headerlink" href="#field-definitions" title="Permalink to this headline">¶</a></h2>
+<p>Fields are defined as members on a form in a declarative fashion:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">MyForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">name</span>    <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s">u&#39;Full Name&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">required</span><span class="p">(),</span> <span class="n">validators</span><span class="o">.</span><span class="n">length</span><span class="p">(</span><span class="nb">max</span><span class="o">=</span><span class="mi">10</span><span class="p">)])</span>
+    <span class="n">address</span> <span class="o">=</span> <span class="n">TextAreaField</span><span class="p">(</span><span class="s">u&#39;Mailing Address&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">optional</span><span class="p">(),</span> <span class="n">validators</span><span class="o">.</span><span class="n">length</span><span class="p">(</span><span class="nb">max</span><span class="o">=</span><span class="mi">200</span><span class="p">)])</span>
+</pre></div>
+</div>
+<p>When a field is defined on a form, the construction parameters are saved until
+the form is instantiated. At form instantiation time, a copy of the field is
+made with all the parameters specified in the definition. Each instance of the
+field keeps its own field data and errors list.</p>
+<p>The label and validators can be passed to the constructor as sequential
+arguments, while all other arguments should be passed as keyword arguments.
+Some fields (such as <a class="reference internal" href="#wtforms.fields.SelectField" title="wtforms.fields.SelectField"><tt class="xref py py-class docutils literal"><span class="pre">SelectField</span></tt></a>) can also take additional
+field-specific keyword arguments. Consult the built-in fields reference for
+information on those.</p>
+</div>
+<div class="section" id="the-field-base-class">
+<h2>The Field base class<a class="headerlink" href="#the-field-base-class" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="wtforms.fields.Field">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">Field</tt><a class="headerlink" href="#wtforms.fields.Field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stores and processes data, and generates HTML for a form field.</p>
+<p>Field instances contain the data of that instance as well as the
+functionality to render it within your Form. They also contain a number of
+properties which can be used within your templates to render the field and
+label.</p>
+<p><strong>Construction</strong></p>
+<dl class="method">
+<dt id="wtforms.fields.Field.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>label=None</em>, <em>validators=None</em>, <em>filters=()</em>, <em>description=u''</em>, <em>id=None</em>, <em>default=None</em>, <em>widget=None</em>, <em>_form=None</em>, <em>_name=None</em>, <em>_prefix=u''</em>, <em>_translations=None</em><big>)</big><a class="headerlink" href="#wtforms.fields.Field.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a new field.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>label</strong> &#8211; The label of the field.</li>
+<li><strong>validators</strong> &#8211; A sequence of validators to call when <cite>validate</cite> is called.</li>
+<li><strong>filters</strong> &#8211; A sequence of filters which are run on input data by <cite>process</cite>.</li>
+<li><strong>description</strong> &#8211; A description for the field, typically used for help text.</li>
+<li><strong>id</strong> &#8211; An id to use for the field. A reasonable default is set by the form,
+and you shouldn&#8217;t need to set this manually.</li>
+<li><strong>default</strong> &#8211; The default value to assign to the field, if no form or object
+input is provided. May be a callable.</li>
+<li><strong>widget</strong> &#8211; If provided, overrides the widget used to render the field.</li>
+<li><strong>_form</strong> &#8211; The form holding this field. It is passed by the form itself during
+construction. You should never pass this value yourself.</li>
+<li><strong>_name</strong> &#8211; The name of this field, passed by the enclosing form during its
+construction. You should never pass this value yourself.</li>
+<li><strong>_prefix</strong> &#8211; The prefix to prepend to the form name of this field, passed by
+the enclosing form during construction.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>If <cite>_form</cite> and <cite>_name</cite> isn&#8217;t provided, an <tt class="xref py py-class docutils literal"><span class="pre">UnboundField</span></tt> will be
+returned instead. Call its <tt class="xref py py-func docutils literal"><span class="pre">bind()</span></tt> method with a form instance and
+a name to construct the field.</p>
+</dd></dl>
+
+<p><strong>Validation</strong></p>
+<p>To validate the field, call its <cite>validate</cite> method, providing a form and any
+extra validators needed. To extend validation behaviour, override
+<cite>pre_validate</cite> or <cite>post_validate</cite>.</p>
+<dl class="method">
+<dt id="wtforms.fields.Field.validate">
+<tt class="descname">validate</tt><big>(</big><em>form</em>, <em>extra_validators=()</em><big>)</big><a class="headerlink" href="#wtforms.fields.Field.validate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates the field and returns True or False. <cite>self.errors</cite> will
+contain any errors raised during validation. This is usually only
+called by <cite>Form.validate</cite>.</p>
+<p>Subfields shouldn&#8217;t override this, but rather override either
+<cite>pre_validate</cite>, <cite>post_validate</cite> or both, depending on needs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>form</strong> &#8211; The form the field belongs to.</li>
+<li><strong>extra_validators</strong> &#8211; A list of extra validators to run.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="wtforms.fields.Field.pre_validate">
+<tt class="descname">pre_validate</tt><big>(</big><em>form</em><big>)</big><a class="headerlink" href="#wtforms.fields.Field.pre_validate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Override if you need field-level validation. Runs before any other
+validators.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>form</strong> &#8211; The form the field belongs to.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="wtforms.fields.Field.post_validate">
+<tt class="descname">post_validate</tt><big>(</big><em>form</em>, <em>validation_stopped</em><big>)</big><a class="headerlink" href="#wtforms.fields.Field.post_validate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Override if you need to run any field-level validation tasks after
+normal validation. This shouldn&#8217;t be needed in most cases.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>form</strong> &#8211; The form the field belongs to.</li>
+<li><strong>validation_stopped</strong> &#8211; <cite>True</cite> if any validator raised StopValidation.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.Field.errors">
+<tt class="descname">errors</tt><a class="headerlink" href="#wtforms.fields.Field.errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>If <cite>validate</cite> encounters any errors, they will be inserted into this
+list.</p>
+</dd></dl>
+
+<p><strong>Data access and processing</strong></p>
+<p>To handle incoming data from python, override <cite>process_data</cite>. Similarly, to
+handle incoming data from the outside, override <cite>process_formdata</cite>.</p>
+<dl class="method">
+<dt id="wtforms.fields.Field.process">
+<tt class="descname">process</tt><big>(</big><em>formdata</em><span class="optional">[</span>, <em>data</em><span class="optional">]</span><big>)</big><a class="headerlink" href="#wtforms.fields.Field.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process incoming data, calling process_data, process_formdata as needed,
+and run filters.</p>
+<p>If <cite>data</cite> is not provided, process_data will be called on the field&#8217;s
+default.</p>
+<p>Field subclasses usually won&#8217;t override this, instead overriding the
+process_formdata and process_data methods. Only override this for
+special advanced processing, such as when a field encapsulates many
+inputs.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wtforms.fields.Field.process_data">
+<tt class="descname">process_data</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#wtforms.fields.Field.process_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the Python data applied to this field and store the result.</p>
+<p>This will be called during form construction by the form&#8217;s <cite>kwargs</cite> or
+<cite>obj</cite> argument.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>value</strong> &#8211; The python object containing the value to process.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="wtforms.fields.Field.process_formdata">
+<tt class="descname">process_formdata</tt><big>(</big><em>valuelist</em><big>)</big><a class="headerlink" href="#wtforms.fields.Field.process_formdata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process data received over the wire from a form.</p>
+<p>This will be called during form construction with data supplied
+through the <cite>formdata</cite> argument.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>valuelist</strong> &#8211; A list of strings to process.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.Field.data">
+<tt class="descname">data</tt><a class="headerlink" href="#wtforms.fields.Field.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contains the resulting (sanitized) value of calling either of the
+process methods. Note that it is not HTML escaped when using in
+templates.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.Field.raw_data">
+<tt class="descname">raw_data</tt><a class="headerlink" href="#wtforms.fields.Field.raw_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>If form data is processed, is the valuelist given from the formdata
+wrapper. Otherwise, <cite>raw_data</cite> will be <cite>None</cite>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.Field.object_data">
+<tt class="descname">object_data</tt><a class="headerlink" href="#wtforms.fields.Field.object_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is the data passed from an object or from kwargs to the field,
+stored unmodified. This can be used by templates, widgets, validators
+as needed (for comparison, for example)</p>
+</dd></dl>
+
+<p><strong>Rendering</strong></p>
+<p>To render a field, simply call it, providing any values the widget expects
+as keyword arguments. Usually the keyword arguments are used for extra HTML
+attributes.</p>
+<dl class="method">
+<dt id="wtforms.fields.Field.__call__">
+<tt class="descname">__call__</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#wtforms.fields.Field.__call__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render this field as HTML, using keyword args as additional attributes.</p>
+<p>Any HTML attribute passed to the method will be added to the tag
+and entity-escaped properly.</p>
+<p>If one wants to pass the &#8220;class&#8221; argument which is a reserved keyword
+in some python-based templating languages, one can do:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">form</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">class_</span><span class="o">=</span><span class="s">&quot;text_blob&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will output (for a text field):</p>
+<div class="highlight-html"><div class="highlight"><pre><span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">&quot;text&quot;</span> <span class="na">name=</span><span class="s">&quot;field_name&quot;</span> <span class="na">value=</span><span class="s">&quot;blah&quot;</span> <span class="na">class=</span><span class="s">&quot;text_blob&quot;</span> <span class="na">id=</span><span class="s">&quot;field_name&quot;</span> <span class="nt">/&gt;</span>
+</pre></div>
+</div>
+<p>Note: Simply coercing the field to a string or unicode will render it as
+if it was called with no arguments.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wtforms.fields.Field.__html__">
+<tt class="descname">__html__</tt><big>(</big><big>)</big><a class="headerlink" href="#wtforms.fields.Field.__html__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a HTML representation of the field. For more powerful rendering,
+see the <cite>__call__</cite> method.</p>
+<p>Many template engines use the __html__ method when it exists on a
+printed object to get an &#8216;html-safe&#8217; string that will not be
+auto-escaped. To allow for printing a bare field without calling it,
+all WTForms fields implement this method as well.</p>
+</dd></dl>
+
+<p><strong>Properties</strong></p>
+<dl class="attribute">
+<dt id="wtforms.fields.Field.name">
+<tt class="descname">name</tt><a class="headerlink" href="#wtforms.fields.Field.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The HTML form name of this field. This is the name as defined in your
+Form prefixed with the <cite>prefix</cite> passed to the Form constructor.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.Field.short_name">
+<tt class="descname">short_name</tt><a class="headerlink" href="#wtforms.fields.Field.short_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The un-prefixed name of this field.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.Field.id">
+<tt class="descname">id</tt><a class="headerlink" href="#wtforms.fields.Field.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The HTML ID of this field. If unspecified, this is generated for you to
+be the same as the field name.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.Field.label">
+<tt class="descname">label</tt><a class="headerlink" href="#wtforms.fields.Field.label" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is a <a class="reference internal" href="#wtforms.fields.Label" title="wtforms.fields.Label"><tt class="xref py py-class docutils literal"><span class="pre">Label</span></tt></a> instance which when evaluated as a string
+returns an HTML <tt class="docutils literal"><span class="pre">&lt;label</span> <span class="pre">for=&quot;id&quot;&gt;</span></tt> construct.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.Field.default">
+<tt class="descname">default</tt><a class="headerlink" href="#wtforms.fields.Field.default" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is whatever you passed as the <cite>default</cite> to the field&#8217;s
+constructor, otherwise None.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.Field.description">
+<tt class="descname">description</tt><a class="headerlink" href="#wtforms.fields.Field.description" title="Permalink to this definition">¶</a></dt>
+<dd><p>A string containing the value of the description passed in the
+constructor to the field; this is not HTML escaped.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<tt class="descname">errors</tt></dt>
+<dd><p>A sequence containing the validation errors for this field.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.Field.process_errors">
+<tt class="descname">process_errors</tt><a class="headerlink" href="#wtforms.fields.Field.process_errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Errors obtained during input processing. These will be prepended to the
+list of errors at validation time.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.Field.widget">
+<tt class="descname">widget</tt><a class="headerlink" href="#wtforms.fields.Field.widget" title="Permalink to this definition">¶</a></dt>
+<dd><p>The widget used to render the field.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.Field.type">
+<tt class="descname">type</tt><a class="headerlink" href="#wtforms.fields.Field.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>The type of this field, as a string. This can be used in your templates
+to do logic based on the type of field:</p>
+<div class="highlight-html+django"><div class="highlight"><pre><span class="cp">{%</span> <span class="k">for</span> <span class="nv">field</span> <span class="k">in</span> <span class="nv">form</span> <span class="cp">%}</span>
+    <span class="nt">&lt;tr&gt;</span>
+    <span class="cp">{%</span> <span class="k">if</span> <span class="nv">field.type</span> <span class="o">==</span> <span class="s2">&quot;BooleanField&quot;</span> <span class="cp">%}</span>
+        <span class="nt">&lt;td&gt;&lt;/td&gt;</span>
+        <span class="nt">&lt;td&gt;</span><span class="cp">{{</span> <span class="nv">field</span> <span class="cp">}}</span> <span class="cp">{{</span> <span class="nv">field.label</span> <span class="cp">}}</span><span class="nt">&lt;/td&gt;</span>
+    <span class="cp">{%</span> <span class="k">else</span> <span class="cp">%}</span>
+        <span class="nt">&lt;td&gt;</span><span class="cp">{{</span> <span class="nv">field.label</span> <span class="cp">}}</span><span class="nt">&lt;/td&gt;</span>
+        <span class="nt">&lt;td&gt;</span><span class="cp">{{</span> <span class="nv">field</span> <span class="cp">}}</span><span class="nt">&lt;/td&gt;</span>
+    <span class="cp">{%</span> <span class="k">end</span> <span class="cp">%}</span>
+    <span class="nt">&lt;/tr&gt;</span>
+<span class="cp">{%</span> <span class="k">endfor</span> <span class="cp">%}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.Field.flags">
+<tt class="descname">flags</tt><a class="headerlink" href="#wtforms.fields.Field.flags" title="Permalink to this definition">¶</a></dt>
+<dd><p>An object containing boolean flags set either by the field itself, or
+by validators on the field. For example, the built-in
+<tt class="xref py py-class docutils literal"><span class="pre">Required</span></tt> validator sets the <cite>required</cite> flag.
+An unset flag will result in <tt class="xref py py-const docutils literal"><span class="pre">False</span></tt>.</p>
+<div class="highlight-html+django"><div class="highlight"><pre><span class="cp">{%</span> <span class="k">for</span> <span class="nv">field</span> <span class="k">in</span> <span class="nv">form</span> <span class="cp">%}</span>
+    <span class="nt">&lt;tr&gt;</span>
+        <span class="nt">&lt;th&gt;</span><span class="cp">{{</span> <span class="nv">field.label</span> <span class="cp">}}</span> <span class="cp">{%</span> <span class="k">if</span> <span class="nv">field.flags.required</span> <span class="cp">%}</span>*<span class="cp">{%</span> <span class="k">endif</span> <span class="cp">%}</span><span class="nt">&lt;/th&gt;</span>
+        <span class="nt">&lt;td&gt;</span><span class="cp">{{</span> <span class="nv">field</span> <span class="cp">}}</span><span class="nt">&lt;/td&gt;</span>
+    <span class="nt">&lt;/tr&gt;</span>
+<span class="cp">{%</span> <span class="k">endfor</span> <span class="cp">%}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="basic-fields">
+<h2>Basic fields<a class="headerlink" href="#basic-fields" title="Permalink to this headline">¶</a></h2>
+<p>Basic fields generally represent scalar data types with single values, and
+refer to a single input from the form.</p>
+<dl class="class">
+<dt id="wtforms.fields.BooleanField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">BooleanField</tt><big>(</big><em>default field arguments</em><big>)</big><a class="headerlink" href="#wtforms.fields.BooleanField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents an <tt class="docutils literal"><span class="pre">&lt;input</span> <span class="pre">type=&quot;checkbox&quot;&gt;</span></tt>.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.DateField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">DateField</tt><big>(</big><em>default field arguments</em>, <em>format='%Y-%m-%d'</em><big>)</big><a class="headerlink" href="#wtforms.fields.DateField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Same as DateTimeField, except stores a <cite>datetime.date</cite>.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.DateTimeField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">DateTimeField</tt><big>(</big><em>default field arguments</em>, <em>format='%Y-%m-%d %H:%M:%S'</em><big>)</big><a class="headerlink" href="#wtforms.fields.DateTimeField" title="Permalink to this definition">¶</a></dt>
+<dd><p>A text field which stores a <cite>datetime.datetime</cite> matching a format.</p>
+<p>For better date/time fields, see the <a class="reference internal" href="ext.html#module-wtforms.ext.dateutil.fields" title="wtforms.ext.dateutil.fields"><tt class="xref py py-mod docutils literal"><span class="pre">dateutil</span> <span class="pre">extension</span></tt></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.DecimalField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">DecimalField</tt><big>(</big><em>default field arguments</em>, <em>places=2</em>, <em>rounding=None</em><big>)</big><a class="headerlink" href="#wtforms.fields.DecimalField" title="Permalink to this definition">¶</a></dt>
+<dd><p>A text field which displays and coerces data of the <cite>decimal.Decimal</cite> type.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>places</strong> &#8211; How many decimal places to quantize the value to for display on form.
+If None, does not quantize value.</li>
+<li><strong>rounding</strong> &#8211; How to round the value during quantize, for example
+<cite>decimal.ROUND_UP</cite>. If unset, uses the rounding value from the
+current thread&#8217;s context.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.FileField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">FileField</tt><big>(</big><em>default field arguments</em><big>)</big><a class="headerlink" href="#wtforms.fields.FileField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Can render a file-upload field.  Will take any passed filename value, if
+any is sent by the browser in the post params.  This field will NOT
+actually handle the file upload portion, as wtforms does not deal with
+individual frameworks&#8217; file handling capabilities.</p>
+<p>Example usage:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">UploadForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">image</span>        <span class="o">=</span> <span class="n">FileField</span><span class="p">(</span><span class="s">u&#39;Image File&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">regexp</span><span class="p">(</span><span class="s">u&#39;^[^/</span><span class="se">\\</span><span class="s">]\.jpg$&#39;</span><span class="p">)])</span>
+    <span class="n">description</span>  <span class="o">=</span> <span class="n">TextAreaField</span><span class="p">(</span><span class="s">u&#39;Image Description&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">validate_image</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="n">field</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s">r&#39;[^a-z0-9_.-]&#39;</span><span class="p">,</span> <span class="s">&#39;_&#39;</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">upload</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="n">form</span> <span class="o">=</span> <span class="n">UploadForm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+        <span class="n">image_data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">FILES</span><span class="p">[</span><span class="n">form</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">UPLOAD_PATH</span><span class="p">,</span> <span class="n">form</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">data</span><span class="p">),</span> <span class="s">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">image_data</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.FloatField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">FloatField</tt><big>(</big><em>default field arguments</em><big>)</big><a class="headerlink" href="#wtforms.fields.FloatField" title="Permalink to this definition">¶</a></dt>
+<dd><p>A text field, except all input is coerced to an float.  Erroneous input
+is ignored and will not be accepted as a value.</p>
+<p>For the majority of uses, <a class="reference internal" href="#wtforms.fields.DecimalField" title="wtforms.fields.DecimalField"><tt class="xref py py-class docutils literal"><span class="pre">DecimalField</span></tt></a> is preferable to FloatField,
+except for in cases where an IEEE float is absolutely desired over a decimal
+value.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.HiddenField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">HiddenField</tt><big>(</big><em>default field arguments</em><big>)</big><a class="headerlink" href="#wtforms.fields.HiddenField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents an <tt class="docutils literal"><span class="pre">&lt;input</span> <span class="pre">type=&quot;hidden&quot;&gt;</span></tt>.</p>
+<p>HiddenField is useful for providing data from a model or the application to
+be used on the form handler side for making choices or finding records.
+Very frequently, CRUD forms will use the hidden field for an object&#8217;s id.</p>
+<p>Hidden fields are like any other field in that they can take validators and
+values and be accessed on the form object.   You should consider validating
+your hidden fields just as you&#8217;d validate an input field, to prevent from
+malicious people playing with your data.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.IntegerField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">IntegerField</tt><big>(</big><em>default field arguments</em><big>)</big><a class="headerlink" href="#wtforms.fields.IntegerField" title="Permalink to this definition">¶</a></dt>
+<dd><p>A text field, except all input is coerced to an integer.  Erroneous input
+is ignored and will not be accepted as a value.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.PasswordField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">PasswordField</tt><big>(</big><em>default field arguments</em><big>)</big><a class="headerlink" href="#wtforms.fields.PasswordField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents an <tt class="docutils literal"><span class="pre">&lt;input</span> <span class="pre">type=&quot;password&quot;&gt;</span></tt>.</p>
+<p>Other than the fact that this makes a password input field, this field
+functions exactly like a text-input field.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.RadioField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">RadioField</tt><big>(</big><em>default field arguments</em>, <em>choices=</em><span class="optional">[</span><span class="optional">]</span>, <em>coerce=unicode</em><big>)</big><a class="headerlink" href="#wtforms.fields.RadioField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like a SelectField, except displays a list of radio buttons.</p>
+<p>Iterating the field will produce subfields (each containing a label as
+well) in order to allow custom rendering of the individual radio fields.</p>
+<div class="highlight-jinja"><div class="highlight"><pre><span class="cp">{%</span> <span class="k">for</span> <span class="nv">subfield</span> <span class="k">in</span> <span class="nv">form.radio</span> <span class="cp">%}</span><span class="x"></span>
+<span class="x">    &lt;tr&gt;</span>
+<span class="x">        &lt;td&gt;</span><span class="cp">{{</span> <span class="nv">subfield</span> <span class="cp">}}</span><span class="x">&lt;/td&gt;</span>
+<span class="x">        &lt;td&gt;</span><span class="cp">{{</span> <span class="nv">subfield.label</span> <span class="cp">}}</span><span class="x">&lt;/td&gt;</span>
+<span class="x">    &lt;/tr&gt;</span>
+<span class="cp">{%</span> <span class="k">endfor</span> <span class="cp">%}</span><span class="x"></span>
+</pre></div>
+</div>
+<p>Simply outputting the field without iterating its subfields will result in
+a <tt class="docutils literal"><span class="pre">&lt;ul&gt;</span></tt> list of radio choices.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.SelectField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">SelectField</tt><big>(</big><em>default field arguments</em>, <em>choices=</em><span class="optional">[</span><span class="optional">]</span>, <em>coerce=unicode</em>, <em>option_widget=None</em><big>)</big><a class="headerlink" href="#wtforms.fields.SelectField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Select fields keep a <cite>choices</cite> property which is a sequence of <cite>(value,
+label)</cite> pairs.  The value portion can be any type in theory, but as form
+data is sent by the browser as strings, you will need to provide a function
+which can coerce the string representation back to a comparable object.</p>
+<p><strong>Select fields with static choice values</strong>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">PastebinEntry</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">language</span> <span class="o">=</span> <span class="n">SelectField</span><span class="p">(</span><span class="s">u&#39;Programming Language&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[(</span><span class="s">&#39;cpp&#39;</span><span class="p">,</span> <span class="s">&#39;C++&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;py&#39;</span><span class="p">,</span> <span class="s">&#39;Python&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;text&#39;</span><span class="p">,</span> <span class="s">&#39;Plain Text&#39;</span><span class="p">)])</span>
+</pre></div>
+</div>
+<p>Note that the <cite>choices</cite> keyword is only evaluated once, so if you want to make
+a dynamic drop-down list, you&#8217;ll want to assign the choices list to the field
+after instantiation. Any inputted choices which are not in the given choices
+list will cause validation on the field to fail.</p>
+<p><strong>Select fields with dynamic choice values</strong>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">UserDetails</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">group_id</span> <span class="o">=</span> <span class="n">SelectField</span><span class="p">(</span><span class="s">u&#39;Group&#39;</span><span class="p">,</span> <span class="nb">coerce</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">edit_user</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+    <span class="n">form</span> <span class="o">=</span> <span class="n">UserDetails</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="n">user</span><span class="p">)</span>
+    <span class="n">form</span><span class="o">.</span><span class="n">group_id</span><span class="o">.</span><span class="n">choices</span> <span class="o">=</span> <span class="p">[(</span><span class="n">g</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">g</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">Group</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s">&#39;name&#39;</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p>Note we didn&#8217;t pass a <cite>choices</cite> to the <a class="reference internal" href="#wtforms.fields.SelectField" title="wtforms.fields.SelectField"><tt class="xref py py-class docutils literal"><span class="pre">SelectField</span></tt></a>
+constructor, but rather created the list in the view function. Also, the
+<cite>coerce</cite> keyword arg to <a class="reference internal" href="#wtforms.fields.SelectField" title="wtforms.fields.SelectField"><tt class="xref py py-class docutils literal"><span class="pre">SelectField</span></tt></a> says that we
+use <tt class="xref py py-func docutils literal"><span class="pre">int()</span></tt> to coerce form data.  The default coerce is
+<tt class="xref py py-func docutils literal"><span class="pre">unicode()</span></tt>.</p>
+<p><strong>Advanced functionality</strong></p>
+<p>SelectField and its descendants are iterable, and iterating it will produce
+a list of fields each representing an option. The rendering of this can be
+further controlled by specifying <cite>option_widget=</cite>.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.SelectMultipleField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">SelectMultipleField</tt><big>(</big><em>default field arguments</em>, <em>choices=</em><span class="optional">[</span><span class="optional">]</span>, <em>coerce=unicode</em>, <em>option_widget=None</em><big>)</big><a class="headerlink" href="#wtforms.fields.SelectMultipleField" title="Permalink to this definition">¶</a></dt>
+<dd><p>No different from a normal select field, except this one can take (and
+validate) multiple choices.  You&#8217;ll need to specify the HTML <cite>rows</cite>
+attribute to the select field when rendering.</p>
+<p>The data on the SelectMultipleField is stored as a list of objects, each of
+which is checked and coerced from the form input.  Any inputted choices
+which are not in the given choices list will cause validation on the field
+to fail.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.SubmitField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">SubmitField</tt><big>(</big><em>default field arguments</em><big>)</big><a class="headerlink" href="#wtforms.fields.SubmitField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents an <tt class="docutils literal"><span class="pre">&lt;input</span> <span class="pre">type=&quot;submit&quot;&gt;</span></tt>.  This allows checking if a given
+submit button has been pressed.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.TextAreaField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">TextAreaField</tt><big>(</big><em>default field arguments</em><big>)</big><a class="headerlink" href="#wtforms.fields.TextAreaField" title="Permalink to this definition">¶</a></dt>
+<dd><p>This field represents an HTML <tt class="docutils literal"><span class="pre">&lt;textarea&gt;</span></tt> and can be used to take
+multi-line input.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.TextField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">TextField</tt><big>(</big><em>default field arguments</em><big>)</big><a class="headerlink" href="#wtforms.fields.TextField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Legacy alias for StringField</p>
+<div class="highlight-jinja"><div class="highlight"><pre><span class="cp">{{</span> <span class="nv">form.username</span><span class="o">(</span><span class="nv">size</span><span class="o">=</span><span class="m">30</span><span class="o">,</span> <span class="nv">maxlength</span><span class="o">=</span><span class="m">50</span><span class="o">)</span> <span class="cp">}}</span><span class="x"></span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="field-enclosures">
+<h2>Field Enclosures<a class="headerlink" href="#field-enclosures" title="Permalink to this headline">¶</a></h2>
+<p>Field enclosures allow you to have fields which represent a collection of
+fields, so that a form can be composed of multiple re-usable components or more
+complex data structures such as lists and nested objects can be represented.</p>
+<dl class="class">
+<dt id="wtforms.fields.FormField">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">FormField</tt><big>(</big><em>form_class</em>, <em>default field arguments</em>, <em>separator='-'</em><big>)</big><a class="headerlink" href="#wtforms.fields.FormField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encapsulate a form as a field in another form.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>form_class</strong> &#8211; A subclass of Form that will be encapsulated.</li>
+<li><strong>separator</strong> &#8211; A string which will be suffixed to this field&#8217;s name to create the
+prefix to enclosed fields. The default is fine for most uses.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>FormFields are useful for editing child objects or enclosing multiple
+related forms on a page which are submitted and validated together.  While
+subclassing forms captures most desired behaviours, sometimes for
+reusability or purpose of combining with <cite>FieldList</cite>, FormField makes
+sense.</p>
+<p>For example, take the example of a contact form which uses a similar set of
+three fields to represent telephone numbers:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">TelephoneForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">country_code</span> <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span><span class="s">&#39;Country Code&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">required</span><span class="p">()])</span>
+    <span class="n">area_code</span>    <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span><span class="s">&#39;Area Code/Exchange&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">required</span><span class="p">()])</span>
+    <span class="n">number</span>       <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s">&#39;Number&#39;</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">ContactForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">first_name</span>   <span class="o">=</span> <span class="n">TextField</span><span class="p">()</span>
+    <span class="n">last_name</span>    <span class="o">=</span> <span class="n">TextField</span><span class="p">()</span>
+    <span class="n">mobile_phone</span> <span class="o">=</span> <span class="n">FormField</span><span class="p">(</span><span class="n">TelephoneForm</span><span class="p">)</span>
+    <span class="n">office_phone</span> <span class="o">=</span> <span class="n">FormField</span><span class="p">(</span><span class="n">TelephoneForm</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In the example, we reused the TelephoneForm to encapsulate the common
+telephone entry instead of writing a custom field to handle the 3
+sub-fields. The <cite>data</cite> property of the mobile_phone field will return the
+<a class="reference internal" href="forms.html#wtforms.form.Form.data" title="wtforms.form.Form.data"><tt class="xref py py-attr docutils literal"><span class="pre">data</span></tt></a> dict of the enclosed form. Similarly, the
+<cite>errors</cite> property encapsulate the forms&#8217; errors.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.FieldList">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">FieldList</tt><big>(</big><em>unbound_field</em>, <em>default field arguments</em>, <em>min_entries=0</em>, <em>max_entries=None</em><big>)</big><a class="headerlink" href="#wtforms.fields.FieldList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encapsulate an ordered list of multiple instances of the same field type,
+keeping data as a list.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">authors</span> <span class="o">=</span> <span class="n">FieldList</span><span class="p">(</span><span class="n">TextField</span><span class="p">(</span><span class="s">&#39;Name&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">required</span><span class="p">()]))</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>unbound_field</strong> &#8211; A partially-instantiated field definition, just like that would be
+defined on a form directly.</li>
+<li><strong>min_entries</strong> &#8211; if provided, always have at least this many entries on the field,
+creating blank ones if the provided input does not specify a sufficient
+amount.</li>
+<li><strong>max_entries</strong> &#8211; accept no more than this many entries as input, even if more exist in
+formdata.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note</strong>: Due to a limitation in how HTML sends values, FieldList cannot enclose
+<a class="reference internal" href="#wtforms.fields.BooleanField" title="wtforms.fields.BooleanField"><tt class="xref py py-class docutils literal"><span class="pre">BooleanField</span></tt></a> or <a class="reference internal" href="#wtforms.fields.SubmitField" title="wtforms.fields.SubmitField"><tt class="xref py py-class docutils literal"><span class="pre">SubmitField</span></tt></a> instances.</p>
+<dl class="method">
+<dt id="wtforms.fields.FieldList.append_entry">
+<tt class="descname">append_entry</tt><big>(</big><span class="optional">[</span><em>data</em><span class="optional">]</span><big>)</big><a class="headerlink" href="#wtforms.fields.FieldList.append_entry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new entry with optional default data.</p>
+<p>Entries added in this way will <em>not</em> receive formdata however, and can
+only receive object data.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wtforms.fields.FieldList.pop_entry">
+<tt class="descname">pop_entry</tt><big>(</big><big>)</big><a class="headerlink" href="#wtforms.fields.FieldList.pop_entry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes the last entry from the list and returns it.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.FieldList.entries">
+<tt class="descname">entries</tt><a class="headerlink" href="#wtforms.fields.FieldList.entries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Each entry in a FieldList is actually an instance of the field you
+passed in. Iterating, checking the length of, and indexing the
+FieldList works as expected, and proxies to the enclosed entries list.</p>
+<p><strong>Do not</strong> resize the entries list directly, this will result in
+undefined behavior. See <cite>append_entry</cite> and <cite>pop_entry</cite> for ways you can
+manipulate the list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wtforms.fields.FieldList.__iter__">
+<tt class="descname">__iter__</tt><big>(</big><big>)</big><a class="headerlink" href="#wtforms.fields.FieldList.__iter__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="wtforms.fields.FieldList.__len__">
+<tt class="descname">__len__</tt><big>(</big><big>)</big><a class="headerlink" href="#wtforms.fields.FieldList.__len__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="wtforms.fields.FieldList.__getitem__">
+<tt class="descname">__getitem__</tt><big>(</big><em>index</em><big>)</big><a class="headerlink" href="#wtforms.fields.FieldList.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p><a class="reference internal" href="#wtforms.fields.FieldList" title="wtforms.fields.FieldList"><tt class="xref py py-class docutils literal"><span class="pre">FieldList</span></tt></a> is not limited to enclosing simple fields; and can
+indeed represent a list of enclosed forms by combining FieldList with
+FormField:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">IMForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">protocol</span> <span class="o">=</span> <span class="n">SelectField</span><span class="p">(</span><span class="n">choices</span><span class="o">=</span><span class="p">[(</span><span class="s">&#39;aim&#39;</span><span class="p">,</span> <span class="s">&#39;AIM&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;msn&#39;</span><span class="p">,</span> <span class="s">&#39;MSN&#39;</span><span class="p">)])</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">TextField</span><span class="p">()</span>
+
+<span class="k">class</span> <span class="nc">ContactForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">first_name</span>  <span class="o">=</span> <span class="n">TextField</span><span class="p">()</span>
+    <span class="n">last_name</span>   <span class="o">=</span> <span class="n">TextField</span><span class="p">()</span>
+    <span class="n">im_accounts</span> <span class="o">=</span> <span class="n">FieldList</span><span class="p">(</span><span class="n">FormField</span><span class="p">(</span><span class="n">IMForm</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="custom-fields">
+<h2>Custom Fields<a class="headerlink" href="#custom-fields" title="Permalink to this headline">¶</a></h2>
+<p>While WTForms provides customization for existing fields using widgets and
+keyword argument attributes, sometimes it is necessary to design custom fields
+to handle special data types in your application.</p>
+<p>Let&#8217;s design a field which represents a comma-separated list of tags:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">TagListField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
+    <span class="n">widget</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">u&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">u&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">process_formdata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">valuelist</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">valuelist</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">valuelist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+</pre></div>
+</div>
+<p>The <cite>_value</cite> method is called by the <a class="reference internal" href="widgets.html#wtforms.widgets.TextInput" title="wtforms.widgets.TextInput"><tt class="xref py py-class docutils literal"><span class="pre">TextInput</span></tt></a> widget
+to provide the value that is displayed in the form. Overriding the
+<a class="reference internal" href="#wtforms.fields.Field.process_formdata" title="wtforms.fields.Field.process_formdata"><tt class="xref py py-meth docutils literal"><span class="pre">process_formdata()</span></tt></a> method processes the incoming form data back
+into a list of tags.</p>
+<div class="section" id="fields-with-custom-constructors">
+<h3>Fields With Custom Constructors<a class="headerlink" href="#fields-with-custom-constructors" title="Permalink to this headline">¶</a></h3>
+<p>Custom fields can also override the default field constructor if needed to
+provide additional customization:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">BetterTagListField</span><span class="p">(</span><span class="n">TagListField</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">validators</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">remove_duplicates</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BetterTagListField</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">validators</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_duplicates</span> <span class="o">=</span> <span class="n">remove_duplicates</span>
+
+    <span class="k">def</span> <span class="nf">process_formdata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">valuelist</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BetterTagListField</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">process_formdata</span><span class="p">(</span><span class="n">valuelist</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_duplicates</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_remove_duplicates</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_remove_duplicates</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">seq</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove duplicates in a case insensitive, but case preserving manner&quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="bp">True</span>
+                <span class="k">yield</span> <span class="n">item</span>
+</pre></div>
+</div>
+<p>When you override a Field&#8217;s constructor, to maintain consistent behavior, you
+should design your constructor so that:</p>
+<blockquote>
+<div><ul class="simple">
+<li>You take <cite>label=&#8217;&#8216;, validators=None</cite> as the first two positional arguments</li>
+<li>Add any additional arguments your field takes as keyword arguments after the
+label and validators</li>
+<li>Take <cite>**kwargs</cite> to catch any additional keyword arguments.</li>
+<li>Call the Field constructor first, passing the first two positional
+arguments, and all the remaining keyword args.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="considerations-for-overriding-process">
+<h3>Considerations for overriding process()<a class="headerlink" href="#considerations-for-overriding-process" title="Permalink to this headline">¶</a></h3>
+<p>For the vast majority of fields, it is not necessary to override
+<a class="reference internal" href="#wtforms.fields.Field.process" title="wtforms.fields.Field.process"><tt class="xref py py-meth docutils literal"><span class="pre">Field.process()</span></tt></a>. Most of the time, you can achieve what is needed by
+overriding <tt class="docutils literal"><span class="pre">process_data</span></tt> and/or <tt class="docutils literal"><span class="pre">process_formdata</span></tt>. However, for special
+types of fields, such as form enclosures and other special cases of handling
+multiple values, it may be needed.</p>
+<p>If you are going to override <tt class="docutils literal"><span class="pre">process()</span></tt>, be careful about how you deal with
+the <tt class="docutils literal"><span class="pre">formdata</span></tt> parameter. For compatibility with the maximum number of
+frameworks, we suggest you limit yourself to manipulating formdata in the
+following ways only:</p>
+<ul class="simple">
+<li>Testing emptiness: <tt class="docutils literal"><span class="pre">if</span> <span class="pre">formdata</span></tt></li>
+<li>Checking for key existence: <tt class="docutils literal"><span class="pre">key</span> <span class="pre">in</span> <span class="pre">formdata</span></tt></li>
+<li>Iterating all keys: <tt class="docutils literal"><span class="pre">for</span> <span class="pre">key</span> <span class="pre">in</span> <span class="pre">formdata</span></tt> (note that some wrappers may
+return multiple instances of the same key)</li>
+<li>Getting the list of values for a key: <tt class="docutils literal"><span class="pre">formdata.getlist(key)</span></tt>.</li>
+</ul>
+<p>Most importantly, you should not use dictionary-style access to work with your
+formdata wrapper, because the behavior of this is highly variant on the
+wrapper: some return the first item, others return the last, and some may
+return a list.</p>
+</div>
+</div>
+<div class="section" id="additional-helper-classes">
+<h2>Additional Helper Classes<a class="headerlink" href="#additional-helper-classes" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="wtforms.fields.Flags">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">Flags</tt><a class="headerlink" href="#wtforms.fields.Flags" title="Permalink to this definition">¶</a></dt>
+<dd><p>Holds a set of boolean flags as attributes.</p>
+<p>Accessing a non-existing attribute returns False for its value.</p>
+<p>Usage:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">flags</span> <span class="o">=</span> <span class="n">Flags</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">flags</span><span class="o">.</span><span class="n">required</span> <span class="o">=</span> <span class="bp">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="s">&#39;required&#39;</span> <span class="ow">in</span> <span class="n">flags</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="s">&#39;nonexistent&#39;</span> <span class="ow">in</span> <span class="n">flags</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">flags</span><span class="o">.</span><span class="n">fake</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="wtforms.fields.Label">
+<em class="property">class </em><tt class="descclassname">wtforms.fields.</tt><tt class="descname">Label</tt><a class="headerlink" href="#wtforms.fields.Label" title="Permalink to this definition">¶</a></dt>
+<dd><p>On all fields, the <cite>label</cite> property is an instance of this class.
+Labels can be printed to yield a
+<tt class="docutils literal"><span class="pre">&lt;label</span> <span class="pre">for=&quot;field_id&quot;&gt;Label</span> <span class="pre">Text&lt;/label&gt;</span></tt>
+HTML tag enclosure. Similar to fields, you can also call the label with
+additional html params.</p>
+<dl class="attribute">
+<dt id="wtforms.fields.Label.field_id">
+<tt class="descname">field_id</tt><a class="headerlink" href="#wtforms.fields.Label.field_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ID of the field which this label will reference.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="wtforms.fields.Label.text">
+<tt class="descname">text</tt><a class="headerlink" href="#wtforms.fields.Label.text" title="Permalink to this definition">¶</a></dt>
+<dd><p>The original label text passed to the field&#8217;s constructor.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+        <div style="clear: both"></div>
+      </div>
+      <div id="footer">
+        © Copyright 2010 by the <a href="http://wtforms.simplecodes.com">WTForms Team</a>,
+        documentation generated by <a href="http://sphinx.pocoo.org/">Sphinx</a>
+      </div>
+    </div>
+  </body>
+</html>
