@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""TODO"""
+"""Frontend for the API server."""
 
 import logging
 
@@ -25,13 +25,45 @@ from flask import Flask, render_template, request
 from . import app
 from . import db
 import models
-import work_queue
-import utils
 
 
-@app.route('/build/new')
+@app.route('/')
+def homepage():
+    context = {
+    }
+    return render_template('home.html', **context)
+
+
+@app.route('/new')
 def new_build():
     context = {
-        'hello': 1234,
     }
-    return render_template('base.html', **context)
+    return render_template('new_build.html', **context)
+
+
+@app.route('/build')
+def view_build():
+    context = {
+    }
+    return render_template('view_build.html', **context)
+
+
+@app.route('/release')
+def view_release():
+    context = {
+    }
+    return render_template('view_release.html', **context)
+
+
+@app.route('/candidate')
+def view_candidate():
+    context = {
+    }
+    return render_template('view_candidate.html', **context)
+
+
+@app.route('/run')
+def view_run():
+    context = {
+    }
+    return render_template('view_run.html', **context)
