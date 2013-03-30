@@ -10,3 +10,6 @@
 [submodule "itsdangerous"]
 	path = itsdangerous
 	url = https://github.com/mitsuhiko/itsdangerous
+[submodule "flask-wtf"]
+	path = flask-wtf
+	url = https://github.com/ajford/flask-wtf.git
