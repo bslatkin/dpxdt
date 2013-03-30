@@ -50,6 +50,12 @@ if (config.viewportSize) {
         width: config.viewportSize.width,
         height: config.viewportSize.height
     };
+    page.clipRect = {
+        left: 0,
+        top: 0,
+        width: config.viewportSize.width,
+        height: config.viewportSize.height
+    }
 }
 
 // Echo all console messages from the page to our log.
