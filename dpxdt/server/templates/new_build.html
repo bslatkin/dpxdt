@@ -9,11 +9,29 @@ create build description
 
 {% block body %}
 
-<form action="{{ url_for('new_build') }}" method="post">
-    {{ build_form.csrf_token }}
-    {{ build_form.name.label }}
-    {{ build_form.name }}
-    <input type="submit" value="Create build">
-</form>
+<div class="row">
+    <div class="span12">
+        {% if build_form.errors %}
+            <div class="row">
+                <div class="span6 alert alert-error">
+                {% for field, field_errors in build_form.errors|dictsort %}
+                    <div>
+                        Invalid {{ build_form[field].label(class="inline") }}
+                    </div>
+                {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        <form action="{{ url_for('new_build') }}" method="post">
+            <fieldset>
+                {{ build_form.csrf_token }}
+                {{ build_form.name.label }}
+                {{ build_form.name }}
+                <br>
+                <button type="submit" class="btn">Create</button>
+            </fieldset>
+        </form>
+    </div>
+</div>
 
 {% endblock body %}
