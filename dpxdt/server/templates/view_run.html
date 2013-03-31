@@ -9,42 +9,38 @@ run description
 
 {% block body %}
 
-<div class="row">
-    <div class="span3 offset5" title="Test status">
-        {% if run.status == 'diff_found' %}
-            <span class="text-error test-result-mark">X</span>
-        {% elif run.status == 'diff_not_found' %}
-            <span class="text-success test-result-mark">&#x2713;</span>
-        {% elif run.status == 'needs_diff' %}
-            <span class="text-info test-result-mark">?</span>
-        {% else %}
-            <span class="test-result-mark">&ndash;</span>
-        {% endif %}
-        {# TODO: Need indicator that diff was manually approved. #}
-        &nbsp;&nbsp;
-        {% if run.status == 'diff_found' %}
-            <span class="text-error">Diff found</span>
-        {% elif run.status == 'diff_not_found' %}
-            <span class="text-success">No diff found</span>
-        {% elif run.status == 'needs_diff' %}
-            <span class="text-info">Diff pending</span>
-        {% else %}
-            Diff not run
-        {% endif %}
-        &nbsp;&nbsp;
-        <abbr title="Complete {{ release.created.strftime('%Y-%m-%dT%H:%MZ') }}">
-            {{ run.created|timesince }}
-        </abbr>
-    </div>
-</div>
-
-
-<div class="diff-section row">
+<div class="row diff-section">
     <div class="span12">
         <div class="row">
             <div class="span5">
-                <p>
+                <p class="inline-block">
                     <a href="#" class="btn btn-danger">Mark as OK</a>
+                </p>
+                <p class="inline-block run-status-section">
+                    {% if run.status == 'diff_found' %}
+                        <span class="text-error test-result-mark">X</span>
+                    {% elif run.status == 'diff_not_found' %}
+                        <span class="text-success test-result-mark">&#x2713;</span>
+                    {% elif run.status == 'needs_diff' %}
+                        <span class="text-info test-result-mark">?</span>
+                    {% else %}
+                        <span class="test-result-mark">&ndash;</span>
+                    {% endif %}
+                    {# TODO: Need indicator that diff was manually approved. #}
+                    &nbsp;
+                    {% if run.status == 'diff_found' %}
+                        <span class="text-error">Diff found</span>
+                    {% elif run.status == 'diff_not_found' %}
+                        <span class="text-success">No diff found</span>
+                    {% elif run.status == 'needs_diff' %}
+                        <span class="text-info">Diff pending</span>
+                    {% else %}
+                        Diff not run
+                    {% endif %}
+                    &nbsp;
+                    <abbr title="Complete {{ release.created.strftime('%Y-%m-%dT%H:%MZ') }}">
+                        {{ run.created|timesince }}
+                    </abbr>
                 </p>
             </div>
             <div class="span7">

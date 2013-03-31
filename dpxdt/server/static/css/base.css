@@ -24,3 +24,9 @@ h4 a:hover {
 .diff-section {
     margin-top: 40px;
 }
+.inline-block {
+    display: inline-block;
+}
+.run-status-section {
+    margin-left: 30px;
+}
