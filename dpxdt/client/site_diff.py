@@ -378,20 +378,45 @@ class SiteDiff(workers.WorkflowItem):
         results = yield results
 
         if upload_build_id:
-            yield heartbeat('Uploading captured screenshots')
-            reports = []
+            # TODO: Parallelize this work with a sub-task
             for pdiff_result in results:
                 run_name, output_path, log_path, config_path = pdiff_result
-                reports.append(release_worker.ReportRunWorkflow(
-                    upload_build_id, release_name, release_number,
-                    run_name, output_path, log_path, config_path))
-            yield reports
+                yield heartbeat('Finding last good run for %s' %
+                                run_name)
+                ref_image, ref_log, ref_config = None, None, None
+                try:
+                    ref_run_result = yield release_worker.FindRunWorkflow(
+                        upload_build_id,
+                        release_name,
+                        release_number,
+                        run_name)
+                except release_worker.FindRunError:
+                    yield heartbeat('Failed to find last good run for %s' %
+                                    run_name)
+                else:
+                    ref_image = ref_run_result.get('image')
+                    ref_log = ref_run_result.get('log')
+                    ref_config = ref_run_result.get('config')
+
+                yield heartbeat('Uploading captured screenshots for %s' %
+                                run_name)
+                yield release_worker.ReportRunWorkflow(
+                    upload_build_id,
+                    release_name,
+                    release_number,
+                    run_name,
+                    output_path,
+                    log_path,
+                    config_path,
+                    ref_image=ref_image,
+                    ref_log=ref_log,
+                    ref_config=ref_config)
 
             yield heartbeat('Marking runs as complete')
             release_url = yield release_worker.RunsDoneWorkflow(
                 upload_build_id, release_name, release_number)
 
-            yield heartbeat('Results will be at %s' % release_url)
+            yield heartbeat('Results will be at: %s' % release_url)
         else:
             yield heartbeat('Results in %s' % output_dir)
 

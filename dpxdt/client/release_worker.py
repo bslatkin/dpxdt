@@ -43,6 +43,9 @@ class CreateReleaseError(Error):
 class UploadFileError(Error):
     """Uploading a file failed for some reason."""
 
+class FindRunError(Error):
+    """Finding a run failed for some reason."""
+
 class ReportRunError(Error):
     """Reporting a run failed for some reason."""
 
@@ -143,6 +146,42 @@ class UploadFileWorkflow(workers.WorkflowItem):
             raise workers.Return(None)
 
 
+class FindRunWorkflow(workers.WorkflowItem):
+    """Finds the last good run for a release.
+
+    Args:
+        build_id: ID of the build.
+        release_name: Name of the release.
+        release_number: Number of the release candidate.
+        run_name: Name of the run being uploaded.
+
+    Returns:
+        JSON dictionary representing the run that was found, with the keys:
+        build_id, release_name, release_number, run_name, image, log, config.
+
+    Raises:
+        FindRunError if a run could not be found.
+    """
+
+    def run(self, build_id, release_name, release_number, run_name):
+        call = yield workers.FetchItem(
+            FLAGS.release_server_prefix + '/find_run',
+            post={
+                'build_id': build_id,
+                'release_name': release_name,
+                'release_number': release_number,
+                'run_name': run_name,
+            })
+
+        if call.json and call.json.get('error'):
+            raise FindRunError(call.json.get('error'))
+
+        if not call.json:
+            raise FindRunError('Bad response: %r' % call)
+
+        raise workers.Return(call.json)
+
+
 class ReportRunWorkflow(workers.WorkflowItem):
     """Reports a run as finished.
 
@@ -154,30 +193,42 @@ class ReportRunWorkflow(workers.WorkflowItem):
         screenshot_path: Path to the screenshot to upload.
         log_path: Path to the screenshot log to upload.
         config_path: Path to the config to upload.
+        ref_image: Optional. Asset ID of the image to compare to.
+        ref_log: Optional. Asset ID of the reference image's log.
+        ref_config: Optional. Asset ID of the reference image's config.
 
     Raises:
         ReportRunError if the run could not be reported.
     """
 
     def run(self, build_id, release_name, release_number, run_name,
-            screenshot_path, log_path, config_path):
+            screenshot_path, log_path, config_path,
+            ref_image=None, ref_log=None, ref_config=None):
         screenshot_id, log_id, config_id = yield [
             UploadFileWorkflow(screenshot_path),
             UploadFileWorkflow(log_path),
             UploadFileWorkflow(config_path),
         ]
 
+        post = {
+            'build_id': build_id,
+            'release_name': release_name,
+            'release_number': release_number,
+            'run_name': run_name,
+            'image': screenshot_id,
+            'log': log_id,
+            'config': config_id,
+        }
+        if ref_image:
+            post.update(ref_image=ref_image)
+        if ref_log:
+            post.update(ref_log=ref_log)
+        if ref_config:
+            post.update(ref_config=ref_config)
+
         call = yield workers.FetchItem(
             FLAGS.release_server_prefix + '/report_run',
-            post={
-                'build_id': build_id,
-                'release_name': release_name,
-                'release_number': release_number,
-                'run_name': run_name,
-                'image': screenshot_id,
-                'log': log_id,
-                'config': config_id,
-            })
+            post=post)
 
         if call.json and call.json.get('error'):
             raise ReportRunError(call.json.get('error'))
@@ -275,7 +326,7 @@ class DownloadArtifactWorkflow(workers.WorkflowItem):
         sha1sum: Content hash of the artifact to fetch.
         result_path: Path where the artifact should be saved on disk.
 
-    Returns:
+    Raises:
         DownloadArtifactError if the artifact could not be found or
         fetched for some reason.
     """

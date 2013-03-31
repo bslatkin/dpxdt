@@ -154,7 +154,7 @@ def _check_release_done_processing(release_id):
 
     query = models.Run.query.filter_by(release_id=release.id)
     for run in query:
-        if run.needs_diff:
+        if run.status == models.Run.NEEDS_DIFF:
             return False
 
     logging.info('Release done processing, now reviewing: build_id=%r, '
@@ -177,6 +177,52 @@ def _get_release_params():
     return build_id, release_name, release_number
 
 
+@app.route('/api/find_run', methods=['POST'])
+def find_run():
+    """Finds the last good run of the given name for a release."""
+    build_id = request.form.get('build_id', type=int)
+    utils.jsonify_assert(build_id is not None, 'build_id required')
+    release_name = request.form.get('release_name')
+    utils.jsonify_assert(release_name, 'release_name required')
+    run_name = request.form.get('run_name', type=str)
+    utils.jsonify_assert(run_name, 'run_name required')
+
+    # TODO: Make sure requesting user is owner of the build_id
+
+    last_good_release = (
+        models.Release.query
+        .filter_by(
+            build_id=build_id,
+            status=models.Release.GOOD)
+        .order_by(models.Release.created.desc())
+        .first())
+
+    if last_good_release:
+        logging.debug('Found last good release for: build_id=%r, '
+                      'release_name=%r, release_number=%d',
+                      build_id, release_name, last_good_release.number)
+        last_good_run = (
+            models.Run.query
+            .filter_by(release_id=last_good_release.id, name=run_name)
+            .first())
+        if last_good_run:
+            logging.debug('Found last good run for: build_id=%r, '
+                          'release_name=%r, release_number=%d, '
+                          'last_good_run_id=%r, last_good_image=%r',
+                          build_id, release_name, release_number,
+                          last_good_run.id, last_good_run.image)
+            return flask.jsonify(
+                build_id=build_id,
+                release_name=release_name,
+                release_number=last_good_release.number,
+                run_name=run_name,
+                image=last_good_run.image,
+                log=last_good_run.log,
+                config=last_good_run.config)
+
+    return utils.jsonify_error('Run not found')
+
+
 @app.route('/api/report_run', methods=['POST'])
 def report_run():
     """Reports a new run for a release candidate."""
@@ -190,70 +236,53 @@ def report_run():
         .first())
     utils.jsonify_assert(release, 'release does not exist')
     # TODO: Make sure requesting user is owner of the build_id
+    # TODO: Only allow one report of this run name for a single release,
+    # or delete the old one.
 
     current_image = request.form.get('image', type=str)
     utils.jsonify_assert(current_image, 'image must be supplied')
     current_log = request.form.get('log', type=str)
     current_config = request.form.get('config', type=str)
-    no_diff = request.form.get('no_diff')
-    diff_image = request.form.get('diff_image', type=str)
-    diff_log = request.form.get('diff_log', type=str)
-    needs_diff = not (no_diff or diff_image or diff_log)
 
-    # Find the previous corresponding run and automatically connect it.
-    last_good_release = (
-        models.Release.query
-        .filter_by(
-            build_id=build_id,
-            status=models.Release.GOOD)
-        .order_by(models.Release.created.desc())
-        .first())
-    previous_id = None
-    last_image = None
-    if last_good_release:
-        logging.debug('Found last good release for: build_id=%r, '
-                      'release_name=%r, release_number=%d, '
-                      'last_good_release_id=%d',
-                      build_id, release_name, release_number,
-                      last_good_release.id)
-        last_good_run = (
-            models.Run.query
-            .filter_by(release_id=last_good_release.id, name=run_name)
-            .first())
-        if last_good_run:
-            logging.debug('Found last good run for: build_id=%r, '
-                          'release_name=%r, release_number=%d, '
-                          'last_good_release_id=%d, last_good_run_id=%r, '
-                          'last_good_image=%r',
-                          build_id, release_name, release_number,
-                          last_good_release.id, last_good_run.id,
-                          last_good_run.image)
-            previous_id = last_good_run.id
-            last_image = last_good_run.image
+    ref_image = request.form.get('ref_image', type=str)
+    ref_log = request.form.get('ref_log', type=str)
+    ref_config = request.form.get('ref_config', type=str)
+
+    diff_image = request.form.get('image', type=str)
+    diff_log = request.form.get('log', type=str)
+
+    status = models.Run.NO_DIFF_NEEDED
+    if diff_image:
+        status = models.Run.DIFF_FOUND
+    elif ref_image and not diff_log:
+        status = models.Run.NEEDS_DIFF
+    elif ref_image and diff_log:
+        status = models.Run.DIFF_NOT_FOUND
 
     run = models.Run(
-        name=run_name,
         release_id=release.id,
+        name=run_name,
+        status=status,
         image=current_image,
         log=current_log,
         config=current_config,
-        previous_id=previous_id,
-        needs_diff=bool(needs_diff and last_image),
+        ref_image=ref_image,
+        ref_log=ref_log,
+        ref_config=ref_config,
         diff_image=diff_image,
         diff_log=diff_log)
     db.session.add(run)
     db.session.flush()
 
-    # Schedule pdiff if there isn't already an image.
-    if needs_diff and last_image:
+    if status == models.Run.NEEDS_DIFF:
         # TODO: Move this queue name to a flag.
         work_queue.add('run-pdiff', dict(
             build_id=build_id,
             release_name=release_name,
             release_number=release_number,
             run_name=run_name,
-            reference_sha1sum=current_image,
-            run_sha1sum=last_image,
+            run_sha1sum=current_image,
+            reference_sha1sum=ref_image,
         ))
 
     db.session.commit()
@@ -269,11 +298,13 @@ def report_run():
 def report_pdiff():
     """Reports a pdiff for a run.
 
-    When there is no diff to report, supply the "no_diff" parameter.
+    When there is no diff to report, supply only the diff_log parameter.
     """
     build_id, release_name, release_number = _get_release_params()
     run_name = request.form.get('run_name', type=str)
     utils.jsonify_assert(run_name, 'run_name required')
+
+    # TODO: Make sure requesting user is owner of the build_id
 
     release = (
         models.Release.query
@@ -282,24 +313,28 @@ def report_pdiff():
             name=release_name)
         .first())
     utils.jsonify_assert(release, 'Release does not exist')
+
     run = (
         models.Run.query
         .filter_by(release_id=release.id, name=run_name)
         .first())
     utils.jsonify_assert(release, 'Run does not exist')
 
-    no_diff = request.form.get('no_diff')
-    run.needs_diff = not (no_diff or run.diff_image or run.diff_log)
     run.diff_image = request.form.get('diff_image', type=str)
     run.diff_log = request.form.get('diff_log', type=str)
+
+    if run.diff_image:
+        run.status = models.Run.DIFF_FOUND
+    else:
+        run.status = models.Run.DIFF_NOT_FOUND
 
     db.session.add(run)
 
     logging.info('Saved pdiff: build_id=%r, release_name=%r, '
                  'release_number=%d, run_name=%r, '
-                 'no_diff=%r, diff_image=%r, diff_log=%r',
+                 'diff_image=%r, diff_log=%r',
                  build_id, release_name, release_number, run_name,
-                 no_diff, run.diff_image, run.diff_log)
+                 run.diff_image, run.diff_log)
 
     _check_release_done_processing(run.release_id)
     db.session.commit()

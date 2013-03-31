@@ -85,18 +85,26 @@ class Run(db.Model):
     - Show me all runs with the given name for all releases that are live.
     """
 
+    DIFF_FOUND = 'diff_found'
+    DIFF_NOT_FOUND = 'diff_not_found'
+    NEEDS_DIFF = 'needs_diff'
+    NO_DIFF_NEEDED = 'no_diff_needed'
+    STATES = frozenset([
+        DIFF_FOUND, DIFF_NOT_FOUND, NEEDS_DIFF, NO_DIFF_NEEDED])
+
     id = db.Column(db.Integer, primary_key=True)
     release_id = db.Column(db.Integer, db.ForeignKey('release.id'))
     name = db.Column(db.String, nullable=False)
-
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    status = db.Column(db.Enum(*STATES), nullable=False)
+
     image = db.Column(db.String, db.ForeignKey('artifact.id'))
     log = db.Column(db.String, db.ForeignKey('artifact.id'))
     config = db.Column(db.String, db.ForeignKey('artifact.id'))
 
-    previous_id = db.Column(db.Integer, db.ForeignKey('run.id'))
+    ref_image = db.Column(db.String, db.ForeignKey('artifact.id'))
+    ref_log = db.Column(db.String, db.ForeignKey('artifact.id'))
+    ref_config = db.Column(db.String, db.ForeignKey('artifact.id'))
 
-    needs_diff = db.Column(db.Boolean)
     diff_image = db.Column(db.String, db.ForeignKey('artifact.id'))
     diff_log = db.Column(db.String, db.ForeignKey('artifact.id'))
-    # TODO: Add whether or not a diff was found
