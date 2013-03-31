@@ -60,7 +60,9 @@ class Release(db.Model):
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     status = db.Column(db.Enum(*STATES), default=RECEIVING, nullable=False)
     build_id = db.Column(db.Integer, db.ForeignKey('build.id'), nullable=False)
-    # TODO: Add last modified time, last time a candidate was added
+    # TODO: Add last modified time, number of runs, num complete, num failed
+    # TODO: Add a "URL" for the build status, which is specific to the
+    # API client that created it.
 
 
 class Artifact(db.Model):
@@ -97,3 +99,4 @@ class Run(db.Model):
     needs_diff = db.Column(db.Boolean)
     diff_image = db.Column(db.String, db.ForeignKey('artifact.id'))
     diff_log = db.Column(db.String, db.ForeignKey('artifact.id'))
+    # TODO: Add whether or not a diff was found

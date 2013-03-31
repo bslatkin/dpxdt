@@ -41,13 +41,21 @@ build description
                     {% for candidate in candidate_list %}
                         <div class="row build-candidate-section">
                             <div class="span2 offset2">
-                                <a href="{{ url_for('view_candidate', id=build.id, name=candidate.name, number=candidate.number) }}">Attempt {{ candidate.number }}</a>
+                                <a href="{{ url_for('view_release', id=build.id, name=candidate.name, number=candidate.number) }}">Attempt {{ candidate.number }}</a>
                             </div>
-                            <div class="span2" title="Created time">
-                                {{ candidate.created.strftime('%Y-%m-%d T %H:%M Z') }}
+                            <div class="span2">
+                                <abbr title="Created {{ candidate.created.strftime('%Y-%m-%dT%H:%MZ') }}">
+                                    {{ candidate.created|timesince }}
+                                </abbr>
                             </div>
                             <div class="span2" title="Current status">
                                 {{ candidate.status|title }}
+                            </div>
+                            <div class="span2" title="Total tests">
+                                0 / 25 complete
+                            </div>
+                            <div class="span2" title="Total failures">
+                                5 failures
                             </div>
                         </div>
                     {% endfor %}

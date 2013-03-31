@@ -69,7 +69,7 @@ def view_build():
     candidate_list = (
         models.Release.query
         .filter_by(build_id=build_id)
-        .order_by(models.Release.number.desc())
+        .order_by(models.Release.created.desc())
         .all())
 
     # Collate by release name, order releases by latest creation
@@ -99,11 +99,36 @@ def view_build():
         release_dict=release_dict)
 
 
-@app.route('/candidate')
-def view_candidate():
-    context = {
-    }
-    return render_template('view_candidate.html', **context)
+@app.route('/release')
+def view_release():
+    build_id = request.args.get('id', type=int)
+    release_name = request.args.get('name', type=str)
+    release_number = request.args.get('number', type=int)
+    if not (build_id and release_name and release_number):
+        return abort(400)
+
+    build = models.Build.query.get(build_id)
+    if not build:
+        return abort(404)
+
+    release = (
+        models.Release.query
+        .filter_by(build_id=build_id, name=release_name, number=release_number)
+        .first())
+    if not release:
+        return abort(404)
+
+    run_list = (
+        models.Run.query
+        .filter_by(release_id=release.id)
+        .order_by(models.Run.name)
+        .all())
+
+    return render_template(
+        'view_release.html',
+        build=build,
+        release=release,
+        run_list=run_list)
 
 
 @app.route('/run')

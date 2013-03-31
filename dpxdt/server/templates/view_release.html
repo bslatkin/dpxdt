@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block description -%}
+
+candidate description
+
+{%- endblock description %}
+
+
+{% block body %}
+<div class="row">
+    <div class="span12">
+        <h1>Build: {{ build.name }}</h1>
+    </div>
+</div>
+<div class="row">
+    <div class="span12">
+        <h4>Release: {{release.name}}</h4>
+    </div>
+</div>
+
+{% if run_list %}
+    {% for run in run_list %}
+        <div class="row">
+            <div class="span8" title="URL path">
+                <a href="#">{{ run.name }}</a>
+            </div>
+            <div class="span4" title="Test status">
+                Status Success or Fail
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="row">
+        <div class="span6">
+            <div class="alert alert-info alert-block">
+                There are no test runs for this release candidate.
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+{% endblock body %}
