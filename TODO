@@ -5,9 +5,7 @@ Backend
 
 Frontend
 - Create a new build crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
-- View all releases in a build; highlights last good release, shows newest building release
-- Look at all images in a release candidate; list of names and status (same, different)
-- Compare mode, shows A vs. B of before and after; lets operator mark UI as acceptable or not; use hot-keys to quickly scroll through images
+- Compare mode; lets operator mark UI as acceptable or not; use hot-keys to quickly scroll through images
 
 
 -------

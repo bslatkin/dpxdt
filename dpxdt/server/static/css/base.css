@@ -20,8 +20,11 @@ h4 a:hover {
 }
 .test-result-mark {
     font-weight: bold;
+    width: 20px;
+    text-align: center;
+    display: inline-block;
 }
-.diff-section {
+.body-section {
     margin-top: 40px;
 }
 .inline-block {

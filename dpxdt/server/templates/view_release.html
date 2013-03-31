@@ -11,48 +11,47 @@ candidate description
 
 {% if run_list %}
     <div class="row">
-        <div class="offset8 span2">
-            0 / 25 complete
-        </div>
-        <div class="span2 text-right">
-            5 failures
+        <div class="span12">
+            <h4>Tests</h4>
         </div>
     </div>
-    {% for run in run_list %}
-        <div class="row">
-            <div class="span6 ellipsis-overflow" title="URL path">
-                <a href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, path=run.name) }}">{{ run.name }}</a>
-            </div>
-            <div class="span2" title="Update time">
-                <abbr title="Complete {{ release.created.strftime('%Y-%m-%dT%H:%MZ') }}">
-                    {{ release.created|timesince }}
-                </abbr>
-            </div>
-            <div class="span2" title="Test status">
-                {% if run.status == 'diff_found' %}
-                    <span class="text-error">Diff found</span>
-                {% elif run.status == 'diff_not_found' %}
-                    <span class="text-success">No diff found</span>
-                {% elif run.status == 'needs_diff' %}
-                    <span class="text-info">Diff pending</span>
-                {% else %}
-                    Diff not run
-                {% endif %}
-            </div>
-            <div class="span2 text-right">
-                {% if run.status == 'diff_found' %}
-                    <span class="text-error test-result-mark">X</span>
-                {% elif run.status == 'diff_not_found' %}
-                    <span class="text-success test-result-mark">&#x2713;</span>
-                {% elif run.status == 'needs_diff' %}
-                    <span class="text-info test-result-mark">?</span>
-                {% else %}
-                    <span class="test-result-mark">&ndash;</span>
-                {% endif %}
-                {# TODO: Need indicator that diff was manually approved. #}
-            </div>
+    <div class="row">
+        <div class="span2">
+            0 / 25 complete
         </div>
-    {% endfor %}
+        <div class="span2">
+            5 failures
+        </div>
+        <div class="span2" title="Update time">
+            {# TODO: Use modified time #}
+            <abbr title="Updated {{ release.created.strftime('%Y-%m-%dT%H:%MZ') }}">
+                {{ release.created|timesince }}
+            </abbr>
+        </div>
+    </div>
+    <div class="row body-section">
+        <div class="span12">
+            {% for run in run_list %}
+                <div class="row">
+                    <div class="span8">
+                        <div class="row">
+                            <div class="span8 ellipsis-overflow" title="URL path">
+                                <a href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, path=run.name) }}">{{ run.name }}</a>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="span8 ellipsis-overflow">
+                                <small>URL or path here</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="span4" title="Test status">
+                        {% include 'fragment_run_status.html' with context %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
 {% else %}
     <div class="row">
         <div class="span6">

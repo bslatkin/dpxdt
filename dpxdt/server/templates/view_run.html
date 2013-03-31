@@ -9,44 +9,32 @@ run description
 
 {% block body %}
 
-<div class="row diff-section">
+<div class="row">
+    <div class="span7">
+        URL or Path here
+    </div>
+</div>
+
+<div class="row body-section">
     <div class="span12">
         <div class="row">
-            <div class="span5">
+            <div class="span7">
                 <p class="inline-block">
-                    <a href="#" class="btn btn-danger">Mark as OK</a>
+                    <a href="#" class="btn btn-danger">Mark test as OK</a>
                 </p>
                 <p class="inline-block run-status-section">
-                    {% if run.status == 'diff_found' %}
-                        <span class="text-error test-result-mark">X</span>
-                    {% elif run.status == 'diff_not_found' %}
-                        <span class="text-success test-result-mark">&#x2713;</span>
-                    {% elif run.status == 'needs_diff' %}
-                        <span class="text-info test-result-mark">?</span>
-                    {% else %}
-                        <span class="test-result-mark">&ndash;</span>
-                    {% endif %}
-                    {# TODO: Need indicator that diff was manually approved. #}
-                    &nbsp;
-                    {% if run.status == 'diff_found' %}
-                        <span class="text-error">Diff found</span>
-                    {% elif run.status == 'diff_not_found' %}
-                        <span class="text-success">No diff found</span>
-                    {% elif run.status == 'needs_diff' %}
-                        <span class="text-info">Diff pending</span>
-                    {% else %}
-                        Diff not run
-                    {% endif %}
-                    &nbsp;
+                    {% include 'fragment_run_status.html' with context %}
+                </p>
+                <p class="inline-block run-status-section">
                     <abbr title="Complete {{ release.created.strftime('%Y-%m-%dT%H:%MZ') }}">
                         {{ run.created|timesince }}
                     </abbr>
                 </p>
             </div>
-            <div class="span7">
+            <div class="span5 text-right">
                 <p>
-                    <a href="#" class="btn btn-inverse">Side by side</a>
-                    <a href="#" class="btn">Vertical</a>
+                    <a href="#" class="btn">&larr; Prev test</a>
+                    <a href="#" class="btn">&thinsp;Next test &rarr;</a>
                 </p>
             </div>
         </div>
@@ -60,7 +48,7 @@ run description
 
 <div class="container-fluid">
 
-    <div class="diff-section row-fluid">
+    <div class="row-fluid body-section">
         <div class="span4">
             <div class="row-fluid">
                 <div class="span6">
@@ -69,8 +57,10 @@ run description
                 <div class="span6 text-right">
                     <small>
                         <a href="#">Visit</a>
-                        &ndash;
-                        <a href="#">Log</a>
+                        {% if run.ref_log %}
+                            &ndash;
+                            <a href="{{ url_for('view_log', id=build.id, name=release.name, number=release.number, path=run.name, type='before') }}">Log</a>
+                        {% endif %}
                     </small>
                 </div>
             </div>
@@ -91,7 +81,9 @@ run description
                 </div>
                 <div class="span6 text-right">
                     <small>
-                        <a href="#">Log</a>
+                        {% if run.diff_log %}
+                            <a href="{{ url_for('view_log', id=build.id, name=release.name, number=release.number, path=run.name, type='diff') }}">Log</a>
+                        {% endif %}
                     </small>
                 </div>
             </div>
@@ -113,8 +105,10 @@ run description
                 <div class="span6 text-right">
                     <small>
                         <a href="#">Visit</a>
-                        &ndash;
-                        <a href="#">Log</a>
+                        {% if run.log %}
+                            &ndash;
+                            <a href="{{ url_for('view_log', id=build.id, name=release.name, number=release.number, path=run.name, type='after') }}">Log</a>
+                        {% endif %}
                     </small>
                 </div>
             </div>

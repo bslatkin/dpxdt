@@ -222,3 +222,8 @@ def view_image():
         run=run,
         image_type=image_type,
         sha1sum=sha1sum)
+
+
+@app.route('/log')
+def view_log():
+    return
