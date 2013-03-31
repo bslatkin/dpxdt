@@ -1,9 +1,27 @@
 {% if run.status == 'diff_found' %}
+    {% set run_status='error' %}
+{% elif run.status == 'diff_not_found' %}
+    {% set run_status='success' %}
+{% elif run.status == 'needs_diff' %}
+    {% set run_status='info' %}
+{% elif run.status == 'diff_approved' %}
+    {% set run_status='success' %}
+{% else %}
+    {% set run_status='info' %}
+{% endif %}
+
+{% if alert_wrapper %}
+    <div class="alert alert-{{ run_status }}">
+{% endif %}
+
+{% if run.status == 'diff_found' %}
     <span class="text-error test-result-mark">X</span>
 {% elif run.status == 'diff_not_found' %}
     <span class="text-success test-result-mark">&#x2713;</span>
 {% elif run.status == 'needs_diff' %}
     <span class="text-info test-result-mark">?</span>
+{% elif run.status == 'diff_approved' %}
+    <span class="text-info test-result-mark">&#x2713;</span>
 {% else %}
     <span class="test-result-mark">&ndash;</span>
 {% endif %}
@@ -15,6 +33,13 @@
     <span class="text-success">No diff found</span>
 {% elif run.status == 'needs_diff' %}
     <span class="text-info">Diff pending</span>
+{% elif run.status == 'diff_approved' %}
+    <span class="text-success">Diff found and approved</span>
 {% else %}
     Diff not run
+{% endif %}
+
+
+{% if alert_wrapper %}
+    </div>
 {% endif %}

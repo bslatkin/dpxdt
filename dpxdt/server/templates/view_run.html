@@ -10,25 +10,33 @@ run description
 {% block body %}
 
 <div class="row">
-    <div class="span7">
+    <div class="span10">
         URL or Path here
+    </div>
+    <div class="span2 text-right">
+        <abbr title="Complete {{ release.created.strftime('%Y-%m-%dT%H:%MZ') }}">
+            {{ run.created|timesince }}
+        </abbr>
     </div>
 </div>
 
 <div class="row body-section">
     <div class="span12">
+        {% set alert_wrapper=True %}
+        {% include 'fragment_run_status.html' with context %}
+    </div>
+</div>
+
+<div class="row">
+    <div class="span12">
         <div class="row">
             <div class="span7">
                 <p class="inline-block">
-                    <a href="#" class="btn btn-danger">Mark test as OK</a>
-                </p>
-                <p class="inline-block run-status-section">
-                    {% include 'fragment_run_status.html' with context %}
-                </p>
-                <p class="inline-block run-status-section">
-                    <abbr title="Complete {{ release.created.strftime('%Y-%m-%dT%H:%MZ') }}">
-                        {{ run.created|timesince }}
-                    </abbr>
+                    {% if run.status == 'diff_found' %}
+                        <a href="#" class="btn btn-success">Mark test as passing</a>
+                    {% elif run.status == 'diff_approved' %}
+                        <a href="#" class="btn bt-danger">Mark test as failing</a>
+                    {% endif %}
                 </p>
             </div>
             <div class="span5 text-right">

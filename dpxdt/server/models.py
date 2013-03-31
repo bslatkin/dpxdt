@@ -85,12 +85,13 @@ class Run(db.Model):
     - Show me all runs with the given name for all releases that are live.
     """
 
+    DIFF_APPROVED = 'diff_approved'
     DIFF_FOUND = 'diff_found'
     DIFF_NOT_FOUND = 'diff_not_found'
     NEEDS_DIFF = 'needs_diff'
     NO_DIFF_NEEDED = 'no_diff_needed'
     STATES = frozenset([
-        DIFF_FOUND, DIFF_NOT_FOUND, NEEDS_DIFF, NO_DIFF_NEEDED])
+        DIFF_APPROVED, DIFF_FOUND, DIFF_NOT_FOUND, NEEDS_DIFF, NO_DIFF_NEEDED])
 
     id = db.Column(db.Integer, primary_key=True)
     release_id = db.Column(db.Integer, db.ForeignKey('release.id'))

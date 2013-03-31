@@ -6,7 +6,7 @@ Backend
 Frontend
 - Create a new build crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
 - Compare mode; lets operator mark UI as acceptable or not; use hot-keys to quickly scroll through images
-
+- View log data with monospace formatting
 
 -------
 
