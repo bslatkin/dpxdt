@@ -108,3 +108,7 @@ class Run(db.Model):
 
     diff_image = db.Column(db.String, db.ForeignKey('artifact.id'))
     diff_log = db.Column(db.String, db.ForeignKey('artifact.id'))
+
+    # TODO: Add metadata about diff: number of pixels, expected or not
+    # approved or not, who approved it.
+    # Image and ref image should have clickable URLs.

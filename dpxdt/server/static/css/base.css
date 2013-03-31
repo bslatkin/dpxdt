@@ -1,3 +1,26 @@
 .build-release-section {
     margin-bottom: 10px;
 }
+h1 a:link,
+h1 a:visited,
+h1 a:active,
+h1 a:hover {
+    color: inherit;
+}
+h4 a:link,
+h4 a:visited,
+h4 a:active,
+h4 a:hover {
+    color: inherit;
+}
+.ellipsis-overflow {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+.test-result-mark {
+    font-weight: bold;
+}
+.diff-section {
+    margin-top: 40px;
+}

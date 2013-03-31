@@ -8,11 +8,6 @@ build description
 
 
 {% block body %}
-<div class="row">
-    <div class="span12">
-        <h1>Build: {{ build.name }}</h1>
-    </div>
-</div>
 
 {% if release_name_list %}
     <div class="row">
@@ -25,7 +20,7 @@ build description
             <div class="row build-release-section">
                 <div class="span12">
                     <div class="row">
-                        <div class="span2">
+                        <div class="span2 ellipsis-overflow">
                             {{ release_name }}
                         </div>
                         <div class="span2">
@@ -48,14 +43,14 @@ build description
                                     {{ candidate.created|timesince }}
                                 </abbr>
                             </div>
-                            <div class="span2" title="Current status">
-                                {{ candidate.status|title }}
-                            </div>
                             <div class="span2" title="Total tests">
                                 0 / 25 complete
                             </div>
                             <div class="span2" title="Total failures">
                                 5 failures
+                            </div>
+                            <div class="span2" title="Current status">
+                                {{ candidate.status|title }}
                             </div>
                         </div>
                     {% endfor %}

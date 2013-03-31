@@ -124,6 +124,14 @@ def view_release():
         .order_by(models.Run.name)
         .all())
 
+    # Sort errors first, then by name
+    def sort(run):
+        if run.DIFF_FOUND:
+            return (0, run.name)
+        return (1, run.name)
+
+    run_list.sort(key=sort)
+
     return render_template(
         'view_release.html',
         build=build,
@@ -133,6 +141,84 @@ def view_release():
 
 @app.route('/run')
 def view_run():
-    context = {
-    }
-    return render_template('view_run.html', **context)
+    build_id = request.args.get('id', type=int)
+    release_name = request.args.get('name', type=str)
+    release_number = request.args.get('number', type=int)
+    run_name = request.args.get('path', type=str)
+    if not (build_id and release_name and release_number and run_name):
+        return abort(400)
+
+    build = models.Build.query.get(build_id)
+    if not build:
+        return abort(404)
+
+    release = (
+        models.Release.query
+        .filter_by(build_id=build_id, name=release_name, number=release_number)
+        .first())
+    if not release:
+        return abort(404)
+
+    run = (
+        models.Run.query
+        .filter_by(release_id=release.id, name=run_name)
+        .first())
+    if not run:
+        return abort(404)
+
+    return render_template(
+        'view_run.html',
+        build=build,
+        release=release,
+        run=run)
+
+
+@app.route('/image')
+def view_image():
+    build_id = request.args.get('id', type=int)
+    release_name = request.args.get('name', type=str)
+    release_number = request.args.get('number', type=int)
+    run_name = request.args.get('path', type=str)
+    image_type = request.args.get('type', type=str)
+    if not (build_id and release_name and release_number and
+            run_name and image_type):
+        return abort(400)
+
+    # TODO: Make this reusable
+    build = models.Build.query.get(build_id)
+    if not build:
+        return abort(404)
+
+    release = (
+        models.Release.query
+        .filter_by(build_id=build_id, name=release_name, number=release_number)
+        .first())
+    if not release:
+        return abort(404)
+
+    run = (
+        models.Run.query
+        .filter_by(release_id=release.id, name=run_name)
+        .first())
+    if not run:
+        return abort(404)
+
+    if image_type == 'before':
+        sha1sum = run.ref_image
+    elif image_type == 'diff':
+        sha1sum = run.diff_image
+    elif image_type == 'after':
+        sha1sum = run.image
+    else:
+        return abort(400)
+
+    if not sha1sum:
+        return abort(404)
+
+    return render_template(
+        'view_image.html',
+        build=build,
+        release=release,
+        run=run,
+        image_type=image_type,
+        sha1sum=sha1sum)

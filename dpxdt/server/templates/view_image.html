@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block description -%}
+
+image description
+
+{%- endblock description %}
+
+{% block body %}
+
+<div class="row">
+    <div class="offset5 span7">
+        {{ image_type|title }} image
+    </div>
+</div>
+
+{% endblock body %}
+
+
+{% block belowbody %}
+
+<div class="container-fluid">
+    <div class="row-fluid">
+        <div class="span12 text-center">
+            <img src="{{ url_for('download', sha1sum=sha1sum) }}">
+        </div>
+    </div>
+</div>
+
+{% endblock belowbody %}
