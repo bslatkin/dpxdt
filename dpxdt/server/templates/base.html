@@ -28,12 +28,15 @@
 
 {% if release %}
     <div class="row">
-        <div class="span12">
+        <div class="span6">
             {% if run %}
                 <h4 class="ellipsis-overflow"><a href="{{ url_for('view_release', id=build.id, name=release.name, number=release.number) }}">Release: {{ release.name }} #{{ release.number }}</a></h4>
             {% else %}
                 <h4>Release: {{ release.name }} #{{ release.number }}</h4>
             {% endif %}
+        </div>
+        <div class="span6 text-right">
+            <h4>Status: {{ release.status|title }}</h4>
         </div>
     </div>
 {% endif %}

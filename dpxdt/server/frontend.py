@@ -194,14 +194,19 @@ def view_release():
         newest_run_time=newest_run_time)
 
 
-@app.route('/run')
+@app.route('/run', methods=['GET', 'POST'])
 def view_run():
-    build_id = request.args.get('id', type=int)
-    release_name = request.args.get('name', type=str)
-    release_number = request.args.get('number', type=int)
-    run_name = request.args.get('path', type=str)
-    if not (build_id and release_name and release_number and run_name):
-        return abort(400)
+
+    if request.method == 'POST':
+        form = forms.RunForm()
+        form.validate_on_submit()
+    else:
+        form = forms.RunForm(request.args)
+
+    build_id = form.id.data
+    release_name = form.name.data
+    release_number = form.number.data
+    run_name = form.test.data
 
     build = models.Build.query.get(build_id)
     if not build:
@@ -221,11 +226,30 @@ def view_run():
     if not run:
         return abort(404)
 
+    if request.method == 'POST':
+        if not form.approve:
+            return abort(400)
+
+        if not run.status == models.Run.DIFF_FOUND:
+            return abort(400)
+
+        run.status = models.Run.DIFF_APPROVED
+        session.add(run)
+        session.commit()
+
+        return redirect(url_for(
+            'view_run',
+            id=form.id,
+            name=form.name,
+            number=form.number,
+            test=form.test))
+
     return render_template(
         'view_run.html',
         build=build,
         release=release,
-        run=run)
+        run=run,
+        run_form=form)
 
 
 @app.route('/image')

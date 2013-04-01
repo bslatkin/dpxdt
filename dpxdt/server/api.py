@@ -259,8 +259,8 @@ def report_run():
     ref_log = request.form.get('ref_log', type=str)
     ref_config = request.form.get('ref_config', type=str)
 
-    diff_image = request.form.get('image', type=str)
-    diff_log = request.form.get('log', type=str)
+    diff_image = request.form.get('diff_image', type=str)
+    diff_log = request.form.get('diff_log', type=str)
 
     if current_image:
         run.image = current_image
@@ -271,7 +271,7 @@ def report_run():
     if current_image or current_log or current_config:
         logging.info('Saved run data: build_id=%r, release_name=%r, '
                      'release_number=%d, run_name=%r, '
-                     'ref_image=%r, ref_log=%r, ref_config=%r',
+                     'image=%r, log=%r, config=%r',
                      build_id, release_name, release_number, run_name,
                      run.image, run.log, run.config)
 

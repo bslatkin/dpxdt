@@ -196,6 +196,8 @@ class ReportRunWorkflow(workers.WorkflowItem):
         ref_image: Optional. Asset ID of the image to compare to.
         ref_log: Optional. Asset ID of the reference image's log.
         ref_config: Optional. Asset ID of the reference image's config.
+        no_diff_needed: Optional. When True, no diff will be needed for
+            this run.
 
     Raises:
         ReportRunError if the run could not be reported.
@@ -203,7 +205,8 @@ class ReportRunWorkflow(workers.WorkflowItem):
 
     def run(self, build_id, release_name, release_number, run_name,
             screenshot_path, log_path, config_path,
-            ref_image=None, ref_log=None, ref_config=None):
+            ref_image=None, ref_log=None, ref_config=None,
+            no_diff_needed=None):
         # TODO: Include the URL that was captured.
         screenshot_id, log_id, config_id = yield [
             UploadFileWorkflow(screenshot_path),
@@ -226,6 +229,8 @@ class ReportRunWorkflow(workers.WorkflowItem):
             post.update(ref_log=ref_log)
         if ref_config:
             post.update(ref_config=ref_config)
+        if no_diff_needed:
+            post.update(no_diff_needed='true')
 
         call = yield workers.FetchItem(
             FLAGS.release_server_prefix + '/report_run',
@@ -257,7 +262,7 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
             diff_path=None, log_path=None):
         diff_id = None
         log_id = None
-        no_diff = None
+        no_diff_needed = False
         if (diff_path and log_path and
                 os.path.isfile(diff_path) and os.path.isfile(log_path)):
             diff_id, log_id = yield [
@@ -267,19 +272,24 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
         elif (log_path and os.path.isfile(log_path)):
             log_id = yield UploadFileWorkflow(log_path)
         else:
-            no_diff_needed = 'true'
+            no_diff_needed = True
+
+        post = {
+            'build_id': build_id,
+            'release_name': release_name,
+            'release_number': release_number,
+            'run_name': run_name,
+        }
+        if diff_id:
+            post.update(diff_image=diff_id)
+        if log_id:
+            post.update(diff_log=log_id)
+        if no_diff_needed:
+            post.update(no_diff_needed='true')
 
         call = yield workers.FetchItem(
             FLAGS.release_server_prefix + '/report_run',
-            post={
-                'build_id': build_id,
-                'release_name': release_name,
-                'release_number': release_number,
-                'run_name': run_name,
-                'diff_image': diff_id,
-                'diff_log': log_id,
-                'no_diff_needed': no_diff_needed,
-            })
+            post=post)
 
         if call.json and call.json.get('error'):
             raise ReportPdiffError(call.json.get('error'))

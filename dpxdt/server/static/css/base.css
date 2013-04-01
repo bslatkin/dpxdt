@@ -1,6 +1,4 @@
-.build-release-section + .build-release-section {
-    margin-top: 40px;
-}
+/* Bootstrap overrides and modifications. */
 h1 a:link,
 h1 a:visited,
 h1 a:active,
@@ -17,6 +15,19 @@ h4 a:hover {
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
+}
+.alert-normal {
+    color: #999999;
+    background-color: #eeeeee;
+    border-color: #cccccc;
+}
+
+/* View styles */
+.build-release-section + .build-release-section {
+    margin-top: 40px;
+}
+.build-candidate-section + .build-candidate-section {
+    margin-top: 5px;
 }
 .test-result-mark {
     font-weight: bold;

@@ -2,11 +2,13 @@
     {% set runs_status='error' %}
 {% elif runs_successful %}
     {% set runs_status='success' %}
+{% else %}
+    {% set runs_status='normal' %}
 {% endif %}
 
 {% if runs_total %}
     {% if alert_wrapper %}
-        <strong class="alert alert-{{ runs_status }}">
+        <div class="alert alert-{{ runs_status }}">
     {% else %}
         <span class="text-{{ runs_status }}">
     {% endif %}
@@ -17,10 +19,12 @@
         {{ runs_failed }} failures
     {% elif runs_successful > 0 %}
         All passing
+    {% else %}
+        Pending
     {% endif %}
 
     {% if alert_wrapper %}
-        </strong>
+        </div>
     {% else %}
         </span>
     {% endif %}

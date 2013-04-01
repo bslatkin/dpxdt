@@ -384,7 +384,7 @@ class SiteDiff(workers.WorkflowItem):
         results = []
         for url in good_urls:
             results.append(PdiffWorkflow(url, output_dir, reference_dir,
-                           heartbeat=heartbeat))
+                                         heartbeat=heartbeat))
         results = yield results
 
         if upload_build_id:
@@ -410,6 +410,11 @@ class SiteDiff(workers.WorkflowItem):
 
                 yield heartbeat('Uploading captured screenshots for %s' %
                                 run_name)
+
+                no_diff_needed = False
+                if not ref_image:
+                    no_diff_needed = True
+
                 yield release_worker.ReportRunWorkflow(
                     upload_build_id,
                     upload_release_name,
@@ -420,7 +425,8 @@ class SiteDiff(workers.WorkflowItem):
                     config_path,
                     ref_image=ref_image,
                     ref_log=ref_log,
-                    ref_config=ref_config)
+                    ref_config=ref_config,
+                    no_diff_needed=no_diff_needed)
 
             yield heartbeat('Marking runs as complete')
             release_url = yield release_worker.RunsDoneWorkflow(

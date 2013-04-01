@@ -35,8 +35,10 @@
     <span class="text-info">Diff pending</span>
 {% elif run.status == 'diff_approved' %}
     <span class="text-success">Diff found and approved</span>
+{% elif run.status == 'no_diff_needed' %}
+    Diff not required
 {% else %}
-    Diff not run
+    Data pending
 {% endif %}
 
 {% if alert_wrapper %}

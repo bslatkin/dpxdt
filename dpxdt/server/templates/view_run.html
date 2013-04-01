@@ -33,9 +33,17 @@ run description
             <div class="span7">
                 <p class="inline-block">
                     {% if run.status == 'diff_found' %}
-                        <a href="#" class="btn btn-success">Mark test as passing</a>
+                        <form action="{{ url_for('view_run') }}" method="post">
+                            {{ run_form.csrf_token }}
+                            {{ run_form.id }}
+                            {{ run_form.name }}
+                            {{ run_form.number }}
+                            {{ run_form.test }}
+                            {{ run_form.approve }}
+                            <button type="submit" class="btn btn-primary">Mark test as passing</button>
+                        </form>
                     {% elif run.status == 'diff_approved' %}
-                        <a href="#" class="btn bt-danger">Mark test as failing</a>
+                        <a href="#" class="btn btn-danger">Mark test as failing</a>
                     {% endif %}
                 </p>
             </div>

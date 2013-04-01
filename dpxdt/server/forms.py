@@ -18,7 +18,9 @@
 import datetime
 
 # Local libraries
-from flask.ext.wtf import DataRequired, Form, Length, TextField
+from flask.ext.wtf import (
+    BooleanField, DataRequired, Form, IntegerField,
+    Length, NumberRange, TextField)
 
 # Local modules
 from . import app
@@ -28,3 +30,13 @@ class BuildForm(Form):
     """Form for creating or editing a build."""
 
     name = TextField(validators=[Length(min=1, max=100)])
+
+
+class RunForm(Form):
+    """Form for viewing or approving a run."""
+
+    id = IntegerField(validators=[NumberRange(min=1)])
+    name = TextField(validators=[Length(min=1)])
+    number = IntegerField(validators=[NumberRange(min=1)])
+    test = TextField(validators=[Length(min=1)])
+    approve = BooleanField()

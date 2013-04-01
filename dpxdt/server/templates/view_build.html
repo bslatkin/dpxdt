@@ -54,7 +54,17 @@ build description
                                         </div>
                                     {% endwith %}
                                     <div class="span2" title="Current status">
-                                        {{ candidate.status|title }}
+                                        {% if candidate.status == 'good' %}
+                                            <span class="text-info">
+                                                {{ candidate.status|title }}
+                                            </span>
+                                        {% elif candidate.status == 'bad' %}
+                                            <span class="text-error">
+                                                {{ candidate.status|title }}
+                                            </span>
+                                        {% else %}
+                                            {{ candidate.status|title }}
+                                        {% endif %}
                                     </div>
                                 </div>
                             {% endfor %}
