@@ -194,7 +194,7 @@ def view_release():
 
     # Sort errors first, then by name
     def sort(run):
-        if run.DIFF_FOUND:
+        if run.status == models.Run.DIFF_FOUND:
             return (0, run.name)
         return (1, run.name)
 

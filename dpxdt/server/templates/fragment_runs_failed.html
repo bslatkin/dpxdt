@@ -2,6 +2,8 @@
     {% set run_status='error' %}
 {% elif runs_successful == runs_total %}
     {% set run_status='info' %}
+{% elif runs_total %}
+    {% set run_status='warning' %}
 {% else %}
     {% set run_status='normal' %}
 {% endif %}

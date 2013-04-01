@@ -149,7 +149,7 @@ def _check_release_done_processing(release_id):
         return False
 
     if release.status != models.Release.PROCESSING:
-        logging.error('Already done processing: release_id=%r', release_id)
+        logging.error('Not yet processing: release_id=%r', release_id)
         return False
 
     query = models.Run.query.filter_by(release_id=release.id)
