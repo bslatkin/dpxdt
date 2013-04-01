@@ -85,6 +85,10 @@ gflags.DEFINE_string(
     'upload_build_id', None,
     'ID of the build to upload this screenshot set to as a new release.')
 
+gflags.DEFINE_string(
+    'upload_release_name', None,
+    'Along with upload_build_id, the name of the release to upload to.')
+
 
 class Error(Exception):
     """Base class for exceptions in this module."""
@@ -300,6 +304,9 @@ class SiteDiff(workers.WorkflowItem):
         upload_build_id: Optional. Build ID of the site being compared. When
             supplied a new release will be cut for this build comparing it
             to the last good release.
+        upload_release_name: Optional. Release name to use for the build. When
+            not supplied, a new release based on the current time will be
+            created.
         heartbeat: Function to call with progress status.
     """
 
@@ -309,6 +316,7 @@ class SiteDiff(workers.WorkflowItem):
             ignore_prefixes,
             reference_dir=None,
             upload_build_id=None,
+            upload_release_name=None,
             heartbeat=None):
         assert not upload_build_id or (upload_build_id and not reference_dir)
 
@@ -362,10 +370,11 @@ class SiteDiff(workers.WorkflowItem):
 
         if upload_build_id:
             # TODO: Make the release name prettier.
-            # TODO: Parameterize the release name.
+            if not upload_release_name:
+                upload_release_name = str(datetime.datetime.utcnow())
             result = yield release_worker.CreateReleaseWorkflow(
-                upload_build_id, str(datetime.datetime.utcnow()))
-            _, release_name, release_number = result
+                upload_build_id, upload_release_name)
+            _, _, release_number = result
 
         found_urls = os.path.join(output_dir, 'url_paths.txt')
         good_paths = set(urlparse.urlparse(u).path for u in good_urls)
@@ -388,7 +397,7 @@ class SiteDiff(workers.WorkflowItem):
                 try:
                     ref_run_result = yield release_worker.FindRunWorkflow(
                         upload_build_id,
-                        release_name,
+                        upload_release_name,
                         release_number,
                         run_name)
                 except release_worker.FindRunError:
@@ -403,7 +412,7 @@ class SiteDiff(workers.WorkflowItem):
                                 run_name)
                 yield release_worker.ReportRunWorkflow(
                     upload_build_id,
-                    release_name,
+                    upload_release_name,
                     release_number,
                     run_name,
                     output_path,
@@ -415,7 +424,7 @@ class SiteDiff(workers.WorkflowItem):
 
             yield heartbeat('Marking runs as complete')
             release_url = yield release_worker.RunsDoneWorkflow(
-                upload_build_id, release_name, release_number)
+                upload_build_id, upload_release_name, release_number)
 
             yield heartbeat('Results will be at: %s' % release_url)
         else:
@@ -440,6 +449,7 @@ def real_main(start_url=None,
               ignore_prefixes=None,
               reference_dir=None,
               upload_build_id=None,
+              upload_release_name=None,
               coordinator=None):
     """Runs the site_diff."""
     if not coordinator:
@@ -455,6 +465,7 @@ def real_main(start_url=None,
             ignore_prefixes=ignore_prefixes,
             reference_dir=reference_dir,
             upload_build_id=upload_build_id,
+            upload_release_name=upload_release_name,
             heartbeat=PrintWorkflow)
         item.root = True
         coordinator.input_queue.put(item)
@@ -492,7 +503,8 @@ def main(argv):
         output_dir=output_dir,
         reference_dir=FLAGS.reference_dir,
         ignore_prefixes=FLAGS.ignore_prefixes,
-        upload_build_id=FLAGS.upload_build_id)
+        upload_build_id=FLAGS.upload_build_id,
+        upload_release_name=FLAGS.upload_release_name)
 
 
 if __name__ == '__main__':

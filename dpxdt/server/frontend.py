@@ -105,11 +105,15 @@ def view_build():
             models.Run.query
             .filter_by(release_id=candidate.id, status=models.Run.DIFF_FOUND)
             .count())
-        pending = (
+        needs_diff = (
             models.Run.query
             .filter_by(release_id=candidate.id, status=models.Run.NEEDS_DIFF)
             .count())
-        total = pending + successful + failed
+        pending = (
+            models.Run.query
+            .filter_by(release_id=candidate.id, status=models.Run.DATA_PENDING)
+            .count())
+        total = pending + needs_diff + successful + failed
         complete = successful + failed
 
         run_stats_dict[candidate] = (total, complete, successful, failed)
@@ -126,14 +130,13 @@ def classify_runs(run_list):
     """Returns (total, complete, succesful, failed) for the given Runs."""
     total, successful, failed = 0, 0, 0
     for run in run_list:
-        if run.status in (models.Run.DIFF_APPROVED,
-                          models.Run.DIFF_NOT_FOUND):
+        if run.status in (models.Run.DIFF_APPROVED, models.Run.DIFF_NOT_FOUND):
             successful += 1
             total += 1
         elif run.status == models.Run.DIFF_FOUND:
             failed += 1
             total += 1
-        elif run.status == models.Run.NEEDS_DIFF:
+        elif run.status in (models.Run.NEEDS_DIFF, models.Run.DATA_PENDING):
             total += 1
 
     complete = successful + failed
