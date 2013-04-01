@@ -33,8 +33,10 @@ class Build(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
+                         onupdate=datetime.datetime.utcnow)
     name = db.Column(db.String)
-    # TODO: Add owner, creation time, last modified
+    # TODO: Add owner
 
 
 class Release(db.Model):
@@ -58,11 +60,11 @@ class Release(db.Model):
     name = db.Column(db.String, nullable=False)
     number = db.Column(db.Integer, nullable=False)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
+                         onupdate=datetime.datetime.utcnow)
     status = db.Column(db.Enum(*STATES), default=RECEIVING, nullable=False)
     build_id = db.Column(db.Integer, db.ForeignKey('build.id'), nullable=False)
-    # TODO: Add last modified time, number of runs, num complete, num failed
-    # TODO: Add a "URL" for the build status, which is specific to the
-    # API client that created it.
+    url = db.Column(db.String)
 
 
 class Artifact(db.Model):
@@ -97,19 +99,19 @@ class Run(db.Model):
     release_id = db.Column(db.Integer, db.ForeignKey('release.id'))
     name = db.Column(db.String, nullable=False)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
+                         onupdate=datetime.datetime.utcnow)
     status = db.Column(db.Enum(*STATES), nullable=False)
 
     image = db.Column(db.String, db.ForeignKey('artifact.id'))
     log = db.Column(db.String, db.ForeignKey('artifact.id'))
     config = db.Column(db.String, db.ForeignKey('artifact.id'))
+    url = db.Column(db.String)
 
     ref_image = db.Column(db.String, db.ForeignKey('artifact.id'))
     ref_log = db.Column(db.String, db.ForeignKey('artifact.id'))
     ref_config = db.Column(db.String, db.ForeignKey('artifact.id'))
+    ref_url = db.Column(db.String)
 
     diff_image = db.Column(db.String, db.ForeignKey('artifact.id'))
     diff_log = db.Column(db.String, db.ForeignKey('artifact.id'))
-
-    # TODO: Add metadata about diff: number of pixels, expected or not
-    # approved or not, who approved it.
-    # Image and ref image should have clickable URLs.

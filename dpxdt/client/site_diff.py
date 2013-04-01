@@ -350,7 +350,8 @@ class SiteDiff(workers.WorkflowItem):
                     found, start_url, [start_url], ignore_prefixes)
                 new = pruned - seen_urls
                 pending_urls.update(new)
-                yield heartbeat('Found %d new URLs' % len(new))
+                yield heartbeat('Found %d new URLs from %s' % (
+                                len(new), item.url))
 
             yield heartbeat('Finished crawl at depth %d' % depth)
             depth += 1

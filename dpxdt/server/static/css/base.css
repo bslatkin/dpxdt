@@ -21,7 +21,7 @@ h4 a:hover {
 .test-result-mark {
     font-weight: bold;
     width: 20px;
-    text-align: center;
+    text-align: left;
     display: inline-block;
 }
 .body-section {

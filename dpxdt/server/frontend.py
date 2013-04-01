@@ -99,6 +99,24 @@ def view_build():
         release_dict=release_dict)
 
 
+def classify_runs(run_list):
+    """Returns (total, complete, succesful, failed) for the given Runs."""
+    total, successful, failed = 0, 0, 0
+    for run in run_list:
+        if run.status in (models.Run.DIFF_APPROVED,
+                          models.Run.DIFF_NOT_FOUND):
+            successful += 1
+            total += 1
+        elif run.status == models.Run.DIFF_FOUND:
+            failed += 1
+            total += 1
+        elif run.status == models.Run.NEEDS_DIFF:
+            total += 1
+
+    complete = successful + failed
+    return total, complete, successful, failed
+
+
 @app.route('/release')
 def view_release():
     build_id = request.args.get('id', type=int)
@@ -132,11 +150,22 @@ def view_release():
 
     run_list.sort(key=sort)
 
+    total, complete, successful, failed = classify_runs(run_list)
+
+    newest_run_time = None
+    if run_list:
+        newest_run_time = max(run.modified for run in run_list)
+
     return render_template(
         'view_release.html',
         build=build,
         release=release,
-        run_list=run_list)
+        run_list=run_list,
+        runs_total=total,
+        runs_complete=complete,
+        runs_successful=successful,
+        runs_failed=failed,
+        newest_run_time=newest_run_time)
 
 
 @app.route('/run')

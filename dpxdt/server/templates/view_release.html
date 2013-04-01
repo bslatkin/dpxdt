@@ -16,17 +16,32 @@ candidate description
         </div>
     </div>
     <div class="row">
-        <div class="span2">
-            0 / 25 complete
+        <div class="span4">
+            {% if runs_total %}
+                {% if runs_complete == runs_total %}
+                    {{ runs_complete }} complete
+                {% else %}
+                    {{ runs_complete }} / {{ runs_total }} complete
+                {% endif %}
+            {% else %}
+                No tests run
+            {% endif %}
         </div>
-        <div class="span2">
-            5 failures
+        <div class="offset4 span2">
+            {% if runs_failed == 1 %}
+                <strong class="alert alert-error">1 failure</strong>
+            {% elif runs_failed > 0 %}
+                <strong class="alert alert-error">{{ runs_failed }} failures</strong>
+            {% elif runs_successful > 0 %}
+                <span class="alert alert-success">All passing</span>
+            {% endif %}
         </div>
-        <div class="span2" title="Update time">
-            {# TODO: Use modified time #}
-            <abbr title="Updated {{ release.created.strftime('%Y-%m-%dT%H:%MZ') }}">
-                {{ release.created|timesince }}
-            </abbr>
+        <div class="span2 text-right">
+            {% if newest_run_time %}
+                <abbr title="Updated {{ newest_run_time.strftime('%Y-%m-%dT%H:%MZ') }}">
+                    {{ newest_run_time|timesince }}
+                </abbr>
+            {% endif %}
         </div>
     </div>
     <div class="row body-section">
