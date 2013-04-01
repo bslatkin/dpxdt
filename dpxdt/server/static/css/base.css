@@ -55,6 +55,9 @@ a.big-link {
 .run-status-section {
     margin-left: 30px;
 }
+.run-image {
+    border: 1px solid #ccc;
+}
 #artifact-iframe-container {
     position: absolute;
     left: 0;
