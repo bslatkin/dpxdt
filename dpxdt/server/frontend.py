@@ -285,18 +285,18 @@ def view_run():
         run_form=form)
 
 
-@app.route('/image')
-def view_image():
+@app.route('/image', endpoint='view_image')
+@app.route('/log', endpoint='view_log')
+def view_artifact():
     build_id = request.args.get('id', type=int)
     release_name = request.args.get('name', type=str)
     release_number = request.args.get('number', type=int)
-    run_name = request.args.get('path', type=str)
-    image_type = request.args.get('type', type=str)
+    run_name = request.args.get('test', type=str)
+    file_type = request.args.get('type', type=str)
     if not (build_id and release_name and release_number and
-            run_name and image_type):
+            run_name and file_type):
         return abort(400)
 
-    # TODO: Make this reusable
     build = models.Build.query.get(build_id)
     if not build:
         return abort(404)
@@ -315,27 +315,38 @@ def view_image():
     if not run:
         return abort(404)
 
-    if image_type == 'before':
-        sha1sum = run.ref_image
-    elif image_type == 'diff':
-        sha1sum = run.diff_image
-    elif image_type == 'after':
-        sha1sum = run.image
-    else:
-        return abort(400)
+    image_file = False
+    log_file = False
+    if request.path == '/image':
+        image_file = True
+        if file_type == 'before':
+            sha1sum = run.ref_image
+        elif file_type == 'diff':
+            sha1sum = run.diff_image
+        elif file_type == 'after':
+            sha1sum = run.image
+        else:
+            return abort(400)
+    elif request.path == '/log':
+        log_file = True
+        if file_type == 'before':
+            sha1sum = run.ref_log
+        elif file_type == 'diff':
+            sha1sum = run.diff_log
+        elif file_type == 'after':
+            sha1sum = run.log
+        else:
+            return abort(400)
 
     if not sha1sum:
         return abort(404)
 
     return render_template(
-        'view_image.html',
+        'view_artifact.html',
         build=build,
         release=release,
         run=run,
-        image_type=image_type,
+        file_type=file_type,
+        image_file=image_file,
+        log_file=log_file,
         sha1sum=sha1sum)
-
-
-@app.route('/log')
-def view_log():
-    return

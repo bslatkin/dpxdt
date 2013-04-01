@@ -55,3 +55,17 @@ a.big-link {
 .run-status-section {
     margin-left: 30px;
 }
+#artifact-iframe-container {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 5px;
+}
+.artifact-iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-top: 1px solid #ccc;
+    margin: 0;
+    padding: 0;
+}

@@ -87,7 +87,7 @@ run description
                         <a href="#">Visit</a>
                         {% if run.ref_log %}
                             &ndash;
-                            <a href="{{ url_for('view_log', id=build.id, name=release.name, number=release.number, path=run.name, type='before') }}">Log</a>
+                            <a href="{{ url_for('view_log', id=build.id, name=release.name, number=release.number, test=run.name, type='before') }}">Log</a>
                         {% endif %}
                     </small>
                 </div>
@@ -95,7 +95,7 @@ run description
             <div class="row-fluid">
                 <div class="span12">
                     {% if run.ref_image %}
-                        <a href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, path=run.name, type='before') }}"><img src="{{ url_for('download', sha1sum=run.ref_image) }}"></a>
+                        <a href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='before') }}"><img src="{{ url_for('download', sha1sum=run.ref_image) }}"></a>
                     {% else %}
                         No image
                     {% endif %}
@@ -110,7 +110,7 @@ run description
                 <div class="span6 text-right">
                     <small>
                         {% if run.diff_log %}
-                            <a href="{{ url_for('view_log', id=build.id, name=release.name, number=release.number, path=run.name, type='diff') }}">Log</a>
+                            <a href="{{ url_for('view_log', id=build.id, name=release.name, number=release.number, test=run.name, type='diff') }}">Log</a>
                         {% endif %}
                     </small>
                 </div>
@@ -118,7 +118,7 @@ run description
             <div class="row-fluid">
                 <div class="span12">
                     {% if run.diff_image %}
-                        <a href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, path=run.name, type='diff') }}"><img src="{{ url_for('download', sha1sum=run.diff_image) }}"></a>
+                        <a href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='diff') }}"><img src="{{ url_for('download', sha1sum=run.diff_image) }}"></a>
                     {% else %}
                         No image
                     {% endif %}
@@ -135,7 +135,7 @@ run description
                         <a href="#">Visit</a>
                         {% if run.log %}
                             &ndash;
-                            <a href="{{ url_for('view_log', id=build.id, name=release.name, number=release.number, path=run.name, type='after') }}">Log</a>
+                            <a href="{{ url_for('view_log', id=build.id, name=release.name, number=release.number, test=run.name, type='after') }}">Log</a>
                         {% endif %}
                     </small>
                 </div>
@@ -143,7 +143,7 @@ run description
             <div class="row-fluid">
                 <div class="span12">
                     {% if run.image %}
-                        <a href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, path=run.name, type='after') }}"><img src="{{ url_for('download', sha1sum=run.image) }}"></a>
+                        <a href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='after') }}"><img src="{{ url_for('download', sha1sum=run.image) }}"></a>
                     {% else %}
                         No image
                     {% endif %}
