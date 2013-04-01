@@ -417,8 +417,18 @@ def download():
     """Downloads an artifact by it's content hash."""
     # TODO: Require an API key on the basic auth header
     # TODO: Enforce build/release ownership of or access to the file
-    sha1sum = request.args.get('sha1sum')
+    sha1sum = request.args.get('sha1sum', type=str)
     artifact = models.Artifact.query.get(sha1sum)
     if not artifact:
         abort(404)
-    return flask.Response(artifact.data, content_type=artifact.content_type)
+
+    if request.if_none_match and request.if_none_match.contains(sha1sum):
+        return flask.Response(status=304)
+
+    response = flask.Response(
+        artifact.data,
+        content_type=artifact.content_type)
+    response.cache_control.private = True
+    response.cache_control.max_age = 8640000
+    response.set_etag(sha1sum)
+    return response
