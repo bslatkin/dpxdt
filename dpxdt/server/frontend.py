@@ -92,11 +92,34 @@ def view_build():
     release_age_list.sort(reverse=True)
     release_name_list = [key for _, key in release_age_list]
 
+    # Extract run metadata about each release
+    run_stats_dict = {}
+    for candidate in candidate_list:
+        successful = (
+            models.Run.query
+            .filter_by(release_id=candidate.id)
+            .filter(models.Run.status.in_([
+                        models.Run.DIFF_APPROVED, models.Run.DIFF_NOT_FOUND]))
+            .count())
+        failed = (
+            models.Run.query
+            .filter_by(release_id=candidate.id, status=models.Run.DIFF_FOUND)
+            .count())
+        pending = (
+            models.Run.query
+            .filter_by(release_id=candidate.id, status=models.Run.NEEDS_DIFF)
+            .count())
+        total = pending + successful + failed
+        complete = successful + failed
+
+        run_stats_dict[candidate] = (total, complete, successful, failed)
+
     return render_template(
         'view_build.html',
         build=build,
         release_name_list=release_name_list,
-        release_dict=release_dict)
+        release_dict=release_dict,
+        run_stats_dict=run_stats_dict)
 
 
 def classify_runs(run_list):

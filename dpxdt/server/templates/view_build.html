@@ -45,12 +45,14 @@ build description
                                             {{ candidate.created|timesince }}
                                         </abbr>
                                     </div>
-                                    <div class="span2" title="Total tests">
-                                        0 / 25 complete
-                                    </div>
-                                    <div class="span2" title="Total failures">
-                                        5 failures
-                                    </div>
+                                    {% with runs_total, runs_complete, runs_successful, runs_failed = run_stats_dict[candidate] %}
+                                        <div class="span2">
+                                            {% include 'fragment_runs_complete.html' with context %}
+                                        </div>
+                                        <div class="span2">
+                                            {% include 'fragment_runs_failed.html' with context %}
+                                        </div>
+                                    {% endwith %}
                                     <div class="span2" title="Current status">
                                         {{ candidate.status|title }}
                                     </div>

@@ -1,0 +1,9 @@
+{% if runs_total %}
+    {% if runs_complete == runs_total %}
+        {{ runs_complete }} complete
+    {% else %}
+        {{ runs_complete }} / {{ runs_total }} complete
+    {% endif %}
+{% else %}
+    No tests run
+{% endif %}

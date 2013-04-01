@@ -1,5 +1,5 @@
-.build-release-section {
-    margin-bottom: 10px;
+.build-release-section + .build-release-section {
+    margin-top: 40px;
 }
 h1 a:link,
 h1 a:visited,

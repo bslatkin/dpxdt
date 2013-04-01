@@ -235,12 +235,20 @@ def report_run():
         .filter_by(build_id=build_id, name=release_name, number=release_number)
         .first())
     utils.jsonify_assert(release, 'release does not exist')
+
     # TODO: Make sure requesting user is owner of the build_id
-    # TODO: Only allow one report of this run name for a single release,
-    # or delete the old one.
+
+    run = (
+        models.Run.query
+        .filter_by(release_id=release.id, name=run_name)
+        .first())
+    if not run:
+        run = models.Run(
+            release_id=release.id,
+            name=run_name,
+            status=models.Run.DATA_PENDING)
 
     current_image = request.form.get('image', type=str)
-    utils.jsonify_assert(current_image, 'image must be supplied')
     current_log = request.form.get('log', type=str)
     current_config = request.form.get('config', type=str)
 
@@ -251,26 +259,34 @@ def report_run():
     diff_image = request.form.get('image', type=str)
     diff_log = request.form.get('log', type=str)
 
-    status = models.Run.NO_DIFF_NEEDED
-    if diff_image:
-        status = models.Run.DIFF_FOUND
-    elif ref_image and not diff_log:
-        status = models.Run.NEEDS_DIFF
-    elif ref_image and diff_log:
-        status = models.Run.DIFF_NOT_FOUND
+    if current_image:
+        run.image = current_image
+    if current_log:
+        run.log = current_log
+    if current_config:
+        run.config = current_config
 
-    run = models.Run(
-        release_id=release.id,
-        name=run_name,
-        status=status,
-        image=current_image,
-        log=current_log,
-        config=current_config,
-        ref_image=ref_image,
-        ref_log=ref_log,
-        ref_config=ref_config,
-        diff_image=diff_image,
-        diff_log=diff_log)
+    if ref_image:
+        run.ref_image = ref_image
+    if ref_log:
+        run.ref_log = ref_log
+    if ref_config:
+        run.ref_config = ref_config
+
+    if diff_image:
+        run.diff_image = diff_image
+    if diff_log:
+        run.diff_log = diff_log
+
+    if run.diff_image:
+        run.status = models.Run.DIFF_FOUND
+    elif run.ref_image and not run.diff_log:
+        run.status = models.Run.NEEDS_DIFF
+    elif run.ref_image and run.diff_log:
+        run.status = models.Run.DIFF_NOT_FOUND
+    elif request.form.get('no_diff_needed', type=str):
+        run.status = models.Run.NO_DIFF_NEEDED
+
     db.session.add(run)
     db.session.flush()
 

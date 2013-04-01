@@ -17,24 +17,11 @@ candidate description
     </div>
     <div class="row">
         <div class="span4">
-            {% if runs_total %}
-                {% if runs_complete == runs_total %}
-                    {{ runs_complete }} complete
-                {% else %}
-                    {{ runs_complete }} / {{ runs_total }} complete
-                {% endif %}
-            {% else %}
-                No tests run
-            {% endif %}
+            {% include 'fragment_runs_complete.html' with context %}
         </div>
         <div class="offset4 span2">
-            {% if runs_failed == 1 %}
-                <strong class="alert alert-error">1 failure</strong>
-            {% elif runs_failed > 0 %}
-                <strong class="alert alert-error">{{ runs_failed }} failures</strong>
-            {% elif runs_successful > 0 %}
-                <span class="alert alert-success">All passing</span>
-            {% endif %}
+            {% set alert_wrapper=True %}
+            {% include 'fragment_runs_failed.html' with context %}
         </div>
         <div class="span2 text-right">
             {% if newest_run_time %}
@@ -52,6 +39,7 @@ candidate description
                         <a href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, path=run.name) }}">{{ run.name }}</a>
                     </div>
                     <div class="span4" title="Test status">
+                        {% set alert_wrapper=False %}
                         {% include 'fragment_run_status.html' with context %}
                     </div>
                 </div>
