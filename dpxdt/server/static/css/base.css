@@ -40,6 +40,7 @@ h4 a:hover {
 }
 .inline-block {
     display: inline-block;
+    margin: 0;
 }
 .run-status-section {
     margin-left: 30px;

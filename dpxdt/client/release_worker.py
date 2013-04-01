@@ -151,8 +151,6 @@ class FindRunWorkflow(workers.WorkflowItem):
 
     Args:
         build_id: ID of the build.
-        release_name: Name of the release.
-        release_number: Number of the release candidate.
         run_name: Name of the run being uploaded.
 
     Returns:
@@ -163,13 +161,11 @@ class FindRunWorkflow(workers.WorkflowItem):
         FindRunError if a run could not be found.
     """
 
-    def run(self, build_id, release_name, release_number, run_name):
+    def run(self, build_id, run_name):
         call = yield workers.FetchItem(
             FLAGS.release_server_prefix + '/find_run',
             post={
                 'build_id': build_id,
-                'release_name': release_name,
-                'release_number': release_number,
                 'run_name': run_name,
             })
 

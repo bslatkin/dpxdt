@@ -10,7 +10,7 @@ image description
 
 <div class="row diff-section">
     <div class="span12">
-        <h4>{{ image_type|title }} image</h4>
+        {{ image_type|title }} image
     </div>
 </div>
 
@@ -19,7 +19,7 @@ image description
 
 {% block belowbody %}
 
-<div class="container-fluid">
+<div class="container-fluid body-section">
     <div class="row-fluid">
         <div class="span12 text-center">
             <img src="{{ url_for('download', sha1sum=sha1sum) }}">

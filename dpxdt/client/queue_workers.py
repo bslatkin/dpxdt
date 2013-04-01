@@ -196,8 +196,8 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
         try:
             ref_path = os.path.join(output_path, 'ref')
             run_path = os.path.join(output_path, 'run')
-            diff_path = os.path.join(output_path, 'diff')
-            log_path = os.path.join(output_path, 'log')
+            diff_path = os.path.join(output_path, 'diff.png')
+            log_path = os.path.join(output_path, 'log.txt')
 
             yield heartbeat('Fetching reference and run images')
             yield [

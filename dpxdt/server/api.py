@@ -182,8 +182,6 @@ def find_run():
     """Finds the last good run of the given name for a release."""
     build_id = request.form.get('build_id', type=int)
     utils.jsonify_assert(build_id is not None, 'build_id required')
-    release_name = request.form.get('release_name')
-    utils.jsonify_assert(release_name, 'release_name required')
     run_name = request.form.get('run_name', type=str)
     utils.jsonify_assert(run_name, 'run_name required')
 
@@ -200,7 +198,8 @@ def find_run():
     if last_good_release:
         logging.debug('Found last good release for: build_id=%r, '
                       'release_name=%r, release_number=%d',
-                      build_id, release_name, last_good_release.number)
+                      build_id, last_good_release.name,
+                      last_good_release.number)
         last_good_run = (
             models.Run.query
             .filter_by(release_id=last_good_release.id, name=run_name)
@@ -208,12 +207,12 @@ def find_run():
         if last_good_run:
             logging.debug('Found last good run for: build_id=%r, '
                           'release_name=%r, release_number=%d, '
-                          'last_good_run_id=%r, last_good_image=%r',
-                          build_id, release_name, release_number,
-                          last_good_run.id, last_good_run.image)
+                          'run_name=%r',
+                          build_id, last_good_release.name,
+                          last_good_release.number, run_name)
             return flask.jsonify(
                 build_id=build_id,
-                release_name=release_name,
+                release_name=last_good_release.name,
                 release_number=last_good_release.number,
                 run_name=run_name,
                 image=last_good_run.image,

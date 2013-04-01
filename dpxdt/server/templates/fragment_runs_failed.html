@@ -1,29 +1,31 @@
 {% if runs_failed %}
-    {% set runs_status='error' %}
-{% elif runs_successful %}
-    {% set runs_status='success' %}
+    {% set run_status='error' %}
+{% elif runs_successful == runs_total %}
+    {% set run_status='info' %}
 {% else %}
-    {% set runs_status='normal' %}
+    {% set run_status='normal' %}
 {% endif %}
 
 {% if runs_total %}
     {% if alert_wrapper %}
-        <div class="alert alert-{{ runs_status }}">
+        <div class="alert alert-{{ run_status }}">
+            <strong>
     {% else %}
-        <span class="text-{{ runs_status }}">
+        <span class="text-{{ run_status }}">
     {% endif %}
 
     {% if runs_failed == 1 %}
         1 failure
     {% elif runs_failed > 0 %}
         {{ runs_failed }} failures
-    {% elif runs_successful > 0 %}
+    {% elif runs_successful == runs_total %}
         All passing
     {% else %}
         Pending
     {% endif %}
 
     {% if alert_wrapper %}
+            </strong>
         </div>
     {% else %}
         </span>

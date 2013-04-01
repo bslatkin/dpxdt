@@ -19,7 +19,7 @@ import datetime
 
 # Local libraries
 from flask.ext.wtf import (
-    BooleanField, DataRequired, Form, IntegerField,
+    BooleanField, DataRequired, Form, HiddenField, IntegerField,
     Length, NumberRange, TextField)
 
 # Local modules
@@ -32,11 +32,24 @@ class BuildForm(Form):
     name = TextField(validators=[Length(min=1, max=100)])
 
 
+class ReleaseForm(Form):
+    """Form for viewing or approving a release."""
+
+    id = HiddenField(validators=[NumberRange(min=1)])
+    name = HiddenField(validators=[Length(min=1)])
+    number = HiddenField(validators=[NumberRange(min=1)])
+
+    good = HiddenField()
+    bad = HiddenField()
+    reviewing = HiddenField()
+
+
 class RunForm(Form):
     """Form for viewing or approving a run."""
 
-    id = IntegerField(validators=[NumberRange(min=1)])
-    name = TextField(validators=[Length(min=1)])
-    number = IntegerField(validators=[NumberRange(min=1)])
-    test = TextField(validators=[Length(min=1)])
-    approve = BooleanField()
+    id = HiddenField(validators=[NumberRange(min=1)])
+    name = HiddenField(validators=[Length(min=1)])
+    number = HiddenField(validators=[NumberRange(min=1)])
+    test = HiddenField(validators=[Length(min=1)])
+    approve = HiddenField()
+    disapprove = HiddenField()

@@ -396,10 +396,7 @@ class SiteDiff(workers.WorkflowItem):
                 ref_image, ref_log, ref_config = None, None, None
                 try:
                     ref_run_result = yield release_worker.FindRunWorkflow(
-                        upload_build_id,
-                        upload_release_name,
-                        release_number,
-                        run_name)
+                        upload_build_id, run_name)
                 except release_worker.FindRunError:
                     yield heartbeat('Failed to find last good run for %s' %
                                     run_name)

@@ -46,7 +46,7 @@
     <div class="row">
         <div class="span7">
             {% if sha1sum %}
-                <h4 class="ellipsis-overflow"><a href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, path=run.name) }}">Test: {{ run.name }}</a></h4>
+                <h4 class="ellipsis-overflow"><a href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=run.name) }}">Test: {{ run.name }}</a></h4>
             {% else %}
                 <h4 class="ellipsis-overflow">Test: {{ run.name }}</h4>
             {% endif %}

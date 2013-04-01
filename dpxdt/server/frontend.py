@@ -143,13 +143,17 @@ def classify_runs(run_list):
     return total, complete, successful, failed
 
 
-@app.route('/release')
+@app.route('/release', methods=['GET', 'POST'])
 def view_release():
-    build_id = request.args.get('id', type=int)
-    release_name = request.args.get('name', type=str)
-    release_number = request.args.get('number', type=int)
-    if not (build_id and release_name and release_number):
-        return abort(400)
+    if request.method == 'POST':
+        form = forms.ReleaseForm(request.form)
+    else:
+        form = forms.ReleaseForm(request.args)
+
+    form.validate()
+    build_id = form.id.data
+    release_name = form.name.data
+    release_number = form.number.data
 
     build = models.Build.query.get(build_id)
     if not build:
@@ -161,6 +165,26 @@ def view_release():
         .first())
     if not release:
         return abort(404)
+
+    if request.method == 'POST':
+        if form.good.data and release.status == models.Release.REVIEWING:
+            release.status = models.Release.GOOD
+        elif form.bad.data and release.status == models.Release.REVIEWING:
+            release.status = models.Release.BAD
+        elif form.reviewing.data and release.status in (
+                models.Release.GOOD, models.Release.BAD):
+            release.status = models.Release.REVIEWING
+        else:
+            return abort(400)
+
+        db.session.add(release)
+        db.session.commit()
+
+        return redirect(url_for(
+            'view_release',
+            id=build_id,
+            name=release_name,
+            number=release_number))
 
     run_list = (
         models.Run.query
@@ -182,6 +206,11 @@ def view_release():
     if run_list:
         newest_run_time = max(run.modified for run in run_list)
 
+    # Update form values for rendering
+    form.good.data = True
+    form.bad.data = True
+    form.reviewing.data = True
+
     return render_template(
         'view_release.html',
         build=build,
@@ -191,18 +220,18 @@ def view_release():
         runs_complete=complete,
         runs_successful=successful,
         runs_failed=failed,
-        newest_run_time=newest_run_time)
+        newest_run_time=newest_run_time,
+        release_form=form)
 
 
 @app.route('/run', methods=['GET', 'POST'])
 def view_run():
-
     if request.method == 'POST':
-        form = forms.RunForm()
-        form.validate_on_submit()
+        form = forms.RunForm(request.form)
     else:
         form = forms.RunForm(request.args)
 
+    form.validate()
     build_id = form.id.data
     release_name = form.name.data
     release_number = form.number.data
@@ -227,22 +256,26 @@ def view_run():
         return abort(404)
 
     if request.method == 'POST':
-        if not form.approve:
+        if form.approve.data and run.status == models.Run.DIFF_FOUND:
+            run.status = models.Run.DIFF_APPROVED
+        elif form.disapprove.data and run.status == models.Run.DIFF_APPROVED:
+            run.status = models.Run.DIFF_FOUND
+        else:
             return abort(400)
 
-        if not run.status == models.Run.DIFF_FOUND:
-            return abort(400)
-
-        run.status = models.Run.DIFF_APPROVED
-        session.add(run)
-        session.commit()
+        db.session.add(run)
+        db.session.commit()
 
         return redirect(url_for(
             'view_run',
-            id=form.id,
-            name=form.name,
-            number=form.number,
-            test=form.test))
+            id=build_id,
+            name=release_name,
+            number=release_number,
+            test=run_name))
+
+    # Update form values for rendering
+    form.approve.data = True
+    form.disapprove.data = True
 
     return render_template(
         'view_run.html',
