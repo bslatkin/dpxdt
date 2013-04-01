@@ -1,20 +1,27 @@
 Backend
 - Split site-diff to use server-side capture queue, so it can be much faster in aggregate
-- Make runs-done callable twice, first time to register it will happen, second time to report an image
-- Have all runs reported work even when the runs don't have an image
+- Add build URLs to releases
+- Add fetched URLs to runs so you can click through to visit
+- Capture 500 errors automatically retried up to N times.
 
 Frontend
-- Create a new build crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
-- Compare mode; lets operator mark UI as acceptable or not; use hot-keys to quickly scroll through images
-- View log data with monospace formatting
+- Create a sitediff crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
+- Compare mode; use hot-keys to quickly scroll through images
+
+Everywhere
+- Auth, owners, modification logs
+
+Future
+- Redirect uploads to go directly to S3 with a 307
+- Account sign-up
+- Email or HTTP callback once processing / reviewing state hit for a release
+- OAuth flow for robots
+- All screenshots deleted after 3 days unless you're in pro mode
 
 -------
 
-Speculative outline:
+What is needed for each capture run:
 
-Hosted pdiff
-
-API server you post to with a description like:
 - build name
 - release name
 - common code to define across all tests
@@ -30,13 +37,3 @@ API server you post to with a description like:
   - css selectors to hide
   - screen size (for responsive CSS)
   - User agent spoofing (can just do this with headers?)
-- API key
-- email address
-- callback URL
-- returns a polling status ID, candidate ID, and URL to fetch for results
-
-Features:
-- All screenshots deleted after 3 days unless you're in pro mode.
-- 500 errors automatically retried up to N times.
-- Sends an email on failure or success, depending on config.
-- Can be hooked into a github commit callback for pages.
