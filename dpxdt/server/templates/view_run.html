@@ -18,6 +18,10 @@ run description
             {{ run.created|timesince }}
         </abbr>
     </div>
+    {#
+        TODO: Who approved the diff
+        TODO: Heartbeat associated with the diff process
+     #}
 </div>
 
 <div class="row body-section">
@@ -40,7 +44,7 @@ run description
                             {{ run_form.number }}
                             {{ run_form.test }}
                             {{ run_form.approve }}
-                            <button type="submit" class="btn btn-primary">Mark test as passing</button>
+                            <button type="submit" class="btn btn-primary">Approve difference</button>
                         </form>
                     {% elif run.status == 'diff_approved' %}
                         <form action="{{ url_for('view_run') }}" method="post" class="inline-block">
@@ -50,7 +54,7 @@ run description
                             {{ run_form.number }}
                             {{ run_form.test }}
                             {{ run_form.disapprove }}
-                            <button type="submit" class="btn btn-danger">Mark test as failing</button>
+                            <button type="submit" class="btn btn-danger">Disapprove difference</button>
                         </form>
                     {% endif %}
                 </p>

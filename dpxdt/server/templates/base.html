@@ -36,7 +36,13 @@
             {% endif %}
         </div>
         <div class="span6 text-right">
-            <h4>Status: {{ release.status|title }}</h4>
+            {% if release.status == 'good' %}
+                <h4 class="text-info">Status: {{ release.status|title }}</h4>
+            {% elif release.status == 'bad' %}
+                <h4 class="text-error">Status: {{ release.status|title }}</h4>
+            {% else %}
+                <h4>Status: {{ release.status|title }}</h4>
+            {% endif %}
         </div>
     </div>
 {% endif %}

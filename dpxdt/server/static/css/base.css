@@ -23,10 +23,17 @@ h4 a:hover {
 }
 
 /* View styles */
+.build-release-first-row {
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 5px;
+}
 .build-release-section + .build-release-section {
     margin-top: 40px;
 }
 .build-candidate-section + .build-candidate-section {
+    margin-top: 5px;
+}
+.release-test-section + .release-test-section {
     margin-top: 5px;
 }
 .test-result-mark {
@@ -41,6 +48,9 @@ h4 a:hover {
 .inline-block {
     display: inline-block;
     margin: 0;
+}
+a.big-link {
+    display: block;
 }
 .run-status-section {
     margin-left: 30px;
