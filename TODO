@@ -38,3 +38,12 @@ What is needed for each capture run:
   - css selectors to hide
   - screen size (for responsive CSS)
   - User agent spoofing (can just do this with headers?)
+
+
+-------
+
+Random thoughts
+
+- It'd be cool if you could register your own workers to operate on your own capturing needs, which would make it possible to use a centralized trusted server for hosting diffs but then a separate worker pool on an internal network for doing the rendering.
+
+- Would be nice if the background servers self-registered themselves

@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title -%}
+Who am I? Debug user login
+{%- endblock title %}
+
+{% block body %}
+
+<div class="row">
+    <div class="span12">
+        <h1>Who am I?</h1>
+        <h4>Debug user login</h4>
+    </div>
+</div>
+
+<div class="row">
+    <div class="span4">
+        User ID:
+    </div>
+    <div class="span4">
+        {{ user.id }}
+    </div>
+</div>
+
+<div class="row">
+    <div class="span4">
+        Auth Type:
+    </div>
+    <div class="span4">
+        {{ user.auth_type }}
+    </div>
+</div>
+
+<div class="row">
+    <div class="span4">
+        Email address:
+    </div>
+    <div class="span4">
+        {{ user.email_address }}
+    </div>
+</div>
+
+<div class="row">
+    <div class="span4">
+        Created:
+    </div>
+    <div class="span4">
+        {{ user.created|timesince }}
+    </div>
+</div>
+
+<div class="row">
+    <div class="span4">
+        Last seen:
+    </div>
+    <div class="span4">
+        {{ user.last_seen|timesince }}
+    </div>
+</div>
+
+{% endblock body %}

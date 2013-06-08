@@ -27,18 +27,23 @@ sql> create database test;
 """
 
 import config
-import secrets
 
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
+from flask.ext.login import LoginManager
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-app.config['SECRET_KEY'] = secrets.CSRF_SECRET_KEY
+app.config['SECRET_KEY'] = config.SECRET_KEY
 
 db = SQLAlchemy(app)
 
+login = LoginManager()
+login.init_app(app)
+login.login_view = 'login_view'
+
 import api
+import auth
 import frontend
 import work_queue

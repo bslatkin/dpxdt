@@ -19,3 +19,6 @@
 [submodule "sqlalchemy"]
 	path = sqlalchemy
 	url = https://github.com/zzzeek/sqlalchemy
+[submodule "flask-login"]
+	path = flask-login
+	url = https://github.com/maxcountryman/flask-login

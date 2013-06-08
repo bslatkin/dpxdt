@@ -22,6 +22,47 @@ from . import app
 from . import db
 
 
+class User(db.Model):
+    """Represents a user who is authenticated in the system.
+
+    Primary key is prefixed with a valid AUTH_TYPES like:
+
+        'google_oauth2:1234567890'
+    """
+
+    GOOGLE_OAUTH2 = 'google_oauth2'
+    AUTH_TYPES = frozenset([GOOGLE_OAUTH2])
+
+    id = db.Column(db.String(500), primary_key=True)
+    created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    last_seen = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    email_address = db.Column(db.String(500))
+
+    @property
+    def auth_type(self):
+        parts = self.id.split(':', 1)
+        return parts[0]
+
+    # Methods required by flask-login.
+    def is_authenticated(self):
+        return True
+
+    def is_active(self):
+        return True
+
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return self.id
+
+    def __eq__(self, other):
+        return other.id == self.id
+
+    def __ne__(self, other):
+        return other.id != self.id
+
+
 class Build(db.Model):
     """A single repository of artifacts and diffs owned by someone.
 
