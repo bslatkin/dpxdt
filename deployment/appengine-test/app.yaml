@@ -1,0 +1,25 @@
+application: dpxdt-test
+version: 06-07-r01
+runtime: python27
+api_version: 1
+threadsafe: true
+
+builtins:
+- appstats: on
+- remote_api: on
+
+libraries:
+- name: jinja2
+  version: "2.6"
+- name: markupsafe
+  version: "0.15"
+
+inbound_services:
+- warmup
+
+handlers:
+- url: /static
+  static_dir: dpxdt/server/static
+
+- url: .*
+  script: dpxdt.server.app

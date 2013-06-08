@@ -13,27 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Main module for the API server.
+import logging
+import sys
 
-# To use for the first time, or when the schema changes during development:
-from dpxdt import server
-server.db.create_all()
+sys.path.insert(0, './lib/')
 
-"""
+logging.error('Wut? %s', sys.path)
 
-import config
-import secrets
-
-from flask import Flask
-from flask.ext.sqlalchemy import SQLAlchemy
-
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-app.config['SECRET_KEY'] = secrets.CSRF_SECRET_KEY
-
-db = SQLAlchemy(app)
-
-import api
-import frontend
-import work_queue
+import flask
+logging.error('path %s', flask.__file__)
+from flask.ext import sqlalchemy
+logging.error('path2 %s', sqlalchemy.__file__)
