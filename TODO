@@ -10,6 +10,7 @@ Frontend
 
 Everywhere
 - Auth, owners, modification logs
+- Cache DB queries
 
 Future
 - Redirect uploads to go directly to S3 with a 307
