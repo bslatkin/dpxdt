@@ -18,6 +18,10 @@ inbound_services:
 - warmup
 
 handlers:
+- url: /admin(/.*)?
+  script: google.appengine.ext.admin.application
+  login: admin
+
 - url: /static
   static_dir: dpxdt/server/static
 

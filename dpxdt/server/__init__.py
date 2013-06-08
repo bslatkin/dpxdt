@@ -19,6 +19,11 @@
 from dpxdt import server
 server.db.create_all()
 
+# To deploy this to a CloudSQL database on App Engine. You may have to
+# change your instance name based on settings in config.py.
+./google_sql.sh dpxdt-project:test
+sql> create database test;
+
 """
 
 import config
