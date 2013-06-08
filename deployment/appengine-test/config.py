@@ -16,4 +16,4 @@
 """Configuration for local development."""
 
 SQLALCHEMY_DATABASE_URI = (
-    'mysql+gaerdbms:///testdb?instance=dpxdt-project:test')
+    'mysql+gaerdbms:///test?instance=dpxdt-project:test')

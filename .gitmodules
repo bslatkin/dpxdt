@@ -13,3 +13,9 @@
 [submodule "flask-wtf"]
 	path = flask-wtf
 	url = https://github.com/ajford/flask-wtf.git
+[submodule "flask-sqlalchemy"]
+	path = flask-sqlalchemy
+	url = https://github.com/mitsuhiko/flask-sqlalchemy
+[submodule "sqlalchemy"]
+	path = sqlalchemy
+	url = https://github.com/zzzeek/sqlalchemy

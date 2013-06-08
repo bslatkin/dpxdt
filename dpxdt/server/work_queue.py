@@ -61,18 +61,18 @@ class WorkQueue(db.Model):
     eta = db.Column(db.DateTime, default=datetime.datetime.utcnow,
                     nullable=False)
 
-    source = db.Column(db.String)
+    source = db.Column(db.String(500))
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     lease_attempts = db.Column(db.Integer, default=0, nullable=False)
-    last_owner = db.Column(db.String)
+    last_owner = db.Column(db.String(500))
     last_lease = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     heartbeat = db.Column(db.Text)
     heartbeat_number = db.Column(db.Integer)
 
     payload = db.Column(db.LargeBinary)
-    content_type = db.Column(db.String)
+    content_type = db.Column(db.String(100))
 
     __table_args__ = (
         db.Index('lease_index', 'queue_name', 'live', 'eta'),

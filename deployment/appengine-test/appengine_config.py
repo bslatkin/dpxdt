@@ -13,14 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import sys
-
 sys.path.insert(0, './lib/')
 
-logging.error('Wut? %s', sys.path)
 
-import flask
-logging.error('path %s', flask.__file__)
-from flask.ext import sqlalchemy
-logging.error('path2 %s', sqlalchemy.__file__)
+from dpxdt.server import app
+
+@app.route('/_ah/warmup')
+def appengine_warmup():
+    return 'OK'

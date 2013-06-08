@@ -35,7 +35,7 @@ class Build(db.Model):
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
                          onupdate=datetime.datetime.utcnow)
-    name = db.Column(db.String)
+    name = db.Column(db.String(100))
     # TODO: Add owner
 
 
@@ -57,14 +57,14 @@ class Release(db.Model):
     STATES = frozenset([RECEIVING, PROCESSING, REVIEWING, BAD, GOOD])
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
     number = db.Column(db.Integer, nullable=False)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
                          onupdate=datetime.datetime.utcnow)
     status = db.Column(db.Enum(*STATES), default=RECEIVING, nullable=False)
     build_id = db.Column(db.Integer, db.ForeignKey('build.id'), nullable=False)
-    url = db.Column(db.String)
+    url = db.Column(db.String(2048))
 
 
 class Artifact(db.Model):
@@ -73,7 +73,7 @@ class Artifact(db.Model):
     id = db.Column(db.String(40), primary_key=True)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     data = db.Column(db.LargeBinary)
-    content_type = db.Column(db.String)
+    content_type = db.Column(db.String(100))
     # TODO: Actually save the blob files somewhere else, like S3. Add a
     # queue worker that uploads them there and purges the database. Move to
     # saving blobs in a directory by content-addressable filename.
@@ -99,21 +99,21 @@ class Run(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     release_id = db.Column(db.Integer, db.ForeignKey('release.id'))
-    name = db.Column(db.String, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
                          onupdate=datetime.datetime.utcnow)
     status = db.Column(db.Enum(*STATES), nullable=False)
 
-    image = db.Column(db.String, db.ForeignKey('artifact.id'))
-    log = db.Column(db.String, db.ForeignKey('artifact.id'))
-    config = db.Column(db.String, db.ForeignKey('artifact.id'))
-    url = db.Column(db.String)
+    image = db.Column(db.String(40), db.ForeignKey('artifact.id'))
+    log = db.Column(db.String(40), db.ForeignKey('artifact.id'))
+    config = db.Column(db.String(40), db.ForeignKey('artifact.id'))
+    url = db.Column(db.String(2048))
 
-    ref_image = db.Column(db.String, db.ForeignKey('artifact.id'))
-    ref_log = db.Column(db.String, db.ForeignKey('artifact.id'))
-    ref_config = db.Column(db.String, db.ForeignKey('artifact.id'))
-    ref_url = db.Column(db.String)
+    ref_image = db.Column(db.String(40), db.ForeignKey('artifact.id'))
+    ref_log = db.Column(db.String(40), db.ForeignKey('artifact.id'))
+    ref_config = db.Column(db.String(40), db.ForeignKey('artifact.id'))
+    ref_url = db.Column(db.String(2048))
 
-    diff_image = db.Column(db.String, db.ForeignKey('artifact.id'))
-    diff_log = db.Column(db.String, db.ForeignKey('artifact.id'))
+    diff_image = db.Column(db.String(40), db.ForeignKey('artifact.id'))
+    diff_log = db.Column(db.String(40), db.ForeignKey('artifact.id'))
