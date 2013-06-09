@@ -8,7 +8,9 @@ Frontend
 - Create a sitediff crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
 - Homepage
 - Branding, footer on all pages
-- Log approvals and any other release decisions
+- Log approvals and any other release state changes
+- Button to abandon a release that's in the receiving state
+- Make it so short URLs in the list have more clickable area
 
 Test run page
 - Next/previous buttons should be hidden for single test release case
@@ -54,6 +56,12 @@ Random thoughts
 - It'd be cool if you could register your own workers to operate on your own capturing needs, which would make it possible to use a centralized trusted server for hosting diffs but then a separate worker pool on an internal network for doing the rendering.
 
 - Would be nice if the background servers self-registered themselves
+
+- Can use a shared secret key for uploading the site-diff results for a build; something like a shared secret the user can provision for their build workers. they would have a create/revoke button and a list ordered by time.
+
+- Make it so fetching artifacts from the API server and similar priviledged tasks are reserved for shared secrets that are blessed manually by the superuser.
+
+- Always allow localhost to talk to localhost so local testing isn't annoying.
 
 -------
 

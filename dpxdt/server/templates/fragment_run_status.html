@@ -1,11 +1,11 @@
 {% if run.status == 'diff_found' %}
     {% set run_status='error' %}
 {% elif run.status == 'diff_not_found' %}
-    {% set run_status='normal' %}
+    {% set run_status='info' %}
 {% elif run.status == 'needs_diff' %}
     {% set run_status='warning' %}
 {% elif run.status == 'diff_approved' %}
-    {% set run_status='normal' %}
+    {% set run_status='info' %}
 {% else %}
     {% set run_status='normal' %}
 {% endif %}
@@ -29,7 +29,7 @@
     {% endif %}
 </span>
 &nbsp;
-<span class="text-{{ run_status }}">
+<span>
     {% if run.status == 'diff_found' %}
         Diff found
     {% elif run.status == 'diff_not_found' %}

@@ -29,7 +29,7 @@
 
 {% if release %}
     <div class="row">
-        <div class="span6">
+        <div class="span7">
             {% if run %}
                 <h4 class="ellipsis-overflow"><a href="{{ url_for('view_release', id=build.id, name=release.name, number=release.number) }}">Release: {{ release.name }} #{{ release.number }}</a></h4>
             {% else %}
@@ -37,7 +37,7 @@
             {% endif %}
         </div>
         {% if not sha1sum %}
-            <div class="span6 text-right">
+            <div class="span5 text-right">
                 {% if release.status == 'good' %}
                     <h4 class="text-info">Status: {{ release.status|title }}</h4>
                 {% elif release.status == 'bad' %}
