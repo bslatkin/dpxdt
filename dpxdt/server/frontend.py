@@ -15,18 +15,61 @@
 
 """Frontend for the API server."""
 
+import functools
 import logging
 
 # Local libraries
 import flask
 from flask import Flask, abort, redirect, render_template, request, url_for
+from flask.ext.login import current_user, login_required
 from flask.ext.wtf import Form
 
 # Local modules
 from . import app
 from . import db
+from . import login
 import forms
 import models
+
+
+def user_can_access_build(f):
+    """Decorator ensures user has access to the build ID in the request.
+
+    Always calls the given function with the models.Build entity as the
+    first positional argument.
+    """
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        build_id = (
+            request.args.get('id', type=int) or
+            request.form.get('id', type=int))
+        if not build_id:
+            return abort(400)
+
+        build = models.Build.query.get(build_id)
+        if not build:
+            return abort(404)
+
+        user_is_owner = False
+
+        if current_user.is_authenticated():
+            user_is_owner = build.owners.filter_by(
+                id=current_user.get_id()).first()
+
+        if not user_is_owner:
+            if request.method != 'GET':
+                logging.debug('No way to log in user via modifying request')
+                return abort(403)
+            elif build.public:
+                pass
+            elif current_user.is_authenticated():
+                logging.debug('User must authenticate to see non-public build')
+                return abort(403)
+            else:
+                return login.unauthorized()
+
+        return f(build, *args, **kwargs)
+    return wrapper
 
 
 @app.route('/')
@@ -36,14 +79,15 @@ def homepage():
     return render_template('home.html', **context)
 
 
-
 @app.route('/new', methods=['GET', 'POST'])
+@login_required
 def new_build():
     """Page for crediting or editing a build."""
     form = forms.BuildForm()
     if form.validate_on_submit():
         build = models.Build()
         form.populate_obj(build)
+        build.owners.append(current_user)
         db.session.add(build)
         db.session.commit()
 
@@ -57,18 +101,11 @@ def new_build():
 
 
 @app.route('/build')
-def view_build():
-    build_id = request.args.get('id', type=int)
-    if not build_id:
-        return abort(400)
-
-    build = models.Build.query.get(build_id)
-    if not build:
-        return abort(404)
-
+@user_can_access_build
+def view_build(build):
     candidate_list = (
         models.Release.query
-        .filter_by(build_id=build_id)
+        .filter_by(build_id=build.id)
         .order_by(models.Release.created.desc())
         .all())
 
@@ -144,24 +181,21 @@ def classify_runs(run_list):
 
 
 @app.route('/release', methods=['GET', 'POST'])
-def view_release():
+@user_can_access_build
+def view_release(build):
     if request.method == 'POST':
         form = forms.ReleaseForm(request.form)
     else:
         form = forms.ReleaseForm(request.args)
 
     form.validate()
-    build_id = form.id.data
-    release_name = form.name.data
-    release_number = form.number.data
-
-    build = models.Build.query.get(build_id)
-    if not build:
-        return abort(404)
 
     release = (
         models.Release.query
-        .filter_by(build_id=build_id, name=release_name, number=release_number)
+        .filter_by(
+            build_id=build.id,
+            name=form.name.data,
+            number=form.number.data)
         .first())
     if not release:
         return abort(404)
@@ -182,9 +216,9 @@ def view_release():
 
         return redirect(url_for(
             'view_release',
-            id=build_id,
-            name=release_name,
-            number=release_number))
+            id=build.id,
+            name=release.name,
+            number=release.number))
 
     run_list = (
         models.Run.query
@@ -225,32 +259,28 @@ def view_release():
 
 
 @app.route('/run', methods=['GET', 'POST'])
-def view_run():
+@user_can_access_build
+def view_run(build):
     if request.method == 'POST':
         form = forms.RunForm(request.form)
     else:
         form = forms.RunForm(request.args)
 
     form.validate()
-    build_id = form.id.data
-    release_name = form.name.data
-    release_number = form.number.data
-    run_name = form.test.data
-
-    build = models.Build.query.get(build_id)
-    if not build:
-        return abort(404)
 
     release = (
         models.Release.query
-        .filter_by(build_id=build_id, name=release_name, number=release_number)
+        .filter_by(
+            build_id=build.id,
+            name=form.name.data,
+            number=form.number.data)
         .first())
     if not release:
         return abort(404)
 
     run = (
         models.Run.query
-        .filter_by(release_id=release.id, name=run_name)
+        .filter_by(release_id=release.id, name=form.test.data)
         .first())
     if not run:
         return abort(404)
@@ -268,10 +298,10 @@ def view_run():
 
         return redirect(url_for(
             'view_run',
-            id=build_id,
-            name=release_name,
-            number=release_number,
-            test=run_name))
+            id=build.id,
+            name=release.name,
+            number=release.number,
+            test=run.name))
 
     # Update form values for rendering
     form.approve.data = True
@@ -287,7 +317,8 @@ def view_run():
 
 @app.route('/image', endpoint='view_image')
 @app.route('/log', endpoint='view_log')
-def view_artifact():
+@user_can_access_build
+def view_artifact(build):
     build_id = request.args.get('id', type=int)
     release_name = request.args.get('name', type=str)
     release_number = request.args.get('number', type=int)
@@ -296,10 +327,6 @@ def view_artifact():
     if not (build_id and release_name and release_number and
             run_name and file_type):
         return abort(400)
-
-    build = models.Build.query.get(build_id)
-    if not build:
-        return abort(404)
 
     release = (
         models.Release.query
