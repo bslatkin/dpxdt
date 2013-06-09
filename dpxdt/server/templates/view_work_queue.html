@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title -%}
+
+Work queue: {{ queue_name }}
+
+{%- endblock title %}
+
+
+{% block body %}
+
+<div class="row">
+    <div class="span12">
+        <h1>Work queue: {{ queue_name }}</h1>
+    </div>
+</div>
+
+{% endblock body %}
+
+
+{% block belowbody %}
+
+<div class="container-fluid body-section">
+    {% if work_list %}
+        <div class="row">
+            <div class="span3"><strong>Task ID</strong></div>
+            <div class="span1"><strong>Source</strong></div>
+            <div class="span1"><strong>Status</strong></div>
+            <div class="span2"></div>
+            <div class="span2"><strong>Owner</strong></div>
+            <div class="span3"><strong>Heartbeat</strong></div>
+        </div>
+        {% for task in work_list %}
+            <div class="row">
+                <div class="span3 ellipsis-overflow">
+                    {{ task.task_id }}
+                </div>
+                <div class="span1 ellipsis-overflow">
+                    {{ task.source|default('-', true) }}
+                </div>
+                {% if task.lease_outstanding %}
+                    <div class="span1">
+                        Leased
+                    </div>
+                    <div class="span2">
+                        {{ task.last_lease|timesince }}
+                    </div>
+                {% elif task.live %}
+                    <div class="span1">
+                        ETA
+                    </div>
+                    <div class="span2">
+                        {{ task.eta|timesince }}
+                    </div>
+                {% else %}
+                    <div class="span1">
+                        Finished
+                    </div>
+                    <div class="span2">
+                        {{ task.finished|timesince }}
+                    </div>
+                {% endif %}
+                <div class="span2 ellipsis-overflow">
+                    {{ task.last_owner|default('-', true) }}
+                </div>
+                <div class="span3 ellipsis-overflow">
+                    {{ task.heartbeat|default('-', true) }}
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="row">
+            <div class="span12">
+                No tasks.
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock belowbody %}

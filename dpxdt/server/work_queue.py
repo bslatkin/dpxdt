@@ -23,11 +23,12 @@ import uuid
 
 # Local libraries
 import flask
-from flask import Flask, request
+from flask import Flask, render_template, request
 
 # Local modules
 from . import app
 from . import db
+import auth
 import utils
 
 
@@ -63,10 +64,11 @@ class WorkQueue(db.Model):
 
     source = db.Column(db.String(500))
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    finished = db.Column(db.DateTime)
 
     lease_attempts = db.Column(db.Integer, default=0, nullable=False)
+    last_lease = db.Column(db.DateTime)
     last_owner = db.Column(db.String(500))
-    last_lease = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     heartbeat = db.Column(db.Text)
     heartbeat_number = db.Column(db.Integer)
@@ -78,6 +80,15 @@ class WorkQueue(db.Model):
         db.Index('lease_index', 'queue_name', 'live', 'eta'),
         db.Index('reap_index', 'live', 'created'),
     )
+
+    @property
+    def lease_outstanding(self):
+        if not self.live:
+            return False
+        if not self.last_owner:
+            return False
+        now = datetime.datetime.utcnow()
+        return now < self.eta
 
 
 def add(queue_name, payload=None, content_type=None,
@@ -142,7 +153,7 @@ def _task_to_dict(task):
 
 
 def lease(queue_name, owner, timeout):
-    """Leases a work item from a queue.
+    """Leases a work item from a queue, usually the oldest task available.
 
     Args:
         queue_name: Name of the queue to lease work from.
@@ -158,12 +169,13 @@ def lease(queue_name, owner, timeout):
     query = (
         WorkQueue.query
         .filter_by(queue_name=queue_name, live=True)
-        .filter(WorkQueue.eta <= now))
+        .filter(WorkQueue.eta <= now)
+        .order_by(WorkQueue.eta))
     task = query.first()
     if not task:
         return None
 
-    task.eta += datetime.timedelta(seconds=timeout)
+    task.eta = now + datetime.timedelta(seconds=timeout)
     task.lease_attempts += 1
     task.last_owner = owner
     task.last_lease = now
@@ -272,8 +284,28 @@ def finish(queue_name, task_id, owner):
         return False
 
     task.live = False
+    task.finished = datetime.datetime.utcnow()
     db.session.add(task)
     return True
+
+
+# TODO: Add an index page that shows all possible work queues
+
+
+@app.route('/api/work_queue/<string:queue_name>')
+@auth.superuser_required
+def handle_view(queue_name):
+    """Page for viewing the contents of a work queue."""
+    query = (
+        WorkQueue.query
+        .filter_by(queue_name=queue_name)
+        .order_by(WorkQueue.eta)
+        .limit(1000))
+    context = dict(
+        queue_name=queue_name,
+        work_list=list(query)
+    )
+    return render_template('view_work_queue.html', **context)
 
 
 @app.route('/api/work_queue/<string:queue_name>/add', methods=['POST'])

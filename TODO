@@ -6,24 +6,26 @@ Backend
 
 Frontend
 - Create a sitediff crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
-- Compare mode; use hot-keys to quickly scroll through images
-
-Everywhere
-- Auth, owners, modification logs
-- Cache DB queries
-
-Future
-- Redirect uploads to go directly to S3 with a 307
-- Account sign-up
-- Email or HTTP callback once processing / reviewing state hit for a release
-- OAuth flow for robots
-- All screenshots deleted after 3 days unless you're in pro mode
+- Homepage
+- Branding, footer on all pages
+- Log approvals and any other release decisions
 
 Test run page
 - Next/previous buttons should be hidden for single test release case
 - Do not show visit link when there is no diff image
 - Need to upload fetched domain name or full URL for visit link
 
+Everywhere
+- Cache DB queries
+
+-------
+
+Future
+- use hot-keys to quickly scroll through images
+- Redirect uploads to go directly to S3 with a 307
+- Email or HTTP callback once processing / reviewing state hit for a release
+- OAuth flow for robots
+- All screenshots deleted after 3 days unless you're in pro mode
 
 -------
 
@@ -45,7 +47,6 @@ What is needed for each capture run:
   - screen size (for responsive CSS)
   - User agent spoofing (can just do this with headers?)
 
-
 -------
 
 Random thoughts
@@ -53,7 +54,6 @@ Random thoughts
 - It'd be cool if you could register your own workers to operate on your own capturing needs, which would make it possible to use a centralized trusted server for hosting diffs but then a separate worker pool on an internal network for doing the rendering.
 
 - Would be nice if the background servers self-registered themselves
-
 
 -------
 

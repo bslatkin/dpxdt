@@ -74,6 +74,7 @@ def user_can_access_build(f):
 
 @app.route('/')
 def homepage():
+    """Renders the homepage."""
     context = {
     }
     return render_template('home.html', **context)
@@ -103,6 +104,7 @@ def new_build():
 @app.route('/build')
 @user_can_access_build
 def view_build(build):
+    """Page for viewing all releases in a build."""
     candidate_list = (
         models.Release.query
         .filter_by(build_id=build.id)
@@ -183,6 +185,7 @@ def classify_runs(run_list):
 @app.route('/release', methods=['GET', 'POST'])
 @user_can_access_build
 def view_release(build):
+    """Page for viewing all tests runs in a release."""
     if request.method == 'POST':
         form = forms.ReleaseForm(request.form)
     else:
@@ -261,6 +264,7 @@ def view_release(build):
 @app.route('/run', methods=['GET', 'POST'])
 @user_can_access_build
 def view_run(build):
+    """Page for viewing before/after for a specific test run."""
     if request.method == 'POST':
         form = forms.RunForm(request.form)
     else:
@@ -319,6 +323,7 @@ def view_run(build):
 @app.route('/log', endpoint='view_log')
 @user_can_access_build
 def view_artifact(build):
+    """Page for viewing a specific artifact from a test run."""
     build_id = request.args.get('id', type=int)
     release_name = request.args.get('name', type=str)
     release_number = request.args.get('number', type=int)

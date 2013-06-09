@@ -15,13 +15,14 @@
 
 """Implements authentication for the API server and frontend."""
 
+import functools
 import json
 import logging
 import urllib
 import urllib2
 
 # Local libraries
-from flask import redirect, render_template, request
+from flask import abort, redirect, render_template, request
 from flask.ext.login import current_user, login_required, login_user
 
 # Local modules
@@ -113,3 +114,15 @@ def debug_login():
         'user': current_user,
     }
     return render_template('whoami.html', **context)
+
+
+
+def superuser_required(f):
+    """Requries the requestor to be a super user."""
+    @functools.wraps(f)
+    @login_required
+    def wrapped(*args, **kwargs):
+        if not (current_user.is_authenticated() and current_user.superuser):
+            return abort(403)
+        return f(*args, **kwargs)
+    return wrapped

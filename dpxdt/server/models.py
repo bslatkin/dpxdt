@@ -28,6 +28,10 @@ class User(db.Model):
     Primary key is prefixed with a valid AUTH_TYPES like:
 
         'google_oauth2:1234567890'
+
+    To manually set a User to have superuser status:
+
+        update user set superuser = 1 where user.id = '<user id here>';
     """
 
     GOOGLE_OAUTH2 = 'google_oauth2'
@@ -37,6 +41,7 @@ class User(db.Model):
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     last_seen = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     email_address = db.Column(db.String(500))
+    superuser = db.Column(db.Boolean, default=False)
 
     @property
     def auth_type(self):
