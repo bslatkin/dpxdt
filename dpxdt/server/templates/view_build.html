@@ -55,7 +55,7 @@ build description
                                     {% endwith %}
                                     <div class="span2" title="Current status">
                                         {% if candidate.status == 'good' %}
-                                            <span class="text-info">
+                                            <span>
                                                 {{ candidate.status|title }}
                                             </span>
                                         {% elif candidate.status == 'bad' %}

@@ -19,6 +19,12 @@ Future
 - OAuth flow for robots
 - All screenshots deleted after 3 days unless you're in pro mode
 
+Test run page
+- Next/previous buttons should be hidden for single test release case
+- Do not show visit link when there is no diff image
+- Need to upload fetched domain name or full URL for visit link
+
+
 -------
 
 What is needed for each capture run:
@@ -56,4 +62,4 @@ Testing locally
 ./run_site_diff.sh \
   --upload_build_id=2 \
   --upload_release_name='blue' \
-  http://localhost:5000/dummy
+  http://localhost:5000/static/dummy_page1.html
