@@ -74,13 +74,15 @@ Notes:
 
 import datetime
 import hashlib
+import functools
 import json
 import logging
 import mimetypes
 
 # Local libraries
 import flask
-from flask import Flask, request
+from flask import Flask, abort, request
+from flask.ext.login import current_user, login_required
 
 # Local modules
 from . import app
@@ -90,31 +92,60 @@ import work_queue
 import utils
 
 
-@app.route('/api/create_build', methods=['POST'])
-def create_build():
-    """Creates a new build for a user."""
-    # TODO: Make sure the requesting user is logged in
-    name = request.form.get('name')
-    utils.jsonify_assert(name, 'name required')
+def api_key_required(f):
+    """Decorator ensures API key has proper access to requested resources."""
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        auth = request.authorization
+        if not auth:
+            logging.debug('API request lacks authorization header')
+            return flask.Response(
+                'API key required', 401,
+                {'WWW-Authenticate', 'Basic realm="API key required"'})
 
-    build = models.Build(name=name)
-    db.session.add(build)
-    db.session.commit()
+        api_key = models.ApiKey.query.get(auth.username)
+        if not api_key:
+            logging.debug('API key=%r does not exist', auth.username)
+            return abort(403)
 
-    logging.info('Created build: build_id=%r, name=%r', build.id, name)
+        if not api_key.active:
+            logging.debug('API key=%r is no longer active', api_key.id)
+            return abort(403)
 
-    return flask.jsonify(build_id=build.id, name=name)
+        if api_key.secret != auth.password:
+            logging.debug('API key=%r password does not match', api_key.id)
+            return abort(403)
+
+        logging.debug('Authenticated as API key=%r', api_key.id)
+
+        build_id = request.form.get('build_id', type=int)
+
+        if not api_key.superuser:
+            if build_id and api_key.build_id == build_id:
+                # Only allow normal users to edit builds that exist.
+                build = models.Build.query.get(build_id)
+                if not build:
+                    logging.debug('API key=%r accessing missing build_id=%r',
+                                  api_key.id, build_id)
+                    return abort(404)
+            else:
+                logging.debug('API key=%r cannot access requested build_id=%r',
+                              api_key.id, build_id)
+                return abort(403)
+
+        return f(*args, **kwargs)
+
+    return wrapped
 
 
 @app.route('/api/create_release', methods=['POST'])
+@api_key_required
 def create_release():
     """Creates a new release candidate for a build."""
     build_id = request.form.get('build_id', type=int)
     utils.jsonify_assert(build_id is not None, 'build_id required')
     release_name = request.form.get('release_name')
     utils.jsonify_assert(release_name, 'release_name required')
-    # TODO: Make sure build_id exists
-    # TODO: Make sure requesting user is owner of the build_id
 
     release = models.Release(
         name=release_name,
@@ -178,14 +209,13 @@ def _get_release_params():
 
 
 @app.route('/api/find_run', methods=['POST'])
+@api_key_required
 def find_run():
     """Finds the last good run of the given name for a release."""
     build_id = request.form.get('build_id', type=int)
     utils.jsonify_assert(build_id is not None, 'build_id required')
     run_name = request.form.get('run_name', type=str)
     utils.jsonify_assert(run_name, 'run_name required')
-
-    # TODO: Make sure requesting user is owner of the build_id
 
     last_good_release = (
         models.Release.query
@@ -223,6 +253,7 @@ def find_run():
 
 
 @app.route('/api/report_run', methods=['POST'])
+@api_key_required
 def report_run():
     """Reports data for a run for a release candidate."""
     build_id, release_name, release_number = _get_release_params()
@@ -234,8 +265,6 @@ def report_run():
         .filter_by(build_id=build_id, name=release_name, number=release_number)
         .first())
     utils.jsonify_assert(release, 'release does not exist')
-
-    # TODO: Make sure requesting user is owner of the build_id
 
     run = (
         models.Run.query
@@ -334,6 +363,7 @@ def report_run():
 
 
 @app.route('/api/runs_done', methods=['POST'])
+@api_key_required
 def runs_done():
     """Marks a release candidate as having all runs reported."""
     build_id, release_name, release_number = _get_release_params()
@@ -356,6 +386,7 @@ def runs_done():
 
 
 @app.route('/api/release_done', methods=['POST'])
+@api_key_required
 def release_done():
     """Marks a release candidate as good or bad."""
     build_id, release_name, release_number = _get_release_params()
@@ -381,9 +412,9 @@ def release_done():
 
 
 @app.route('/api/upload', methods=['POST'])
+@api_key_required
 def upload():
     """Uploads an artifact referenced by a run."""
-    # TODO: Require an API key on the basic auth header
     utils.jsonify_assert(len(request.files) == 1,
                          'Need exactly one uploaded file')
 
@@ -413,9 +444,9 @@ def upload():
 
 
 @app.route('/api/download')
+@api_key_required
 def download():
     """Downloads an artifact by it's content hash."""
-    # TODO: Require an API key on the basic auth header
     # TODO: Enforce build/release ownership of or access to the file
     sha1sum = request.args.get('sha1sum', type=str)
     artifact = models.Artifact.query.get(sha1sum)
@@ -432,3 +463,34 @@ def download():
     response.cache_control.max_age = 8640000
     response.set_etag(sha1sum)
     return response
+
+
+@app.route('/api_keys', methods=['GET', 'POST'])
+@login_required
+def manage_api_keys():
+    """Page for viewing and managing API keys."""
+    user_is_owner = build.owners.filter_by(
+                id=current_user.get_id()).first()
+
+    form = forms.ApiKeyForm()
+    if form.validate_on_submit():
+        if form.id.data and form.revoke.data:
+
+
+        build = models.Build()
+        form.populate_obj(build)
+        build.owners.append(current_user)
+        db.session.add(build)
+        db.session.commit()
+
+        logging.info('Created build via UI: build_id=%r, name=%r',
+                     build.id, build.name)
+        return redirect(url_for('manage_api_keys', id=build.id))
+
+    return render_template(
+        'new_build.html',
+        build_form=form)
+
+
+
+    pass

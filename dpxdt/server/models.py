@@ -68,6 +68,35 @@ class User(db.Model):
         return other.id != self.id
 
 
+api_key_ownership_table = db.Table(
+    'api_key_ownership',
+    db.Column('api_key', db.Integer, db.ForeignKey('api_key.id')),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id')))
+
+
+class ApiKey(db.Model):
+    """API access for an automated system.
+
+    May be owned by multiple users if necessary. Owners can set its state
+    to active or revoked. May be associated with a build, in which case all
+    owners of the build may also control this API key. When set to superuser
+    requestors using this API key will be able to operate on all builds.
+    """
+
+    id = db.Column(db.String(500), primary_key=True)
+    secret = db.Column(db.String(500), nullable=False)
+    active = db.Column(db.Boolean, default=True)
+    purpose = db.Column(db.String(500))
+    created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
+                         onupdate=datetime.datetime.utcnow)
+    superuser = db.Column(db.Boolean, default=False)
+    build_id = db.Column(db.Integer, db.ForeignKey('build.id'))
+    owners = db.relationship('User', secondary=api_key_ownership_table,
+                             backref=db.backref('api_keys', lazy='dynamic'),
+                             lazy='dynamic')
+
+
 ownership_table = db.Table(
     'build_ownership',
     db.Column('build_id', db.Integer, db.ForeignKey('build.id')),

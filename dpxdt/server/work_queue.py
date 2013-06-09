@@ -289,25 +289,6 @@ def finish(queue_name, task_id, owner):
     return True
 
 
-# TODO: Add an index page that shows all possible work queues
-
-
-@app.route('/api/work_queue/<string:queue_name>')
-@auth.superuser_required
-def handle_view(queue_name):
-    """Page for viewing the contents of a work queue."""
-    query = (
-        WorkQueue.query
-        .filter_by(queue_name=queue_name)
-        .order_by(WorkQueue.eta)
-        .limit(1000))
-    context = dict(
-        queue_name=queue_name,
-        work_list=list(query)
-    )
-    return render_template('view_work_queue.html', **context)
-
-
 @app.route('/api/work_queue/<string:queue_name>/add', methods=['POST'])
 def handle_add(queue_name):
     """Adds a task to a queue."""
@@ -392,3 +373,22 @@ def handle_finish(queue_name):
     logging.debug('Task finished: queue=%r, task_id=%r, owner=%r',
                   queue_name, task_id, owner)
     return flask.jsonify(success=True)
+
+
+# TODO: Add an index page that shows all possible work queues
+
+
+@app.route('/api/work_queue/<string:queue_name>')
+@auth.superuser_required
+def manage_work_queue(queue_name):
+    """Page for viewing the contents of a work queue."""
+    query = (
+        WorkQueue.query
+        .filter_by(queue_name=queue_name)
+        .order_by(WorkQueue.eta)
+        .limit(1000))
+    context = dict(
+        queue_name=queue_name,
+        work_list=list(query)
+    )
+    return render_template('view_work_queue.html', **context)

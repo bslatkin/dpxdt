@@ -118,7 +118,7 @@ def debug_login():
 
 
 def superuser_required(f):
-    """Requries the requestor to be a super user."""
+    """Requires the requestor to be a super user."""
     @functools.wraps(f)
     @login_required
     def wrapped(*args, **kwargs):

@@ -5,8 +5,6 @@ Backend
 - Capture 500 errors automatically retried up to N times.
 
 Frontend
-- Create a sitediff crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
-- Homepage
 - Branding, footer on all pages
 - Log approvals and any other release state changes
 - Button to abandon a release that's in the receiving state
@@ -28,6 +26,9 @@ Future
 - Email or HTTP callback once processing / reviewing state hit for a release
 - OAuth flow for robots
 - All screenshots deleted after 3 days unless you're in pro mode
+- Create a sitediff crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
+- Homepage
+- Homepage shows the user all of the builds they have
 
 -------
 
