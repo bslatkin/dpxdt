@@ -126,3 +126,49 @@ def superuser_required(f):
             return abort(403)
         return f(*args, **kwargs)
     return wrapped
+
+
+def can_user_access_build(param_name):
+    """Determines if the current user can access the build ID in the request.
+
+    Args:
+        param_name: Parameter name to use for getting the build ID from the
+            request. Will fetch from GET or POST requests.
+
+    Returns:
+        Tuple (build, response) where response is None if the user has
+        access to the build, otherwise it is a flask.Response object to
+        return to the user describing the error.
+    """
+    build_id = (
+        request.args.get(param_name, type=int) or
+        request.form.get(param_name, type=int))
+    if not build_id:
+        logging.debug('Build ID in param_name=%r was missing', param_name)
+        return abort(400), None
+
+    build = models.Build.query.get(build_id)
+    if not build:
+        logging.debug('Could not find build_id=%r', build_id)
+        return abort(404), None
+
+    user_is_owner = False
+
+    if current_user.is_authenticated():
+        user_is_owner = build.owners.filter_by(
+            id=current_user.get_id()).first()
+
+    if not user_is_owner:
+        if request.method != 'GET':
+            logging.debug('No way to log in user via modifying request')
+            return abort(403), None
+        elif build.public:
+            pass
+        elif current_user.is_authenticated():
+            logging.debug('User must authenticate to see non-public build')
+            return abort(403), None
+        else:
+            logging.debug('Redirecting user to login to get build access')
+            return login.unauthorized(), None
+
+    return None, build

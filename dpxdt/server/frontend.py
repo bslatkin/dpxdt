@@ -28,11 +28,12 @@ from flask.ext.wtf import Form
 from . import app
 from . import db
 from . import login
+import auth
 import forms
 import models
 
 
-def user_can_access_build(f):
+def build_access_required(f):
     """Decorator ensures user has access to the build ID in the request.
 
     Always calls the given function with the models.Build entity as the
@@ -40,35 +41,11 @@ def user_can_access_build(f):
     """
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        build_id = (
-            request.args.get('id', type=int) or
-            request.form.get('id', type=int))
-        if not build_id:
-            return abort(400)
-
-        build = models.Build.query.get(build_id)
-        if not build:
-            return abort(404)
-
-        user_is_owner = False
-
-        if current_user.is_authenticated():
-            user_is_owner = build.owners.filter_by(
-                id=current_user.get_id()).first()
-
-        if not user_is_owner:
-            if request.method != 'GET':
-                logging.debug('No way to log in user via modifying request')
-                return abort(403)
-            elif build.public:
-                pass
-            elif current_user.is_authenticated():
-                logging.debug('User must authenticate to see non-public build')
-                return abort(403)
-            else:
-                return login.unauthorized()
-
-        return f(build, *args, **kwargs)
+        response, build = auth.can_user_access_build('id')
+        if response:
+            return response
+        else:
+            return f(build, *args, **kwargs)
     return wrapper
 
 
@@ -102,7 +79,7 @@ def new_build():
 
 
 @app.route('/build')
-@user_can_access_build
+@build_access_required
 def view_build(build):
     """Page for viewing all releases in a build."""
     candidate_list = (
@@ -183,7 +160,7 @@ def classify_runs(run_list):
 
 
 @app.route('/release', methods=['GET', 'POST'])
-@user_can_access_build
+@build_access_required
 def view_release(build):
     """Page for viewing all tests runs in a release."""
     if request.method == 'POST':
@@ -262,7 +239,7 @@ def view_release(build):
 
 
 @app.route('/run', methods=['GET', 'POST'])
-@user_can_access_build
+@build_access_required
 def view_run(build):
     """Page for viewing before/after for a specific test run."""
     if request.method == 'POST':
@@ -321,7 +298,7 @@ def view_run(build):
 
 @app.route('/image', endpoint='view_image')
 @app.route('/log', endpoint='view_log')
-@user_can_access_build
+@build_access_required
 def view_artifact(build):
     """Page for viewing a specific artifact from a test run."""
     build_id = request.args.get('id', type=int)

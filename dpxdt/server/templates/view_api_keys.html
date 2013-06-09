@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title -%}
+
+API Keys
+
+{%- endblock title %}
+
+
+{% block body %}
+
+<div class="row">
+    <div class="span12">
+        <h4>Create new API key</h4>
+        <form action="{{ url_for('manage_api_keys') }}" method="post">
+            {{ create_form.csrf_token }}
+            {{ create_form.build_id }}
+            {{ create_form.purpose.label }} {{ create_form.purpose }}
+            <br>
+            {{ create_form.create(class_='btn btn-primary') }}
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <div class="span12">
+        <h4>API keys</h4>
+    </div>
+</div>
+
+{% if revoke_form_list %}
+    <div class="row">
+
+    </div>
+{% else %}
+    <div class="row">
+        <div class="span12">
+            There are no API keys for this build.
+        </div>
+    </div>
+{% endif %}
+
+
+{% endblock body %}

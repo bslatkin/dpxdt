@@ -15,9 +15,12 @@
 
 """Common utility functions."""
 
+import base64
+import hashlib
 import datetime
 import logging
 import traceback
+import uuid
 
 # Local libraries
 import flask
@@ -87,3 +90,17 @@ def timesince(when):
                 suffix)
 
     return 'now'
+
+
+
+def human_uuid():
+    """Returns a good UUID for using as a human readable string."""
+    return base64.b32encode(
+        hashlib.sha1(uuid.uuid4().bytes).digest()).lower().strip('=')
+
+
+
+def password_uuid():
+    """Returns a good UUID for using as a password."""
+    return base64.b64encode(
+        hashlib.sha1(uuid.uuid4().bytes).digest()).strip('=')

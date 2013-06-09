@@ -43,6 +43,7 @@ db = SQLAlchemy(app)
 login = LoginManager()
 login.init_app(app)
 login.login_view = 'login_view'
+login.refresh_view = 'login_view'
 
 import api
 import auth

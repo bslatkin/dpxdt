@@ -20,7 +20,7 @@ import datetime
 # Local libraries
 from flask.ext.wtf import (
     BooleanField, DataRequired, Form, HiddenField, IntegerField,
-    Length, NumberRange, Required, TextField)
+    Length, NumberRange, Required, SubmitField, TextField)
 
 # Local modules
 from . import app
@@ -36,7 +36,7 @@ class ReleaseForm(Form):
     """Form for viewing or approving a release."""
 
     id = HiddenField(validators=[NumberRange(min=1)])
-    name = HiddenField(validators=[Length(min=1)])
+    name = HiddenField(validators=[Length(min=1, max=500)])
     number = HiddenField(validators=[NumberRange(min=1)])
 
     good = HiddenField()
@@ -48,17 +48,24 @@ class RunForm(Form):
     """Form for viewing or approving a run."""
 
     id = HiddenField(validators=[NumberRange(min=1)])
-    name = HiddenField(validators=[Length(min=1)])
+    name = HiddenField(validators=[Length(min=1, max=500)])
     number = HiddenField(validators=[NumberRange(min=1)])
-    test = HiddenField(validators=[Length(min=1)])
+    test = HiddenField(validators=[Length(min=1, max=500)])
     approve = HiddenField()
     disapprove = HiddenField()
 
 
-class ApiKeyForm(Form):
-    """Form for creating or revoking an API key."""
+class CreateApiKeyForm(Form):
+    """Form for creating an API key."""
+
+    build_id = HiddenField(validators=[NumberRange(min=1)])
+    purpose = TextField('Purpose', validators=[Length(min=1, max=500)])
+    create = SubmitField('Create')
+
+
+class RevokeApiKeyForm(Form):
+    """Form for revoking an API key."""
 
     id = HiddenField()
     build_id = HiddenField(validators=[NumberRange(min=1)])
-    purpose = TextField(validators=[Length(min=0, max=100)])
-    revoke = SubmitField(validators=[Required()])
+    revoke = SubmitField('Revoke')
