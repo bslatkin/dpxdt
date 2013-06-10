@@ -81,7 +81,7 @@ import mimetypes
 
 # Local libraries
 import flask
-from flask import Flask, abort, render_template, request
+from flask import Flask, abort, redirect, render_template, request, url_for
 from flask.ext.login import current_user, fresh_login_required, login_required
 
 # Local modules
@@ -488,6 +488,8 @@ def manage_api_keys():
                      api_key.id, build.id)
         return redirect(url_for('manage_api_keys', build_id=build.id))
 
+    create_form.build_id.data = build.id
+
     api_key_query = (
         models.ApiKey.query
         .filter_by(build_id=build.id)
@@ -512,7 +514,7 @@ def manage_api_keys():
 @fresh_login_required
 def revoke_api_key():
     """Form submission handler for revoking API keys."""
-    response, build = user_can_access_build('build_id')
+    response, build = auth.can_user_access_build('build_id')
     if response:
         return response
 

@@ -90,6 +90,7 @@ class ApiKey(db.Model):
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
                          onupdate=datetime.datetime.utcnow)
+    revoked = db.Column(db.DateTime)
     superuser = db.Column(db.Boolean, default=False)
     build_id = db.Column(db.Integer, db.ForeignKey('build.id'))
     owners = db.relationship('User', secondary=api_key_ownership_table,

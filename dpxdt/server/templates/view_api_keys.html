@@ -11,7 +11,7 @@ API Keys
 
 <div class="row">
     <div class="span12">
-        <h4>Create new API key</h4>
+        <h4>Create a new API key</h4>
         <form action="{{ url_for('manage_api_keys') }}" method="post">
             {{ create_form.csrf_token }}
             {{ create_form.build_id }}
@@ -24,14 +24,48 @@ API Keys
 
 <div class="row">
     <div class="span12">
-        <h4>API keys</h4>
+        <h4>Existing API keys</h4>
     </div>
 </div>
 
 {% if revoke_form_list %}
-    <div class="row">
-
-    </div>
+    {% for api_key, revoke_form in revoke_form_list %}
+        <div class="row">
+            <div class="span9 well well-small">
+                <div class="row">
+                    <div class="span7">
+                        <div class="row">
+                            <div class="span2"><strong>Purpose</strong></div>
+                            <div class="span5">{{ api_key.purpose }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="span2"><strong>Client ID</strong></div>
+                            <div class="span5">{{ api_key.id }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="span2"><strong>Client Secret</strong></div>
+                            <div class="span5">{{ api_key.secret }}</div>
+                        </div>
+                    </div>
+                    <div class="span2">
+                        {% if not api_key.active %}
+                            <div class="text-error">
+                                Revoked {{ api_key.revoked|timesince }}
+                            </div>
+                        {% else %}
+                            <br>
+                            <form action="{{ url_for('revoke_api_key') }}" method="post">
+                                {{ revoke_form.csrf_token }}
+                                {{ revoke_form.id }}
+                                {{ revoke_form.build_id }}
+                                {{ revoke_form.revoke(class_='btn btn-inverse btn-mini') }}
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
 {% else %}
     <div class="row">
         <div class="span12">
