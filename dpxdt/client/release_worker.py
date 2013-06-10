@@ -362,7 +362,7 @@ class DownloadArtifactWorkflow(workers.WorkflowItem):
         fetched for some reason.
     """
 
-    def run(self, sha1sum, result_path):
+    def run(self, build_id, sha1sum, result_path):
         download_url = '%s/download?sha1sum=%s&build_id=%s' % (
             FLAGS.release_server_prefix, sha1sum, build_id)
         call = yield workers.FetchItem(

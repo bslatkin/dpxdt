@@ -370,9 +370,9 @@ def upload(build):
     file_storage = request.files.values()[0]
     data = file_storage.read()
     sha1sum = hashlib.sha1(data).hexdigest()
-    exists = models.Artifact.query.filter_by(id=sha1sum).first()
+    artifact = models.Artifact.query.filter_by(id=sha1sum).first()
 
-    if exists:
+    if artifact:
       logging.debug('Upload already exists: artifact_id=%r', sha1sum)
     else:
       content_type, _ = mimetypes.guess_type(file_storage.filename)

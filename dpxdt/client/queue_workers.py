@@ -213,9 +213,9 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
             yield heartbeat('Fetching reference and run images')
             yield [
                 release_worker.DownloadArtifactWorkflow(
-                    reference_sha1sum, result_path=ref_path),
+                    build_id, reference_sha1sum, result_path=ref_path),
                 release_worker.DownloadArtifactWorkflow(
-                    run_sha1sum, result_path=run_path)
+                    build_id, run_sha1sum, result_path=run_path)
             ]
 
             yield heartbeat('Running perceptual diff process')
@@ -260,7 +260,7 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
 
             yield heartbeat('Fetching webpage capture config')
             yield release_worker.DownloadArtifactWorkflow(
-                config_sha1sum, result_path=config_path)
+                build_id, config_sha1sum, result_path=config_path)
 
             yield heartbeat('Running webpage capture process')
 
