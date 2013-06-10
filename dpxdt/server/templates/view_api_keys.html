@@ -39,6 +39,10 @@ API Keys
                             <div class="span5">{{ api_key.purpose }}</div>
                         </div>
                         <div class="row">
+                            <div class="span2"><strong>Created</strong></div>
+                            <div class="span5">{{ api_key.created|timesince }}</div>
+                        </div>
+                        <div class="row">
                             <div class="span2"><strong>Client ID</strong></div>
                             <div class="span5">{{ api_key.id }}</div>
                         </div>
@@ -47,18 +51,17 @@ API Keys
                             <div class="span5">{{ api_key.secret }}</div>
                         </div>
                     </div>
-                    <div class="span2">
+                    <div class="span2 text-right">
                         {% if not api_key.active %}
                             <div class="text-error">
-                                Revoked {{ api_key.revoked|timesince }}
+                                Revoked
                             </div>
                         {% else %}
-                            <br>
-                            <form action="{{ url_for('revoke_api_key') }}" method="post">
+                            <form class="inline-form" action="{{ url_for('revoke_api_key') }}" method="post">
                                 {{ revoke_form.csrf_token }}
                                 {{ revoke_form.id }}
                                 {{ revoke_form.build_id }}
-                                {{ revoke_form.revoke(class_='btn btn-inverse btn-mini') }}
+                                {{ revoke_form.revoke(class_='btn btn-inverse btn-small') }}
                             </form>
                         {% endif %}
                     </div>

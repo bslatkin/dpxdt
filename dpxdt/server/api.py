@@ -493,6 +493,7 @@ def manage_api_keys():
     api_key_query = (
         models.ApiKey.query
         .filter_by(build_id=build.id)
+        .order_by(models.ApiKey.created.desc())
         .limit(1000))
 
     revoke_form_list = []

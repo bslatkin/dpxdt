@@ -64,6 +64,9 @@ def timesince(when):
     Examples:
         3 days ago, 5 hours ago, 3 minutes from now, 5 hours from now, now.
     """
+    if not when:
+        return ''
+
     now = datetime.datetime.utcnow()
     if now > when:
         diff = now - when

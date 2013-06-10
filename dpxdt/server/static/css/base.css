@@ -21,6 +21,9 @@ h4 a:hover {
     background-color: #eeeeee;
     border-color: #cccccc;
 }
+.inline-form {
+    margin: 0;
+}
 
 /* View styles */
 .build-release-first-row {
