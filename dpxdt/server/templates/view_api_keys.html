@@ -34,6 +34,13 @@ API Keys
             <div class="span9 well well-small">
                 <div class="row">
                     <div class="span7">
+                        {% if api_key.superuser %}
+                            <div class="row">
+                                <div class="span2 text-error">
+                                    <strong>Superuser</strong>
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="row">
                             <div class="span2"><strong>Purpose</strong></div>
                             <div class="span5">{{ api_key.purpose }}</div>
@@ -54,7 +61,7 @@ API Keys
                     <div class="span2 text-right">
                         {% if not api_key.active %}
                             <div class="text-error">
-                                Revoked
+                                <strong>Revoked</strong>
                             </div>
                         {% else %}
                             <form class="inline-form" action="{{ url_for('revoke_api_key') }}" method="post">

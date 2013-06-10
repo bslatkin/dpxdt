@@ -290,9 +290,9 @@ def finish(queue_name, task_id, owner):
 
 
 @app.route('/api/work_queue/<string:queue_name>/add', methods=['POST'])
+@auth.superuser_api_key_required
 def handle_add(queue_name):
     """Adds a task to a queue."""
-    # TODO: Require an API key on the basic auth header
     source = request.form.get('source', request.remote_addr, type=str)
     try:
         task_id = add(
@@ -311,9 +311,9 @@ def handle_add(queue_name):
 
 
 @app.route('/api/work_queue/<string:queue_name>/lease', methods=['POST'])
+@auth.superuser_api_key_required
 def handle_lease(queue_name):
     """Leases a task from a queue."""
-    # TODO: Require an API key on the basic auth header
     owner = request.form.get('owner', request.remote_addr, type=str)
     try:
         task = lease(
@@ -336,9 +336,9 @@ def handle_lease(queue_name):
 
 
 @app.route('/api/work_queue/<string:queue_name>/heartbeat', methods=['POST'])
+@auth.superuser_api_key_required
 def handle_heartbeat(queue_name):
     """Updates the heartbeat message for a task."""
-    # TODO: Require an API key on the basic auth header
     task_id = request.form.get('task_id', type=str)
     message = request.form.get('message', type=str)
     index = request.form.get('index', type=int)
@@ -359,9 +359,9 @@ def handle_heartbeat(queue_name):
 
 
 @app.route('/api/work_queue/<string:queue_name>/finish', methods=['POST'])
+@auth.superuser_api_key_required
 def handle_finish(queue_name):
     """Marks a task on a queue as finished."""
-    # TODO: Require an API key on the basic auth header
     task_id = request.form.get('task_id', type=str)
     owner = request.form.get('owner', request.remote_addr, type=str)
     try:

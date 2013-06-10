@@ -13,18 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Runs a dpxdt queue worker.
-
-Example usage:
-
-PYTHONPATH=./lib:$PYTHONPATH \
-./dpxdt/runworker.py \
-    --phantomjs_binary=path/to/phantomjs-1.8.1-macosx/bin/phantomjs \
-    --phantomjs_script=path/to/client/capture.js \
-    --pdiff_binary=path/to/pdiff/perceptualdiff \
-    --pdiff_queue_url=http://localhost:5000/api/work_queue/run-pdiff \
-    --capture_queue_url=http://localhost:5000/api/work_queue/run-capture
-"""
+"""Runs a dpxdt queue worker."""
 
 import logging
 import sys

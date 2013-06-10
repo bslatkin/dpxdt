@@ -235,7 +235,7 @@ class FetchThread(WorkerThread):
         if item.username:
             credentials = base64.b64encode(
                 '%s:%s' % (item.username, item.password))
-            request.add_header('Authentication', 'Basic %s' % credentials)
+            request.add_header('Authorization', 'Basic %s' % credentials)
 
         try:
             try:

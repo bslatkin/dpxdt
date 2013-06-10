@@ -22,6 +22,7 @@ import urllib
 import urllib2
 
 # Local libraries
+import flask
 from flask import abort, redirect, render_template, request, url_for
 from flask.ext.login import (
     current_user, fresh_login_required, login_required, login_user)
@@ -192,13 +193,13 @@ def build_access_required(function_or_param_name):
     """
     def get_wrapper(param_name, f):
         @functools.wraps(f)
-        def wrapper(*args, **kwargs):
+        def wrapped(*args, **kwargs):
             response, build = can_user_access_build(param_name)
             if response:
                 return response
             else:
                 return f(build, *args, **kwargs)
-        return wrapper
+        return wrapped
 
     if isinstance(function_or_param_name, basestring):
         return lambda f: get_wrapper(function_or_param_name, f)
@@ -206,31 +207,46 @@ def build_access_required(function_or_param_name):
         return get_wrapper('id', function_or_param_name)
 
 
+def current_api_key():
+    """Determines the API key for the current request.
+
+    Returns:
+        Tuple (response, api_key) where response is the flask.Response to
+        return to the requestor if there is a problem determining the API key.
+        api_key will be set and response will be None on success.
+    """
+    auth_header = request.authorization
+    if not auth_header:
+        logging.debug('API request lacks authorization header')
+        return flask.Response(
+            'API key required', 401,
+            {'WWW-Authenticate': 'Basic realm="API key required"'}), None
+
+    api_key = models.ApiKey.query.get(auth_header.username)
+    if not api_key:
+        logging.debug('API key=%r does not exist', auth_header.username)
+        return abort(403), None
+
+    if not api_key.active:
+        logging.debug('API key=%r is no longer active', api_key.id)
+        return abort(403), None
+
+    if api_key.secret != auth_header.password:
+        logging.debug('API key=%r password does not match', api_key.id)
+        return abort(403), None
+
+    logging.debug('Authenticated as API key=%r', api_key.id)
+
+    return None, api_key
+
+
 def api_key_required(f):
     """Decorator ensures API key has proper access to requested resources."""
     @functools.wraps(f)
     def wrapped(*args, **kwargs):
-        auth_header = request.authorization
-        if not auth:
-            logging.debug('API request lacks authorization header')
-            return flask.Response(
-                'API key required', 401,
-                {'WWW-Authenticate', 'Basic realm="API key required"'})
-
-        api_key = models.ApiKey.query.get(auth_header.username)
-        if not api_key:
-            logging.debug('API key=%r does not exist', auth_header.username)
-            return abort(403)
-
-        if not api_key.active:
-            logging.debug('API key=%r is no longer active', api_key.id)
-            return abort(403)
-
-        if api_key.secret != auth_header.password:
-            logging.debug('API key=%r password does not match', api_key.id)
-            return abort(403)
-
-        logging.debug('Authenticated as API key=%r', api_key.id)
+        response, api_key = current_api_key()
+        if response:
+            return response
 
         build_id = request.form.get('build_id', type=int)
 
@@ -246,6 +262,23 @@ def api_key_required(f):
                 logging.debug('API key=%r cannot access requested build_id=%r',
                               api_key.id, build_id)
                 return abort(403)
+
+        return f(*args, **kwargs)
+
+    return wrapped
+
+
+def superuser_api_key_required(f):
+    """Decorator ensures only superuser API keys can request this function."""
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        response, api_key = current_api_key()
+        if response:
+            return response
+
+        if not api_key.superuser:
+            logging.debug('API key=%r not a superuser')
+            return abort(403)
 
         return f(*args, **kwargs)
 

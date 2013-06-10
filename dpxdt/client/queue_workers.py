@@ -25,6 +25,7 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
+from dpxdt import constants
 import capture_worker
 import pdiff_worker
 import release_worker
@@ -33,20 +34,14 @@ import workers
 
 
 gflags.DEFINE_string(
-    'capture_queue_url', None,
-    'URL of remote webpage capture work queue to process.')
-
-gflags.DEFINE_string(
-    'pdiff_queue_url', None,
-    'URL of remote perceptual diff work queue to process.')
+    'queue_server_prefix', None,
+    'URL prefix of where the work queue server is located, such as '
+    '"https://www.example.com/api/work_queue". This should use HTTPS if '
+    'possible, since API requests send credentials using HTTP basic auth.')
 
 gflags.DEFINE_integer(
     'queue_poll_seconds', 60,
     'How often to poll an empty work queue for new tasks.')
-
-gflags.DEFINE_string(
-    'site_diff_queue_url', None,
-    'URL of remote site diff work queue to process.')
 
 
 class Error(Exception):
@@ -67,7 +62,15 @@ class CaptureFailedError(Error):
 # the important workflows with messages that aren't critical.
 
 class HeartbeatWorkflow(workers.WorkflowItem):
-    """TODO"""
+    """Reports the status of a RemoteQueueWorkflow to the API server.
+
+    Args:
+        queue_url: Base URL of the work queue.
+        task_id: ID of the task to update the heartbeat status message for.
+        message: Heartbeat status message to report.
+        index: Index for the heartbeat message. Should be at least one
+            higher than the last heartbeat message.
+    """
 
     def run(self, queue_url, task_id, message, index):
         call = yield workers.FetchItem(
@@ -76,7 +79,9 @@ class HeartbeatWorkflow(workers.WorkflowItem):
                 'task_id': task_id,
                 'message': message,
                 'index': index,
-            })
+            },
+            username=FLAGS.release_client_id,
+            password=FLAGS.release_client_secret)
 
         if call.json and call.json.get('error'):
             raise HeartbeatError(call.json.get('error'))
@@ -100,7 +105,10 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
         while True:
             try:
                 next_item = yield workers.FetchItem(
-                    queue_url + '/lease', post={})
+                    queue_url + '/lease',
+                    post={},
+                    username=FLAGS.release_client_id,
+                    password=FLAGS.release_client_secret)
             except Exception, e:
                 logging.error('Could not fetch work from queue_url=%r. %s: %s',
                               queue_url, e.__class__.__name__, e)
@@ -158,7 +166,10 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
 
             try:
                 finish_item = yield workers.FetchItem(
-                    queue_url + '/finish', post={'task_id': task_id})
+                    queue_url + '/finish',
+                    post={'task_id': task_id},
+                    username=FLAGS.release_client_id,
+                    password=FLAGS.release_client_secret)
             except Exception, e:
                 logging.error('Could not finish work with '
                               'queue_url=%r, task=%r. %s: %s',
@@ -293,25 +304,30 @@ class DoSiteDiffQueueWorkflow(workers.WorkflowItem):
 def register(coordinator):
     """Registers this module as a worker with the given coordinator."""
     # TODO: Add a flag to support up to N parallel queue workers.
-    if FLAGS.capture_queue_url:
+
+    if FLAGS.queue_server_prefix:
+        capture_queue_url = '%s/%s' % (
+            FLAGS.queue_server_prefix, constants.CAPTURE_QUEUE_NAME)
         item = RemoteQueueWorkflow(
-            FLAGS.capture_queue_url,
+            capture_queue_url,
             DoCaptureQueueWorkflow,
             poll_period=FLAGS.queue_poll_seconds)
         item.root = True
         coordinator.input_queue.put(item)
 
-    if FLAGS.pdiff_queue_url:
+        pdiff_queue_url = '%s/%s' % (
+            FLAGS.queue_server_prefix, constants.PDIFF_QUEUE_NAME)
         item = RemoteQueueWorkflow(
-            FLAGS.pdiff_queue_url,
+            pdiff_queue_url,
             DoPdiffQueueWorkflow,
             poll_period=FLAGS.queue_poll_seconds)
         item.root = True
         coordinator.input_queue.put(item)
 
-    if FLAGS.site_diff_queue_url:
+        site_diff_queue_url = '%s/%s' % (
+            FLAGS.queue_server_prefix, constants.SITE_DIFF_QUEUE_NAME)
         item = RemoteQueueWorkflow(
-            FLAGS.site_diff_queue_url,
+            site_diff_queue_url,
             DoSiteDiffQueueWorkflow,
             poll_period=FLAGS.queue_poll_seconds)
         item.root = True

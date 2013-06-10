@@ -84,6 +84,7 @@ import flask
 from flask import Flask, abort, request
 
 # Local modules
+from dpxdt import constants
 from . import app
 from . import db
 import auth
@@ -291,8 +292,7 @@ def report_run():
         run.status = models.Run.NO_DIFF_NEEDED
 
     if run.status == models.Run.NEEDS_DIFF:
-        # TODO: Move this queue name to a flag.
-        work_queue.add('run-pdiff', dict(
+        work_queue.add(constants.PDIFF_QUEUE_NAME, dict(
             build_id=build_id,
             release_name=release_name,
             release_number=release_number,
