@@ -34,6 +34,7 @@ from . import login
 import config
 import forms
 import models
+import utils
 
 
 GOOGLE_OAUTH2_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth'
@@ -124,7 +125,7 @@ def superuser_required(f):
     @login_required
     def wrapped(*args, **kwargs):
         if not (current_user.is_authenticated() and current_user.superuser):
-            return abort(403)
+            abort(403)
         return f(*args, **kwargs)
     return wrapped
 
@@ -137,21 +138,19 @@ def can_user_access_build(param_name):
             request. Will fetch from GET or POST requests.
 
     Returns:
-        Tuple (build, response) where response is None if the user has
-        access to the build, otherwise it is a flask.Response object to
-        return to the user describing the error.
+        The build the user has access to.
     """
     build_id = (
         request.args.get(param_name, type=int) or
         request.form.get(param_name, type=int))
     if not build_id:
         logging.debug('Build ID in param_name=%r was missing', param_name)
-        return abort(400), None
+        abort(400)
 
     build = models.Build.query.get(build_id)
     if not build:
         logging.debug('Could not find build_id=%r', build_id)
-        return abort(404), None
+        abort(404)
 
     user_is_owner = False
 
@@ -162,17 +161,17 @@ def can_user_access_build(param_name):
     if not user_is_owner:
         if request.method != 'GET':
             logging.debug('No way to log in user via modifying request')
-            return abort(403), None
+            abort(403)
         elif build.public:
             pass
         elif current_user.is_authenticated():
             logging.debug('User must authenticate to see non-public build')
-            return abort(403), None
+            abort(403)
         else:
             logging.debug('Redirecting user to login to get build access')
-            return login.unauthorized(), None
+            abort(login.unauthorized())
 
-    return None, build
+    return build
 
 
 def build_access_required(function_or_param_name):
@@ -194,11 +193,8 @@ def build_access_required(function_or_param_name):
     def get_wrapper(param_name, f):
         @functools.wraps(f)
         def wrapped(*args, **kwargs):
-            response, build = can_user_access_build(param_name)
-            if response:
-                return response
-            else:
-                return f(build, *args, **kwargs)
+            build = can_user_access_build(param_name)
+            return f(build, *args, **kwargs)
         return wrapped
 
     if isinstance(function_or_param_name, basestring):
@@ -211,60 +207,61 @@ def current_api_key():
     """Determines the API key for the current request.
 
     Returns:
-        Tuple (response, api_key) where response is the flask.Response to
-        return to the requestor if there is a problem determining the API key.
-        api_key will be set and response will be None on success.
+        The API key.
     """
     auth_header = request.authorization
     if not auth_header:
         logging.debug('API request lacks authorization header')
-        return flask.Response(
+        abort(flask.Response(
             'API key required', 401,
-            {'WWW-Authenticate': 'Basic realm="API key required"'}), None
+            {'WWW-Authenticate': 'Basic realm="API key required"'}))
 
     api_key = models.ApiKey.query.get(auth_header.username)
-    if not api_key:
-        logging.debug('API key=%r does not exist', auth_header.username)
-        return abort(403), None
-
-    if not api_key.active:
-        logging.debug('API key=%r is no longer active', api_key.id)
-        return abort(403), None
-
-    if api_key.secret != auth_header.password:
-        logging.debug('API key=%r password does not match', api_key.id)
-        return abort(403), None
+    utils.jsonify_assert(api_key, 'API key must exist', 403)
+    utils.jsonify_assert(api_key.active, 'API key must be active', 403)
+    utils.jsonify_assert(api_key.secret == auth_header.password,
+                         'Must have good credentials', 403)
 
     logging.debug('Authenticated as API key=%r', api_key.id)
 
-    return None, api_key
+    return api_key
 
 
-def api_key_required(f):
-    """Decorator ensures API key has proper access to requested resources."""
+def can_api_key_access_build(param_name):
+    """Determines if the current API key can access the build in the request.
+
+    Args:
+        param_name: Parameter name to use for getting the build ID from the
+            request. Will fetch from GET or POST requests.
+
+    Returns:
+        The Build the API key has access to.
+    """
+    api_key = current_api_key()
+    build_id = (
+        request.args.get(param_name, type=int) or
+        request.form.get(param_name, type=int))
+    utils.jsonify_assert(build_id, 'build_id required')
+    build = models.Build.query.get(build_id)
+    utils.jsonify_assert(build is not None, 'build must exist', 404)
+
+    if not api_key.superuser:
+        utils.jsonify_assert(api_key.build_id == build_id,
+                             'API key must have access', 404)
+
+    return build
+
+
+def build_api_access_required(f):
+    """Decorator ensures API key has access to the build ID in the request.
+
+    Always calls the given function with the models.Build entity as the
+    first positional argument.
+    """
     @functools.wraps(f)
     def wrapped(*args, **kwargs):
-        response, api_key = current_api_key()
-        if response:
-            return response
-
-        build_id = request.form.get('build_id', type=int)
-
-        if not api_key.superuser:
-            if build_id and api_key.build_id == build_id:
-                # Only allow normal users to edit builds that exist.
-                build = models.Build.query.get(build_id)
-                if not build:
-                    logging.debug('API key=%r accessing missing build_id=%r',
-                                  api_key.id, build_id)
-                    return abort(404)
-            else:
-                logging.debug('API key=%r cannot access requested build_id=%r',
-                              api_key.id, build_id)
-                return abort(403)
-
-        return f(*args, **kwargs)
-
+        build = can_api_key_access_build('build_id')
+        return f(build, *args, **kwargs)
     return wrapped
 
 
@@ -272,13 +269,11 @@ def superuser_api_key_required(f):
     """Decorator ensures only superuser API keys can request this function."""
     @functools.wraps(f)
     def wrapped(*args, **kwargs):
-        response, api_key = current_api_key()
-        if response:
-            return response
+        api_key = current_api_key()
 
         if not api_key.superuser:
             logging.debug('API key=%r not a superuser')
-            return abort(403)
+            abort(403)
 
         return f(*args, **kwargs)
 
@@ -337,7 +332,7 @@ def revoke_api_key(build):
         if api_key.build_id != build.id:
             logging.debug('User does not have access to API key=%r',
                           api_key.id)
-            return abort(403)
+            abort(403)
 
         api_key.active = False
         db.session.add(api_key)

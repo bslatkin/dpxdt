@@ -15,6 +15,7 @@
 
 """Runs a dpxdt queue worker."""
 
+import Queue
 import logging
 import sys
 import threading
@@ -37,9 +38,17 @@ def run_workers():
     queue_workers.register(coordinator)
     coordinator.start()
     logging.info('Workers started')
+
     while True:
-        item = coordinator.output_queue.get()
-        item.check_result()
+        try:
+            item = coordinator.output_queue.get(True, 1)
+        except Queue.Empty:
+            continue
+        except KeyboardInterrupt:
+            logging.info('Exiting')
+            return
+        else:
+            item.check_result()
 
 
 def main(argv):

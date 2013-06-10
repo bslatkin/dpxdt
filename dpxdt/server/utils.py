@@ -24,6 +24,7 @@ import uuid
 
 # Local libraries
 import flask
+from flask import abort, jsonify
 
 # Local modules
 from . import app
@@ -40,7 +41,7 @@ def jsonify_assert(asserted, message, status_code=400):
         stack.pop()
         logging.error('Assertion failed: %s\n%s',
                       str(e), ''.join(traceback.format_list(stack)))
-        flask.abort(jsonify_error(e, status_code=status_code))
+        abort(jsonify_error(e, status_code=status_code))
 
 
 def jsonify_error(message_or_exception, status_code=400):
@@ -51,7 +52,7 @@ def jsonify_error(message_or_exception, status_code=400):
     else:
         message = message_or_exception
 
-    response = flask.jsonify(error=message)
+    response = jsonify(error=message)
     response.status_code = status_code
     return response
 

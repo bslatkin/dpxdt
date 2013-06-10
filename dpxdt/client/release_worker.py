@@ -126,6 +126,7 @@ class UploadFileWorkflow(workers.WorkflowItem):
     """Uploads a file for a build.
 
     Args:
+        build_id: ID of the build to upload a file for.
         file_path: Path to the file to upload.
 
     Returns:
@@ -136,12 +137,12 @@ class UploadFileWorkflow(workers.WorkflowItem):
         UploadFileError if the file could not be uploaded.
     """
 
-    def run(self, file_path):
+    def run(self, build_id, file_path):
         try:
             handle = StreamingSha1File(file_path, 'rb')
             upload = yield workers.FetchItem(
                 FLAGS.release_server_prefix + '/upload',
-                post={'file': handle},
+                post={'build_id': build_id, 'file': handle},
                 timeout_seconds=120,
                 username=FLAGS.release_client_id,
                 password=FLAGS.release_client_secret)
@@ -220,9 +221,9 @@ class ReportRunWorkflow(workers.WorkflowItem):
             no_diff_needed=None):
         # TODO: Include the URL that was captured.
         screenshot_id, log_id, config_id = yield [
-            UploadFileWorkflow(screenshot_path),
-            UploadFileWorkflow(log_path),
-            UploadFileWorkflow(config_path),
+            UploadFileWorkflow(build_id, screenshot_path),
+            UploadFileWorkflow(build_id, log_path),
+            UploadFileWorkflow(build_id, config_path),
         ]
 
         post = {
@@ -279,11 +280,11 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
         if (diff_path and log_path and
                 os.path.isfile(diff_path) and os.path.isfile(log_path)):
             diff_id, log_id = yield [
-                UploadFileWorkflow(diff_path),
-                UploadFileWorkflow(log_path),
+                UploadFileWorkflow(build_id, diff_path),
+                UploadFileWorkflow(build_id, log_path),
             ]
         elif (log_path and os.path.isfile(log_path)):
-            log_id = yield UploadFileWorkflow(log_path)
+            log_id = yield UploadFileWorkflow(build_id, log_path)
         else:
             no_diff_needed = True
 
@@ -352,6 +353,7 @@ class DownloadArtifactWorkflow(workers.WorkflowItem):
     """Downloads an artifact to a given path.
 
     Args:
+        build_id: ID of the build.
         sha1sum: Content hash of the artifact to fetch.
         result_path: Path where the artifact should be saved on disk.
 
@@ -361,8 +363,8 @@ class DownloadArtifactWorkflow(workers.WorkflowItem):
     """
 
     def run(self, sha1sum, result_path):
-        download_url = '%s/download?sha1sum=%s' % (
-            FLAGS.release_server_prefix, sha1sum)
+        download_url = '%s/download?sha1sum=%s&build_id=%s' % (
+            FLAGS.release_server_prefix, sha1sum, build_id)
         call = yield workers.FetchItem(
             download_url,
             result_path=result_path,

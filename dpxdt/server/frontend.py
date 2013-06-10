@@ -162,7 +162,7 @@ def view_release(build):
             number=form.number.data)
         .first())
     if not release:
-        return abort(404)
+        abort(404)
 
     if request.method == 'POST':
         if form.good.data and release.status == models.Release.REVIEWING:
@@ -173,7 +173,7 @@ def view_release(build):
                 models.Release.GOOD, models.Release.BAD):
             release.status = models.Release.REVIEWING
         else:
-            return abort(400)
+            abort(400)
 
         db.session.add(release)
         db.session.commit()
@@ -241,14 +241,14 @@ def view_run(build):
             number=form.number.data)
         .first())
     if not release:
-        return abort(404)
+        abort(404)
 
     run = (
         models.Run.query
         .filter_by(release_id=release.id, name=form.test.data)
         .first())
     if not run:
-        return abort(404)
+        abort(404)
 
     if request.method == 'POST':
         if form.approve.data and run.status == models.Run.DIFF_FOUND:
@@ -256,7 +256,7 @@ def view_run(build):
         elif form.disapprove.data and run.status == models.Run.DIFF_APPROVED:
             run.status = models.Run.DIFF_FOUND
         else:
-            return abort(400)
+            abort(400)
 
         db.session.add(run)
         db.session.commit()
@@ -292,21 +292,21 @@ def view_artifact(build):
     file_type = request.args.get('type', type=str)
     if not (build_id and release_name and release_number and
             run_name and file_type):
-        return abort(400)
+        abort(400)
 
     release = (
         models.Release.query
         .filter_by(build_id=build_id, name=release_name, number=release_number)
         .first())
     if not release:
-        return abort(404)
+        abort(404)
 
     run = (
         models.Run.query
         .filter_by(release_id=release.id, name=run_name)
         .first())
     if not run:
-        return abort(404)
+        abort(404)
 
     image_file = False
     log_file = False
@@ -319,7 +319,7 @@ def view_artifact(build):
         elif file_type == 'after':
             sha1sum = run.image
         else:
-            return abort(400)
+            abort(400)
     elif request.path == '/log':
         log_file = True
         if file_type == 'before':
@@ -329,10 +329,10 @@ def view_artifact(build):
         elif file_type == 'after':
             sha1sum = run.log
         else:
-            return abort(400)
+            abort(400)
 
     if not sha1sum:
-        return abort(404)
+        abort(404)
 
     return render_template(
         'view_artifact.html',

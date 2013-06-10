@@ -82,6 +82,7 @@ import mimetypes
 # Local libraries
 import flask
 from flask import Flask, abort, request
+from flask.exceptions import HTTPException
 
 # Local modules
 from dpxdt import constants
@@ -94,22 +95,20 @@ import utils
 
 
 @app.route('/api/create_release', methods=['POST'])
-@auth.api_key_required
-def create_release():
+@auth.build_api_access_required
+def create_release(build):
     """Creates a new release candidate for a build."""
-    build_id = request.form.get('build_id', type=int)
-    utils.jsonify_assert(build_id is not None, 'build_id required')
     release_name = request.form.get('release_name')
     utils.jsonify_assert(release_name, 'release_name required')
 
     release = models.Release(
         name=release_name,
         number=1,
-        build_id=build_id)
+        build_id=build.id)
 
     last_candidate = (
         models.Release.query
-        .filter_by(build_id=build_id, name=release_name)
+        .filter_by(build_id=build.id, name=release_name)
         .order_by(models.Release.number.desc())
         .first())
     if last_candidate:
@@ -119,10 +118,10 @@ def create_release():
     db.session.commit()
 
     logging.info('Created release: build_id=%r, release_name=%r, '
-                 'release_number=%d', build_id, release_name, release.number)
+                 'release_number=%d', build.id, release_name, release.number)
 
     return flask.jsonify(
-        build_id=build_id,
+        build_id=build.id,
         release_name=release_name,
         release_number=release.number)
 
@@ -154,28 +153,24 @@ def _check_release_done_processing(release_id):
 
 def _get_release_params():
     """Gets the release params from the current request."""
-    build_id = request.form.get('build_id', type=int)
-    utils.jsonify_assert(build_id is not None, 'build_id required')
     release_name = request.form.get('release_name')
     utils.jsonify_assert(release_name, 'release_name required')
     release_number = request.form.get('release_number', type=int)
     utils.jsonify_assert(release_number is not None, 'release_number required')
-    return build_id, release_name, release_number
+    return release_name, release_number
 
 
 @app.route('/api/find_run', methods=['POST'])
-@auth.api_key_required
-def find_run():
+@auth.build_api_access_required
+def find_run(build):
     """Finds the last good run of the given name for a release."""
-    build_id = request.form.get('build_id', type=int)
-    utils.jsonify_assert(build_id is not None, 'build_id required')
     run_name = request.form.get('run_name', type=str)
     utils.jsonify_assert(run_name, 'run_name required')
 
     last_good_release = (
         models.Release.query
         .filter_by(
-            build_id=build_id,
+            build_id=build.id,
             status=models.Release.GOOD)
         .order_by(models.Release.created.desc())
         .first())
@@ -183,7 +178,7 @@ def find_run():
     if last_good_release:
         logging.debug('Found last good release for: build_id=%r, '
                       'release_name=%r, release_number=%d',
-                      build_id, last_good_release.name,
+                      build.id, last_good_release.name,
                       last_good_release.number)
         last_good_run = (
             models.Run.query
@@ -193,10 +188,10 @@ def find_run():
             logging.debug('Found last good run for: build_id=%r, '
                           'release_name=%r, release_number=%d, '
                           'run_name=%r',
-                          build_id, last_good_release.name,
+                          build.id, last_good_release.name,
                           last_good_release.number, run_name)
             return flask.jsonify(
-                build_id=build_id,
+                build_id=build.id,
                 release_name=last_good_release.name,
                 release_number=last_good_release.number,
                 run_name=run_name,
@@ -208,16 +203,16 @@ def find_run():
 
 
 @app.route('/api/report_run', methods=['POST'])
-@auth.api_key_required
-def report_run():
+@auth.build_api_access_required
+def report_run(build):
     """Reports data for a run for a release candidate."""
-    build_id, release_name, release_number = _get_release_params()
+    release_name, release_number = _get_release_params()
     run_name = request.form.get('run_name', type=str)
     utils.jsonify_assert(run_name, 'run_name required')
 
     release = (
         models.Release.query
-        .filter_by(build_id=build_id, name=release_name, number=release_number)
+        .filter_by(build_id=build.id, name=release_name, number=release_number)
         .first())
     utils.jsonify_assert(release, 'release does not exist')
 
@@ -228,7 +223,7 @@ def report_run():
     if not run:
         logging.info('Created run: build_id=%r, release_name=%r, '
                      'release_number=%d, run_name=%r',
-                     build_id, release_name, release_number, run_name)
+                     build.id, release_name, release_number, run_name)
         run = models.Run(
             release_id=release.id,
             name=run_name,
@@ -255,7 +250,7 @@ def report_run():
         logging.info('Saved run data: build_id=%r, release_name=%r, '
                      'release_number=%d, run_name=%r, '
                      'image=%r, log=%r, config=%r',
-                     build_id, release_name, release_number, run_name,
+                     build.id, release_name, release_number, run_name,
                      run.image, run.log, run.config)
 
     if ref_image:
@@ -268,7 +263,7 @@ def report_run():
         logging.info('Saved reference data: build_id=%r, release_name=%r, '
                      'release_number=%d, run_name=%r, '
                      'ref_image=%r, ref_log=%r, ref_config=%r',
-                     build_id, release_name, release_number, run_name,
+                     build.id, release_name, release_number, run_name,
                      run.ref_image, run.ref_log, run.ref_config)
 
     if diff_image:
@@ -279,7 +274,7 @@ def report_run():
         logging.info('Saved pdiff: build_id=%r, release_name=%r, '
                      'release_number=%d, run_name=%r, '
                      'diff_image=%r, diff_log=%r',
-                     build_id, release_name, release_number, run_name,
+                     build.id, release_name, release_number, run_name,
                      run.diff_image, run.diff_log)
 
     if run.diff_image:
@@ -293,7 +288,7 @@ def report_run():
 
     if run.status == models.Run.NEEDS_DIFF:
         work_queue.add(constants.PDIFF_QUEUE_NAME, dict(
-            build_id=build_id,
+            build_id=build.id,
             release_name=release_name,
             release_number=release_number,
             run_name=run_name,
@@ -311,20 +306,20 @@ def report_run():
 
     logging.info('Updated run: build_id=%r, release_name=%r, '
                  'release_number=%d, run_name=%r, status=%r',
-                 build_id, release_name, release_number, run_name, run.status)
+                 build.id, release_name, release_number, run_name, run.status)
 
     return flask.jsonify(success=True)
 
 
 @app.route('/api/runs_done', methods=['POST'])
-@auth.api_key_required
-def runs_done():
+@auth.build_api_access_required
+def runs_done(build):
     """Marks a release candidate as having all runs reported."""
-    build_id, release_name, release_number = _get_release_params()
+    release_name, release_number = _get_release_params()
 
     release = (
         models.Release.query
-        .filter_by(build_id=build_id, name=release_name, number=release_number)
+        .filter_by(build_id=build.id, name=release_name, number=release_number)
         .first())
     utils.jsonify_assert(release, 'Release does not exist')
 
@@ -334,16 +329,16 @@ def runs_done():
     db.session.commit()
 
     logging.info('Runs done for release: build_id=%r, release_name=%r, '
-                 'release_number=%d', build_id, release_name, release_number)
+                 'release_number=%d', build.id, release_name, release_number)
 
     return flask.jsonify(success=True)
 
 
 @app.route('/api/release_done', methods=['POST'])
-@auth.api_key_required
-def release_done():
+@auth.build_api_access_required
+def release_done(build):
     """Marks a release candidate as good or bad."""
-    build_id, release_name, release_number = _get_release_params()
+    release_name, release_number = _get_release_params()
     status = request.form.get('status')
     valid_statuses = (models.Release.GOOD, models.Release.BAD)
     utils.jsonify_assert(status in valid_statuses,
@@ -351,7 +346,7 @@ def release_done():
 
     release = (
         models.Release.query
-        .filter_by(build_id=build_id, name=release_name, number=release_number)
+        .filter_by(build_id=build.id, name=release_name, number=release_number)
         .first())
     utils.jsonify_assert(release, 'Release does not exist')
 
@@ -360,14 +355,14 @@ def release_done():
     db.session.commit()
 
     logging.info('Release marked as %s: build_id=%r, release_name=%r, '
-                 'number=%d', status, build_id, release_name, release_number)
+                 'number=%d', status, build.id, release_name, release_number)
 
     return flask.jsonify(success=True)
 
 
 @app.route('/api/upload', methods=['POST'])
-@auth.api_key_required
-def upload():
+@auth.build_api_access_required
+def upload(build):
     """Uploads an artifact referenced by a run."""
     utils.jsonify_assert(len(request.files) == 1,
                          'Need exactly one uploaded file')
@@ -376,36 +371,52 @@ def upload():
     data = file_storage.read()
     sha1sum = hashlib.sha1(data).hexdigest()
     exists = models.Artifact.query.filter_by(id=sha1sum).first()
+
     if exists:
-        logging.info('Upload already exists: artifact_id=%r', sha1sum)
-        return flask.jsonify(sha1sum=sha1sum)
+      logging.debug('Upload already exists: artifact_id=%r', sha1sum)
+    else:
+      content_type, _ = mimetypes.guess_type(file_storage.filename)
+      logging.info('Upload received: artifact_id=%r, content_type=%r',
+                   sha1sum, content_type)
+      artifact = models.Artifact(
+          id=sha1sum,
+          content_type=content_type,
+          data=data)
 
-    # TODO: Mark that this owner/build has access to this sha1sum, to prevent
-    # users from pointing at sha1sums of images they don't own? Maybe too
-    # paranoid.
-
-    content_type, _ = mimetypes.guess_type(file_storage.filename)
-    artifact = models.Artifact(
-        id=sha1sum,
-        content_type=content_type,
-        data=data)
+    artifact.owners.append(build)
     db.session.add(artifact)
     db.session.commit()
 
-    logging.info('Upload received: artifact_id=%r, content_type=%r',
-                 sha1sum, content_type)
     return flask.jsonify(sha1sum=sha1sum)
 
 
 @app.route('/api/download')
-@auth.api_key_required
 def download():
     """Downloads an artifact by it's content hash."""
-    # TODO: Enforce build/release ownership of or access to the file
+    # Allow access to a resource hash for API keys with access to the given
+    # build_id. Falls back to standard user login for the frontend (which
+    # may require redirecting the user to the login form).
+    try:
+        build = auth.can_api_key_access_build('build_id')
+    except HTTPException:
+        build = auth.can_user_access_build('build_id')
+
     sha1sum = request.args.get('sha1sum', type=str)
     artifact = models.Artifact.query.get(sha1sum)
     if not artifact:
+        logging.debug('Artifact sha1sum=%r does not exist', sha1sum)
         abort(404)
+
+    build_id = request.args.get('build_id', type=int)
+    if not build_id:
+        logging.debug('build_id missing for artifact sha1sum=%r', sha1sum)
+        abort(404)
+
+    is_owned = artifact.owners.filter_by(id=build_id).first()
+    if not is_owned:
+        logging.debug('build_id=%r not owner of artifact sha1sum=%r',
+                      build_id, sha1sum)
+        abort(403)
 
     if request.if_none_match and request.if_none_match.contains(sha1sum):
         return flask.Response(status=304)

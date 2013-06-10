@@ -28,13 +28,13 @@ image description
     <div class="container-fluid body-section">
         <div class="row-fluid">
             <div class="span12 text-center">
-                <img src="{{ url_for('download', sha1sum=sha1sum) }}" class="run-image">
+                <img src="{{ url_for('download', sha1sum=sha1sum, build_id=build.id) }}" class="run-image">
             </div>
         </div>
     </div>
 {% elif log_file %}
     <div id="artifact-iframe-container" class="body-section">
-        <iframe src="{{ url_for('download', sha1sum=sha1sum) }}" class="artifact-iframe"></iframe>
+        <iframe src="{{ url_for('download', sha1sum=sha1sum, build_id=build.id) }}" class="artifact-iframe"></iframe>
     </div>
     <script>
         var body = $('#body-container');

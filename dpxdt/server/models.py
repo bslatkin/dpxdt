@@ -152,6 +152,15 @@ class Release(db.Model):
     url = db.Column(db.String(2048))
 
 
+artifact_ownership_table = db.Table(
+    'artifact_ownership',
+    db.Column('artifact', db.Integer, db.ForeignKey('artifact.id')),
+    db.Column('build_id', db.Integer, db.ForeignKey('build.id')))
+
+# TODO: Actually save the blob files somewhere else, like S3. Add a
+# queue worker that uploads them there and purges the database. Move to
+# saving blobs in a directory by content-addressable filename.
+
 class Artifact(db.Model):
     """Contains a single file uploaded by a diff worker."""
 
@@ -159,9 +168,9 @@ class Artifact(db.Model):
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     data = db.Column(db.LargeBinary)
     content_type = db.Column(db.String(500))
-    # TODO: Actually save the blob files somewhere else, like S3. Add a
-    # queue worker that uploads them there and purges the database. Move to
-    # saving blobs in a directory by content-addressable filename.
+    owners = db.relationship('Build', secondary=artifact_ownership_table,
+                             backref=db.backref('artifacts', lazy='dynamic'),
+                             lazy='dynamic')
 
 
 class Run(db.Model):

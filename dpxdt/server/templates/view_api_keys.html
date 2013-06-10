@@ -12,6 +12,19 @@ API Keys
 <div class="row">
     <div class="span12">
         <h4>Create a new API key</h4>
+
+        {% if create_form.errors %}
+            <div class="row">
+                <div class="span6 alert alert-error">
+                {% for field, field_errors in create_form.errors|dictsort %}
+                    <div>
+                        Invalid {{ create_form[field].label(class="inline") }}
+                    </div>
+                {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
         <form action="{{ url_for('manage_api_keys') }}" method="post">
             {{ create_form.csrf_token }}
             {{ create_form.build_id }}
