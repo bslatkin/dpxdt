@@ -18,7 +18,7 @@
 {% if build %}
     <div class="row">
         <div class="span12">
-            {% if release %}
+            {% if url_for('view_build') != request.path %}
                 <h1><a href="{{ url_for('view_build', id=build.id) }}">Build: {{ build.name }}</a></h1>
             {% else %}
                 <h1>Build: {{ build.name }}</h1>

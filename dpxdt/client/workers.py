@@ -16,6 +16,7 @@
 """Workers for driving screen captures, perceptual diffs, and related work."""
 
 import Queue
+import base64
 import heapq
 import json
 import logging
@@ -160,7 +161,8 @@ class WorkerThread(threading.Thread):
 class FetchItem(WorkItem):
     """Work item that is handled by fetching a URL."""
 
-    def __init__(self, url, post=None, timeout_seconds=30, result_path=None):
+    def __init__(self, url, post=None, timeout_seconds=30, result_path=None,
+                 username=None, password=None):
         """Initializer.
 
         Args:
@@ -173,10 +175,16 @@ class FetchItem(WorkItem):
             result_path: When supplied, the output of the fetch should be
                 streamed to a file on disk with the given path. Use this
                 to prevent many fetches from causing memory problems.
+            username: Optional. Username to use for the request, for
+                HTTP basic authentication.
+            password: Optional. Password to use for the request, for
+                HTTP basic authentication.
         """
         WorkItem.__init__(self)
         self.url = url
         self.post = post
+        self.username = username
+        self.password = password
         self.timeout_seconds = timeout_seconds
         self.result_path = result_path
         self.status_code = None
@@ -223,6 +231,11 @@ class FetchThread(WorkerThread):
                     item.url, urllib.urlencode(adjusted_data))
         else:
             request = urllib2.Request(item.url)
+
+        if item.username:
+            credentials = base64.b64encode(
+                '%s:%s' % (item.username, item.password))
+            request.add_header('Authentication', 'Basic %s' % credentials)
 
         try:
             try:

@@ -76,12 +76,18 @@ build description
     </div>
 {% else %}
     <div class="row">
-        <div class="span6">
+        <div class="span12">
             <div class="alert alert-info alert-block">
                 There are no releases for this build.
             </div>
         </div>
     </div>
 {% endif %}
+
+<div class="row">
+    <div class="span12">
+        <a href="{{ url_for('manage_api_keys', build_id=build.id) }}">Set up API keys</a>
+    </div>
+</div>
 
 {% endblock body %}

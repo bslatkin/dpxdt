@@ -33,22 +33,6 @@ import forms
 import models
 
 
-def build_access_required(f):
-    """Decorator ensures user has access to the build ID in the request.
-
-    Always calls the given function with the models.Build entity as the
-    first positional argument.
-    """
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        response, build = auth.can_user_access_build('id')
-        if response:
-            return response
-        else:
-            return f(build, *args, **kwargs)
-    return wrapper
-
-
 @app.route('/')
 def homepage():
     """Renders the homepage."""
@@ -79,7 +63,7 @@ def new_build():
 
 
 @app.route('/build')
-@build_access_required
+@auth.build_access_required
 def view_build(build):
     """Page for viewing all releases in a build."""
     candidate_list = (
@@ -160,7 +144,7 @@ def classify_runs(run_list):
 
 
 @app.route('/release', methods=['GET', 'POST'])
-@build_access_required
+@auth.build_access_required
 def view_release(build):
     """Page for viewing all tests runs in a release."""
     if request.method == 'POST':
@@ -239,7 +223,7 @@ def view_release(build):
 
 
 @app.route('/run', methods=['GET', 'POST'])
-@build_access_required
+@auth.build_access_required
 def view_run(build):
     """Page for viewing before/after for a specific test run."""
     if request.method == 'POST':
@@ -298,7 +282,7 @@ def view_run(build):
 
 @app.route('/image', endpoint='view_image')
 @app.route('/log', endpoint='view_log')
-@build_access_required
+@auth.build_access_required
 def view_artifact(build):
     """Page for viewing a specific artifact from a test run."""
     build_id = request.args.get('id', type=int)

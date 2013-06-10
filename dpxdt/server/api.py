@@ -81,67 +81,19 @@ import mimetypes
 
 # Local libraries
 import flask
-from flask import Flask, abort, redirect, render_template, request, url_for
-from flask.ext.login import current_user, fresh_login_required, login_required
+from flask import Flask, abort, request
 
 # Local modules
 from . import app
 from . import db
 import auth
-import forms
 import models
 import work_queue
 import utils
 
 
-def api_key_required(f):
-    """Decorator ensures API key has proper access to requested resources."""
-    @functools.wraps(f)
-    def wrapped(*args, **kwargs):
-        auth_header = request.authorization
-        if not auth:
-            logging.debug('API request lacks authorization header')
-            return flask.Response(
-                'API key required', 401,
-                {'WWW-Authenticate', 'Basic realm="API key required"'})
-
-        api_key = models.ApiKey.query.get(auth_header.username)
-        if not api_key:
-            logging.debug('API key=%r does not exist', auth_header.username)
-            return abort(403)
-
-        if not api_key.active:
-            logging.debug('API key=%r is no longer active', api_key.id)
-            return abort(403)
-
-        if api_key.secret != auth_header.password:
-            logging.debug('API key=%r password does not match', api_key.id)
-            return abort(403)
-
-        logging.debug('Authenticated as API key=%r', api_key.id)
-
-        build_id = request.form.get('build_id', type=int)
-
-        if not api_key.superuser:
-            if build_id and api_key.build_id == build_id:
-                # Only allow normal users to edit builds that exist.
-                build = models.Build.query.get(build_id)
-                if not build:
-                    logging.debug('API key=%r accessing missing build_id=%r',
-                                  api_key.id, build_id)
-                    return abort(404)
-            else:
-                logging.debug('API key=%r cannot access requested build_id=%r',
-                              api_key.id, build_id)
-                return abort(403)
-
-        return f(*args, **kwargs)
-
-    return wrapped
-
-
 @app.route('/api/create_release', methods=['POST'])
-@api_key_required
+@auth.api_key_required
 def create_release():
     """Creates a new release candidate for a build."""
     build_id = request.form.get('build_id', type=int)
@@ -211,7 +163,7 @@ def _get_release_params():
 
 
 @app.route('/api/find_run', methods=['POST'])
-@api_key_required
+@auth.api_key_required
 def find_run():
     """Finds the last good run of the given name for a release."""
     build_id = request.form.get('build_id', type=int)
@@ -255,7 +207,7 @@ def find_run():
 
 
 @app.route('/api/report_run', methods=['POST'])
-@api_key_required
+@auth.api_key_required
 def report_run():
     """Reports data for a run for a release candidate."""
     build_id, release_name, release_number = _get_release_params()
@@ -365,7 +317,7 @@ def report_run():
 
 
 @app.route('/api/runs_done', methods=['POST'])
-@api_key_required
+@auth.api_key_required
 def runs_done():
     """Marks a release candidate as having all runs reported."""
     build_id, release_name, release_number = _get_release_params()
@@ -388,7 +340,7 @@ def runs_done():
 
 
 @app.route('/api/release_done', methods=['POST'])
-@api_key_required
+@auth.api_key_required
 def release_done():
     """Marks a release candidate as good or bad."""
     build_id, release_name, release_number = _get_release_params()
@@ -414,7 +366,7 @@ def release_done():
 
 
 @app.route('/api/upload', methods=['POST'])
-@api_key_required
+@auth.api_key_required
 def upload():
     """Uploads an artifact referenced by a run."""
     utils.jsonify_assert(len(request.files) == 1,
@@ -446,7 +398,7 @@ def upload():
 
 
 @app.route('/api/download')
-@api_key_required
+@auth.api_key_required
 def download():
     """Downloads an artifact by it's content hash."""
     # TODO: Enforce build/release ownership of or access to the file
@@ -465,70 +417,3 @@ def download():
     response.cache_control.max_age = 8640000
     response.set_etag(sha1sum)
     return response
-
-
-@app.route('/api_keys', methods=['GET', 'POST'])
-@fresh_login_required
-def manage_api_keys():
-    """Page for viewing and creating API keys."""
-    response, build = auth.can_user_access_build('build_id')
-    if response:
-        return response
-
-    create_form = forms.CreateApiKeyForm()
-    if create_form.validate_on_submit():
-        api_key = models.ApiKey()
-        create_form.populate_obj(api_key)
-        api_key.id = utils.human_uuid()
-        api_key.secret = utils.password_uuid()
-        db.session.add(api_key)
-        db.session.commit()
-
-        logging.info('Created API key=%r for build_id=%r',
-                     api_key.id, build.id)
-        return redirect(url_for('manage_api_keys', build_id=build.id))
-
-    create_form.build_id.data = build.id
-
-    api_key_query = (
-        models.ApiKey.query
-        .filter_by(build_id=build.id)
-        .order_by(models.ApiKey.created.desc())
-        .limit(1000))
-
-    revoke_form_list = []
-    for api_key in api_key_query:
-        form = forms.RevokeApiKeyForm()
-        form.id.data = api_key.id
-        form.build_id.data = build.id
-        form.revoke.data = True
-        revoke_form_list.append((api_key, form))
-
-    return render_template(
-        'view_api_keys.html',
-        build=build,
-        create_form=create_form,
-        revoke_form_list=revoke_form_list)
-
-
-@app.route('/api_keys.revoke', methods=['POST'])
-@fresh_login_required
-def revoke_api_key():
-    """Form submission handler for revoking API keys."""
-    response, build = auth.can_user_access_build('build_id')
-    if response:
-        return response
-
-    form = forms.RevokeApiKeyForm()
-    if form.validate_on_submit():
-        api_key = models.ApiKey.query.get(form.id.data)
-        if api_key.build_id != build.id:
-            logging.debug('User does not have access to API key=%r',
-                          api_key.id)
-            return abort(403)
-
-        api_key.active = False
-        db.session.add(api_key)
-        db.session.commit()
-
-    return redirect(url_for('manage_api_keys', build_id=build.id))

@@ -31,7 +31,16 @@ import workers
 gflags.DEFINE_string(
     'release_server_prefix', None,
     'URL prefix of where the release server is located, such as '
-    '"http://www.example.com/here/is/my/api".')
+    '"https://www.example.com/here/is/my/api". This should use HTTPS if '
+    'possible, since API requests send credentials using HTTP basic auth.')
+
+gflags.DEFINE_string(
+    'release_client_id', None,
+    'Client ID of the API key to use for requests to the release server.')
+
+gflags.DEFINE_string(
+    'release_client_secret', None,
+    'Client secret of the API key to use for requests to the release server.')
 
 
 class Error(Exception):
@@ -99,7 +108,9 @@ class CreateReleaseWorkflow(workers.WorkflowItem):
             post={
                 'build_id': build_id,
                 'release_name': release_name,
-            })
+            },
+            username=FLAGS.release_client_id,
+            password=FLAGS.release_client_secret)
 
         if call.json and call.json.get('error'):
             raise CreateReleaseError(call.json.get('error'))
@@ -131,7 +142,9 @@ class UploadFileWorkflow(workers.WorkflowItem):
             upload = yield workers.FetchItem(
                 FLAGS.release_server_prefix + '/upload',
                 post={'file': handle},
-                timeout_seconds=120)
+                timeout_seconds=120,
+                username=FLAGS.release_client_id,
+                password=FLAGS.release_client_secret)
 
             if upload.json and upload.json.get('error'):
                 raise UploadFileError(upload.json.get('error'))
@@ -167,7 +180,9 @@ class FindRunWorkflow(workers.WorkflowItem):
             post={
                 'build_id': build_id,
                 'run_name': run_name,
-            })
+            },
+            username=FLAGS.release_client_id,
+            password=FLAGS.release_client_secret)
 
         if call.json and call.json.get('error'):
             raise FindRunError(call.json.get('error'))
@@ -230,7 +245,9 @@ class ReportRunWorkflow(workers.WorkflowItem):
 
         call = yield workers.FetchItem(
             FLAGS.release_server_prefix + '/report_run',
-            post=post)
+            post=post,
+            username=FLAGS.release_client_id,
+            password=FLAGS.release_client_secret)
 
         if call.json and call.json.get('error'):
             raise ReportRunError(call.json.get('error'))
@@ -285,7 +302,9 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
 
         call = yield workers.FetchItem(
             FLAGS.release_server_prefix + '/report_run',
-            post=post)
+            post=post,
+            username=FLAGS.release_client_id,
+            password=FLAGS.release_client_secret)
 
         if call.json and call.json.get('error'):
             raise ReportPdiffError(call.json.get('error'))
@@ -314,7 +333,9 @@ class RunsDoneWorkflow(workers.WorkflowItem):
                 'build_id': build_id,
                 'release_name': release_name,
                 'release_number': release_number,
-            })
+            },
+            username=FLAGS.release_client_id,
+            password=FLAGS.release_client_secret)
 
         if call.json and call.json.get('error'):
             raise RunsDoneError(call.json.get('error'))
@@ -342,6 +363,10 @@ class DownloadArtifactWorkflow(workers.WorkflowItem):
     def run(self, sha1sum, result_path):
         download_url = '%s/download?sha1sum=%s' % (
             FLAGS.release_server_prefix, sha1sum)
-        call = yield workers.FetchItem(download_url, result_path=result_path)
+        call = yield workers.FetchItem(
+            download_url,
+            result_path=result_path,
+            username=FLAGS.release_client_id,
+            password=FLAGS.release_client_secret)
         if call.status_code != 200:
             raise DownloadArtifactError('Bad response: %r', call)
