@@ -1,34 +1,31 @@
 Backend
-- Split site-diff to use server-side capture queue, so it can be much faster in aggregate
 - Add build URLs to releases
 - Add fetched URLs to runs so you can click through to visit
-- Capture 500 errors automatically retried up to N times.
 
 Frontend
+- Homepage
+- Homepage shows the user all of the builds they have
 - Branding, footer on all pages
-- Log approvals and any other release state changes
 - Button to abandon a release that's in the receiving state
-- Make it so short URLs in the list have more clickable area
+- Make it so short URLs in the list have more clickable area?
 
 Test run page
 - Next/previous buttons should be hidden for single test release case
 - Do not show visit link when there is no diff image
 - Need to upload fetched domain name or full URL for visit link
 
-Everywhere
-- Cache DB queries
-
 -------
 
 Future
+- Cache DB queries
+- Capture diff fetch 500 errors automatically retried up to N times.
+- Log diff approvals and any other release state changes
 - use hot-keys to quickly scroll through images
 - Redirect uploads to go directly to S3 with a 307
 - Email or HTTP callback once processing / reviewing state hit for a release
-- OAuth flow for robots
 - All screenshots deleted after 3 days unless you're in pro mode
 - Create a sitediff crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
-- Homepage
-- Homepage shows the user all of the builds they have
+- Split site-diff to use server-side capture queue, so it can be much faster in aggregate
 
 -------
 
@@ -54,13 +51,7 @@ What is needed for each capture run:
 
 Random thoughts
 
-- It'd be cool if you could register your own workers to operate on your own capturing needs, which would make it possible to use a centralized trusted server for hosting diffs but then a separate worker pool on an internal network for doing the rendering.
-
 - Would be nice if the background servers self-registered themselves
-
-- Can use a shared secret key for uploading the site-diff results for a build; something like a shared secret the user can provision for their build workers. they would have a create/revoke button and a list ordered by time.
-
-- Make it so fetching artifacts from the API server and similar priviledged tasks are reserved for shared secrets that are blessed manually by the superuser.
 
 - Always allow localhost to talk to localhost so local testing isn't annoying.
 
