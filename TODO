@@ -2,9 +2,8 @@ Frontend
 - Homepage
 - Homepage shows the user all of the builds they have
 - Branding, footer on all pages
-
-Test run page
-- Next/previous buttons should be hidden for single test release case
+- Allow user to set build to good/bad when processing
+- Add before/after/diff button on artifact page
 
 -------
 

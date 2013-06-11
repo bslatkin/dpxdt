@@ -274,6 +274,23 @@ def view_run(build):
             number=release.number,
             test=run.name))
 
+    # Find the previous and next runs in this release for easy linking.
+    # TODO: Sort this by diff status first, then by name (ones with a diff
+    # found should come first).
+    previous_run = (
+        models.Run.query
+        .filter_by(release_id=release.id)
+        .filter(models.Run.name < run.name)
+        .order_by(models.Run.name.desc())
+        .first())
+
+    next_run = (
+        models.Run.query
+        .filter_by(release_id=release.id)
+        .filter(models.Run.name > run.name)
+        .order_by(models.Run.name)
+        .first())
+
     # Update form values for rendering
     form.approve.data = True
     form.disapprove.data = True
@@ -283,7 +300,9 @@ def view_run(build):
         build=build,
         release=release,
         run=run,
-        run_form=form)
+        run_form=form,
+        previous_run=previous_run,
+        next_run=next_run)
 
 
 @app.route('/image', endpoint='view_image')
@@ -349,3 +368,8 @@ def view_artifact(build):
         image_file=image_file,
         log_file=log_file,
         sha1sum=sha1sum)
+
+
+@app.route('/static/dummy')
+def view_dummy_url():
+    return app.send_static_file('dummy/index.html')

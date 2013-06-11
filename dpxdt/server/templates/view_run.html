@@ -60,10 +60,12 @@ run description
                 </p>
             </div>
             <div class="span5 text-right">
-                <p>
-                    <a href="#" class="btn">&larr; Prev test</a>
-                    <a href="#" class="btn">&thinsp;Next test &rarr;</a>
-                </p>
+                {% if previous_run %}
+                    <a href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=previous_run.name) }}" class="btn">&larr; Prev test</a>
+                {% endif %}
+                {% if next_run %}
+                    <a href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=next_run.name) }}" class="btn">&thinsp;Next test &rarr;</a>
+                {% endif %}
             </div>
         </div>
     </div>
