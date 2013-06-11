@@ -9,3 +9,4 @@ CVS
 .DS_Store
 *.pyc
 secrets.py
+deployment/appengine-test/secrets.py
