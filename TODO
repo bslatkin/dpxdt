@@ -6,7 +6,6 @@ Frontend
 - Homepage
 - Homepage shows the user all of the builds they have
 - Branding, footer on all pages
-- Button to abandon a release that's in the receiving state
 - Make it so short URLs in the list have more clickable area?
 
 Test run page

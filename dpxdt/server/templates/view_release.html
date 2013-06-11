@@ -9,67 +9,78 @@ candidate description
 
 {% block body %}
 
-{% if run_list %}
-    <div class="row">
-        <div class="span12">
-            <h4>Tests</h4>
-        </div>
+<div class="row">
+    <div class="span12">
+        <h4>Tests</h4>
     </div>
-    <div class="row">
-        <div class="span6">
-            {% include 'fragment_runs_complete.html' with context %}
-        </div>
-        <div class="span6 text-right">
-            {% if newest_run_time %}
-                <abbr title="Updated {{ newest_run_time.strftime('%Y-%m-%dT%H:%MZ') }}">
-                    {{ newest_run_time|timesince }}
-                </abbr>
-            {% endif %}
-        </div>
+</div>
+<div class="row">
+    <div class="span6">
+        {% include 'fragment_runs_complete.html' with context %}
     </div>
-    {#
-        TODO: Who approved the release
-        TODO: Build URL associated with the release
-     #}
-    <div class="row body-section">
+    <div class="span6 text-right">
+        {% if newest_run_time %}
+            <abbr title="Updated {{ newest_run_time.strftime('%Y-%m-%dT%H:%MZ') }}">
+                {{ newest_run_time|timesince }}
+            </abbr>
+        {% endif %}
+    </div>
+</div>
+{#
+    TODO: Who approved the release
+    TODO: Build URL associated with the release
+ #}
+<div class="row body-section">
+    {% if run_list %}
         <div class="span12">
             {% set alert_wrapper=True %}
             {% include 'fragment_runs_failed.html' with context %}
         </div>
-    </div>
-    <div class="row">
+    {% else %}
         <div class="span12">
-            <p class="inline-block">
-                {% if release.status == 'reviewing' %}
-                    <form action="{{ url_for('view_release') }}" method="post" class="inline-block">
-                        {{ release_form.csrf_token }}
-                        {{ release_form.id }}
-                        {{ release_form.name }}
-                        {{ release_form.number }}
-                        {{ release_form.good }}
-                        <button type="submit" class="btn btn-primary">Mark release as good</button>
-                    </form>
-                    <form action="{{ url_for('view_release') }}" method="post" class="inline-block">
-                        {{ release_form.csrf_token }}
-                        {{ release_form.id }}
-                        {{ release_form.name }}
-                        {{ release_form.number }}
-                        {{ release_form.bad }}
-                        <button type="submit" class="btn btn-danger">Mark release as bad</button>
-                    </form>
-                {% elif release.status == 'good' or  release.status == 'bad' %}
-                    <form action="{{ url_for('view_release') }}" method="post" class="inline-block">
-                        {{ release_form.csrf_token }}
-                        {{ release_form.id }}
-                        {{ release_form.name }}
-                        {{ release_form.number }}
-                        {{ release_form.reviewing }}
-                        <button type="submit" class="btn">Mark release as reviewing</button>
-                    </form>
-                {% endif %}
-            </p>
+            <div class="alert alert-info">
+                There are no tests for this release candidate.
+            </div>
         </div>
+    {% endif %}
+</div>
+
+<div class="row">
+    <div class="span12">
+        <p class="inline-block">
+            {% if release.status in ('reviewing', 'receiving') %}
+                <form action="{{ url_for('view_release') }}" method="post" class="inline-block">
+                    {{ release_form.csrf_token }}
+                    {{ release_form.id }}
+                    {{ release_form.name }}
+                    {{ release_form.number }}
+                    {{ release_form.good }}
+                    <button type="submit" class="btn btn-primary">Mark release as good</button>
+                </form>
+                <form action="{{ url_for('view_release') }}" method="post" class="inline-block">
+                    {{ release_form.csrf_token }}
+                    {{ release_form.id }}
+                    {{ release_form.name }}
+                    {{ release_form.number }}
+                    {{ release_form.bad }}
+                    <button type="submit" class="btn btn-danger">Mark release as bad</button>
+                </form>
+            {% endif %}
+            {% if release.status == 'good' or  release.status == 'bad' %}
+                <form action="{{ url_for('view_release') }}" method="post" class="inline-block">
+                    {{ release_form.csrf_token }}
+                    {{ release_form.id }}
+                    {{ release_form.name }}
+                    {{ release_form.number }}
+                    {{ release_form.reviewing }}
+                    <button type="submit" class="btn">Mark release as reviewing</button>
+                </form>
+            {% endif %}
+        </p>
     </div>
+</div>
+
+{% if run_list %}
     <div class="row body-section">
         <div class="span12">
             {% for run in run_list %}
@@ -83,14 +94,6 @@ candidate description
                     </div>
                 </div>
             {% endfor %}
-        </div>
-    </div>
-{% else %}
-    <div class="row">
-        <div class="span12">
-            <div class="alert alert-info alert-block">
-                There are no tests for this release candidate.
-            </div>
         </div>
     </div>
 {% endif %}

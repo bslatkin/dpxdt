@@ -39,7 +39,7 @@
         {% if not sha1sum %}
             <div class="span5 text-right">
                 {% if release.status == 'good' %}
-                    <h4 class="text-info">Status: {{ release.status|title }}</h4>
+                    <h4>Status: {{ release.status|title }}</h4>
                 {% elif release.status == 'bad' %}
                     <h4 class="text-error">Status: {{ release.status|title }}</h4>
                 {% else %}

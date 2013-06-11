@@ -165,14 +165,20 @@ def view_release(build):
         abort(404)
 
     if request.method == 'POST':
-        if form.good.data and release.status == models.Release.REVIEWING:
+        decision_states = (
+            models.Release.REVIEWING, models.Release.RECEIVING)
+
+        if form.good.data and release.status in decision_states:
             release.status = models.Release.GOOD
-        elif form.bad.data and release.status == models.Release.REVIEWING:
+        elif form.bad.data and release.status in decision_states:
             release.status = models.Release.BAD
         elif form.reviewing.data and release.status in (
                 models.Release.GOOD, models.Release.BAD):
             release.status = models.Release.REVIEWING
         else:
+            logging.warning(
+                'Bad state transition for name=%r, number=%r, form=%r',
+                release.name, release.number, form.data)
             abort(400)
 
         db.session.add(release)
