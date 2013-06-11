@@ -94,20 +94,22 @@ class CreateReleaseWorkflow(workers.WorkflowItem):
     Args:
         build_id: ID of the build.
         release_name: Name of the release candidate.
+        url: Landing URL of the new release.
 
     Returns:
-        Tuple (build_id, release_name, release_number).
+        The newly created release_number.
 
     Raises:
         CreateReleaseError if the release could not be created.
     """
 
-    def run(self, build_id, release_name):
+    def run(self, build_id, release_name, url):
         call = yield workers.FetchItem(
             FLAGS.release_server_prefix + '/create_release',
             post={
                 'build_id': build_id,
                 'release_name': release_name,
+                'url': url,
             },
             username=FLAGS.release_client_id,
             password=FLAGS.release_client_secret)
@@ -118,8 +120,7 @@ class CreateReleaseWorkflow(workers.WorkflowItem):
         if not call.json or not call.json.get('release_number'):
             raise CreateReleaseError('Bad response: %r' % call)
 
-        raise workers.Return(
-            (build_id, release_name, call.json['release_number']))
+        raise workers.Return(call.json['release_number'])
 
 
 class UploadFileWorkflow(workers.WorkflowItem):
@@ -169,7 +170,8 @@ class FindRunWorkflow(workers.WorkflowItem):
 
     Returns:
         JSON dictionary representing the run that was found, with the keys:
-        build_id, release_name, release_number, run_name, image, log, config.
+        build_id, release_name, release_number, run_name, url, image, log,
+        config.
 
     Raises:
         FindRunError if a run could not be found.
@@ -202,9 +204,11 @@ class ReportRunWorkflow(workers.WorkflowItem):
         release_name: Name of the release.
         release_number: Number of the release candidate.
         run_name: Name of the run being uploaded.
+        url: URL that was fetched for the run.
         screenshot_path: Path to the screenshot to upload.
         log_path: Path to the screenshot log to upload.
         config_path: Path to the config to upload.
+        ref_url: Optional. Previously fetched URL this is being compared to.
         ref_image: Optional. Asset ID of the image to compare to.
         ref_log: Optional. Asset ID of the reference image's log.
         ref_config: Optional. Asset ID of the reference image's config.
@@ -216,10 +220,9 @@ class ReportRunWorkflow(workers.WorkflowItem):
     """
 
     def run(self, build_id, release_name, release_number, run_name,
-            screenshot_path, log_path, config_path,
-            ref_image=None, ref_log=None, ref_config=None,
+            url, screenshot_path, log_path, config_path,
+            ref_url=None, ref_image=None, ref_log=None, ref_config=None,
             no_diff_needed=None):
-        # TODO: Include the URL that was captured.
         screenshot_id, log_id, config_id = yield [
             UploadFileWorkflow(build_id, screenshot_path),
             UploadFileWorkflow(build_id, log_path),
@@ -231,10 +234,13 @@ class ReportRunWorkflow(workers.WorkflowItem):
             'release_name': release_name,
             'release_number': release_number,
             'run_name': run_name,
+            'url': url,
             'image': screenshot_id,
             'log': log_id,
             'config': config_id,
         }
+        if ref_url:
+            post.update(ref_url=ref_url)
         if ref_image:
             post.update(ref_image=ref_image)
         if ref_log:

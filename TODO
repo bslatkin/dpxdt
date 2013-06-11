@@ -1,17 +1,10 @@
-Backend
-- Add build URLs to releases
-- Add fetched URLs to runs so you can click through to visit
-
 Frontend
 - Homepage
 - Homepage shows the user all of the builds they have
 - Branding, footer on all pages
-- Make it so short URLs in the list have more clickable area?
 
 Test run page
 - Next/previous buttons should be hidden for single test release case
-- Do not show visit link when there is no diff image
-- Need to upload fetched domain name or full URL for visit link
 
 -------
 

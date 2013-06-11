@@ -514,7 +514,10 @@ class WorkflowThread(WorkerThread):
     def handle_item(self, item):
         if isinstance(item, WorkflowItem) and not item.done:
             workflow = item
-            generator = item.run(*item.args, **item.kwargs)
+            try:
+                generator = item.run(*item.args, **item.kwargs)
+            except TypeError, e:
+                raise TypeError('%s: item=%r', e, item)
             item = None
         else:
             barrier = self.pending.pop(item)

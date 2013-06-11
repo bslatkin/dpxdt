@@ -259,7 +259,7 @@ class PdiffWorkflow(workers.WorkflowItem):
 
         if not reference_dir:
             raise workers.Return((
-                parts.path, capture.output_path, capture.log_path,
+                parts.path, url, capture.output_path, capture.log_path,
                 capture.config_path))
 
         ref_base = os.path.join(reference_dir, clean_url)
@@ -369,12 +369,11 @@ class SiteDiff(workers.WorkflowItem):
             'screenshots' % (len(seen_urls), len(good_urls)))
 
         if upload_build_id:
-            # TODO: Make the release name prettier.
+            # TODO: Make the default release name prettier.
             if not upload_release_name:
                 upload_release_name = str(datetime.datetime.utcnow())
-            result = yield release_worker.CreateReleaseWorkflow(
-                upload_build_id, upload_release_name)
-            _, _, release_number = result
+            release_number = yield release_worker.CreateReleaseWorkflow(
+                upload_build_id, upload_release_name, start_url)
 
         found_urls = os.path.join(output_dir, 'url_paths.txt')
         good_paths = set(urlparse.urlparse(u).path for u in good_urls)
@@ -390,10 +389,12 @@ class SiteDiff(workers.WorkflowItem):
         if upload_build_id:
             # TODO: Parallelize this work with a sub-task
             for pdiff_result in results:
-                run_name, output_path, log_path, config_path = pdiff_result
+                (run_name, url, output_path, log_path, config_path
+                    ) = pdiff_result
                 yield heartbeat('Finding last good run for %s' %
                                 run_name)
-                ref_image, ref_log, ref_config = None, None, None
+                ref_url, ref_image, ref_log, ref_config = (
+                    None, None, None, None)
                 try:
                     ref_run_result = yield release_worker.FindRunWorkflow(
                         upload_build_id, run_name)
@@ -401,6 +402,7 @@ class SiteDiff(workers.WorkflowItem):
                     yield heartbeat('Failed to find last good run for %s' %
                                     run_name)
                 else:
+                    ref_url = ref_run_result.get('url')
                     ref_image = ref_run_result.get('image')
                     ref_log = ref_run_result.get('log')
                     ref_config = ref_run_result.get('config')
@@ -417,9 +419,11 @@ class SiteDiff(workers.WorkflowItem):
                     upload_release_name,
                     release_number,
                     run_name,
+                    url,
                     output_path,
                     log_path,
                     config_path,
+                    ref_url=ref_url,
                     ref_image=ref_image,
                     ref_log=ref_log,
                     ref_config=ref_config,
@@ -432,11 +436,6 @@ class SiteDiff(workers.WorkflowItem):
             yield heartbeat('Results will be at: %s' % release_url)
         else:
             yield heartbeat('Results in %s' % output_dir)
-
-
-# TODO: Add a second mode where the SiteDiff workflow is wrapped in a queue
-# worker so site diffs can happen entirely through the work queue. Add a
-# register function to include this in the server's coordinator.
 
 
 class PrintWorkflow(workers.WorkflowItem):

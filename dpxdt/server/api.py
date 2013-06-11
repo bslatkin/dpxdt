@@ -100,9 +100,12 @@ def create_release(build):
     """Creates a new release candidate for a build."""
     release_name = request.form.get('release_name')
     utils.jsonify_assert(release_name, 'release_name required')
+    url = request.form.get('url')
+    utils.jsonify_assert(release_name, 'url required')
 
     release = models.Release(
         name=release_name,
+        url=url,
         number=1,
         build_id=build.id)
 
@@ -117,13 +120,15 @@ def create_release(build):
     db.session.add(release)
     db.session.commit()
 
-    logging.info('Created release: build_id=%r, release_name=%r, '
-                 'release_number=%d', build.id, release_name, release.number)
+    logging.info('Created release: build_id=%r, release_name=%r, url=%r, '
+                 'release_number=%d', build.id, release_name,
+                 url, release.number)
 
     return flask.jsonify(
         build_id=build.id,
         release_name=release_name,
-        release_number=release.number)
+        release_number=release.number,
+        url=url)
 
 
 def _check_release_done_processing(release_id):
@@ -195,6 +200,7 @@ def find_run(build):
                 release_name=last_good_release.name,
                 release_number=last_good_release.number,
                 run_name=run_name,
+                url=last_good_run.url,
                 image=last_good_run.image,
                 log=last_good_run.log,
                 config=last_good_run.config)
@@ -221,6 +227,7 @@ def report_run(build):
         .filter_by(release_id=release.id, name=run_name)
         .first())
     if not run:
+        # Ignore re-reports of the same run name for this release.
         logging.info('Created run: build_id=%r, release_name=%r, '
                      'release_number=%d, run_name=%r',
                      build.id, release_name, release_number, run_name)
@@ -229,10 +236,12 @@ def report_run(build):
             name=run_name,
             status=models.Run.DATA_PENDING)
 
+    current_url = request.form.get('url', type=str)
     current_image = request.form.get('image', type=str)
     current_log = request.form.get('log', type=str)
     current_config = request.form.get('config', type=str)
 
+    ref_url = request.form.get('ref_url', type=str)
     ref_image = request.form.get('ref_image', type=str)
     ref_log = request.form.get('ref_log', type=str)
     ref_config = request.form.get('ref_config', type=str)
@@ -240,6 +249,8 @@ def report_run(build):
     diff_image = request.form.get('diff_image', type=str)
     diff_log = request.form.get('diff_log', type=str)
 
+    if current_url:
+        run.url = current_url
     if current_image:
         run.image = current_image
     if current_log:
@@ -248,11 +259,13 @@ def report_run(build):
         run.config = current_config
     if current_image or current_log or current_config:
         logging.info('Saved run data: build_id=%r, release_name=%r, '
-                     'release_number=%d, run_name=%r, '
+                     'release_number=%d, run_name=%r, url=%r, '
                      'image=%r, log=%r, config=%r',
                      build.id, release_name, release_number, run_name,
-                     run.image, run.log, run.config)
+                     run.url, run.image, run.log, run.config)
 
+    if ref_url:
+        run.ref_url = ref_url
     if ref_image:
         run.ref_image = ref_image
     if ref_log:
@@ -261,10 +274,10 @@ def report_run(build):
         run.ref_config = ref_config
     if ref_image or ref_log or ref_config:
         logging.info('Saved reference data: build_id=%r, release_name=%r, '
-                     'release_number=%d, run_name=%r, '
+                     'release_number=%d, run_name=%r, ref_url=%r, '
                      'ref_image=%r, ref_log=%r, ref_config=%r',
                      build.id, release_name, release_number, run_name,
-                     run.ref_image, run.ref_log, run.ref_config)
+                     run.ref_url, run.ref_image, run.ref_log, run.ref_config)
 
     if diff_image:
         run.diff_image = diff_image

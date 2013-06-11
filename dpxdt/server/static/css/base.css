@@ -48,6 +48,11 @@ h4 a:hover {
 .body-section {
     margin-top: 40px;
 }
+.footer-section {
+    margin-top: 60px;
+    border-top: 1px solid #ccc;
+    padding: 20px 0;
+}
 .inline-block {
     display: inline-block;
     margin: 0;

@@ -12,16 +12,16 @@ run description
 <div class="row">
     <div class="span6">
         {# TODO: Put something useful here. #}
+        {#
+            TODO: Who approved the diff
+            TODO: Heartbeat associated with the diff process
+         #}
     </div>
     <div class="span6 text-right">
-        <abbr title="Complete {{ release.created.strftime('%Y-%m-%dT%H:%MZ') }}">
+        <abbr title="Complete {{ run.created.strftime('%Y-%m-%dT%H:%MZ') }}">
             {{ run.created|timesince }}
         </abbr>
     </div>
-    {#
-        TODO: Who approved the diff
-        TODO: Heartbeat associated with the diff process
-     #}
 </div>
 
 <div class="row body-section">
@@ -84,9 +84,13 @@ run description
                 </div>
                 <div class="span6 text-right">
                     <small>
-                        <a href="#">Visit</a>
-                        {% if run.ref_log %}
+                        {% if run.ref_url %}
+                            <a href="{{ run.url }}" target="_blank">Visit</a>
+                        {% endif %}
+                        {% if run.ref_url and run.ref_log %}
                             &ndash;
+                        {% endif %}
+                        {% if run.ref_log %}
                             <a href="{{ url_for('view_log', id=build.id, name=release.name, number=release.number, test=run.name, type='before') }}">Log</a>
                         {% endif %}
                     </small>
@@ -120,7 +124,7 @@ run description
                     {% if run.diff_image %}
                         <a href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='diff') }}"><img src="{{ url_for('download', sha1sum=run.diff_image, build_id=build.id) }}" class="run-image"></a>
                     {% else %}
-                        No image
+                        None found
                     {% endif %}
                 </div>
             </div>
@@ -132,9 +136,13 @@ run description
                 </div>
                 <div class="span6 text-right">
                     <small>
-                        <a href="#">Visit</a>
-                        {% if run.log %}
+                        {% if run.url %}
+                            <a href="{{ run.url }}" target="_blank">Visit</a>
+                        {% endif %}
+                        {% if run.url and run.log %}
                             &ndash;
+                        {% endif %}
+                        {% if run.log %}
                             <a href="{{ url_for('view_log', id=build.id, name=release.name, number=release.number, test=run.name, type='after') }}">Log</a>
                         {% endif %}
                     </small>
