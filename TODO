@@ -4,6 +4,8 @@ Frontend
 - Branding, footer on all pages
 - Allow user to set build to good/bad when processing
 - Add before/after/diff button on artifact page
+- Add next/prev run to artifact page
+- Add approve/disapprove run to artifact page
 
 -------
 
