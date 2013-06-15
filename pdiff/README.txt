@@ -18,17 +18,17 @@ Build Instructions
 1. Download cross platform make from http://www.cmake.org
 2. Download freeimage from https://sourceforge.net/projects/freeimage
 3. Edit CMakeLists.txt to tell it where to find your free image build
-4. Type cmake .
-5. Type make . (or on Windows systems cmake makes a Visual Studio
-Project file)
-6. To specify the install directory, use make install DESTDIR="/home/me/mydist"
+4. Type mkdir build; cd build
+5. Type cmake ..
+6. Type make .
+7. To build clean, rm -Rf build and start again
 
 Usage
 
 perceptualdiff image1.(tif | png) image2.(tif | png) [options]
 -verbose : Turns on verbose mode
--fov deg: field of view, deg, in degrees. Usually between 10.0 to 85.0. 
-This controls how much of the screen the oberserver is seeing. Front row of 
+-fov deg: field of view, deg, in degrees. Usually between 10.0 to 85.0.
+This controls how much of the screen the oberserver is seeing. Front row of
 a theatre has a field of view of around 25 degrees. Back row has a field of
  view of around 60 degrees.
 -threshold p : Sets the number of pixels, p, to reject. For example if p is
