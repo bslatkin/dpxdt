@@ -14,11 +14,8 @@ cp $PHANTOMJS_BINARY $TEMP_DIR
 cp $PDIFF_BINARY $TEMP_DIR
 tar zcf $OUTPUT_ARCHIVE -C /tmp $ARCHIVE_NAME
 
-echo "Deployment package: $OUTPUT_ARCHIVE"
-echo "Copy this to $INSTALL_PATH/$ARCHIVE_NAME"
+echo "scp $OUTPUT_ARCHIVE foo@bar:$INSTALL_PATH"
 echo "cd $INSTALL_PATH"
-echo "tar zxf $OUTPUT_ARCHIVE"
-echo "mkdir /etc/service/dpxdt_worker/"
-echo "echo '#!/bin/bash' > /etc/service/dpxdt_worker/run"
-echo "echo 'exec $INSTALL_PATH/$ARCHIVE_NAME/run.sh' >> /etc/service/dpxdt_worker/run"
+echo "tar zxf $ARCHIVE_NAME.tar.gz"
+echo "cp -R $INSTALL_PATH/$ARCHIVE_NAME/runit /etc/service/dpxdt_worker"
 echo "sv start dpxdt_worker"

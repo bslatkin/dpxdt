@@ -1,5 +1,4 @@
 #!/bin/bash
-LOG_PATH=/var/log/service/dpxdt_worker
+export LOG_PATH=/var/log/service/dpxdt_worker
 mkdir -p $LOG_PATH
-cd $LOG_PATH
-/sbin/svlogd -tt $LOG_PATH
+exec /usr/bin/svlogd -ttt $LOG_PATH
