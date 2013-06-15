@@ -2,14 +2,19 @@ Frontend
 - Homepage
 - Homepage shows the user all of the builds they have
 - Branding, footer on all pages
-- Allow user to set build to good/bad when processing
+- Allow user to set build to good/bad when in processing state
 - Add before/after/diff button on artifact page
 - Add next/prev run to artifact page
 - Add approve/disapprove run to artifact page
+- Always allow localhost worker to talk to localhost so local testing isn't annoying
 
 -------
 
 Future
+- Let other users be owners of the same build ID
+- Add button to make build public
+- Free/test apps always have public assets
+- Add ToS click-through in login middleware
 - Cache DB queries
 - Capture diff fetch 500 errors automatically retried up to N times.
 - Log diff approvals and any other release state changes
@@ -19,6 +24,7 @@ Future
 - All screenshots deleted after 3 days unless you're in pro mode
 - Create a sitediff crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
 - Split site-diff to use server-side capture queue, so it can be much faster in aggregate
+- Would be nice if the background servers self-registered themselves
 
 -------
 
@@ -39,14 +45,6 @@ What is needed for each capture run:
   - css selectors to hide
   - screen size (for responsive CSS)
   - User agent spoofing (can just do this with headers?)
-
--------
-
-Random thoughts
-
-- Would be nice if the background servers self-registered themselves
-
-- Always allow localhost to talk to localhost so local testing isn't annoying.
 
 -------
 
