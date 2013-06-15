@@ -37,10 +37,10 @@ class User(db.Model):
     GOOGLE_OAUTH2 = 'google_oauth2'
     AUTH_TYPES = frozenset([GOOGLE_OAUTH2])
 
-    id = db.Column(db.String(500), primary_key=True)
+    id = db.Column(db.String(255), primary_key=True)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     last_seen = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    email_address = db.Column(db.String(500))
+    email_address = db.Column(db.String(255))
     superuser = db.Column(db.Boolean, default=False)
 
     @property
@@ -70,8 +70,8 @@ class User(db.Model):
 
 api_key_ownership_table = db.Table(
     'api_key_ownership',
-    db.Column('api_key', db.Integer, db.ForeignKey('api_key.id')),
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id')))
+    db.Column('api_key', db.String(255), db.ForeignKey('api_key.id')),
+    db.Column('user_id', db.String(255), db.ForeignKey('user.id')))
 
 
 class ApiKey(db.Model):
@@ -83,10 +83,10 @@ class ApiKey(db.Model):
     requestors using this API key will be able to operate on all builds.
     """
 
-    id = db.Column(db.String(500), primary_key=True)
-    secret = db.Column(db.String(500), nullable=False)
+    id = db.Column(db.String(255), primary_key=True)
+    secret = db.Column(db.String(255), nullable=False)
     active = db.Column(db.Boolean, default=True)
-    purpose = db.Column(db.String(500))
+    purpose = db.Column(db.String(255))
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
                          onupdate=datetime.datetime.utcnow)
@@ -101,7 +101,7 @@ class ApiKey(db.Model):
 ownership_table = db.Table(
     'build_ownership',
     db.Column('build_id', db.Integer, db.ForeignKey('build.id')),
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id')))
+    db.Column('user_id', db.String(255), db.ForeignKey('user.id')))
 
 
 class Build(db.Model):
@@ -117,7 +117,7 @@ class Build(db.Model):
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
                          onupdate=datetime.datetime.utcnow)
-    name = db.Column(db.String(500))
+    name = db.Column(db.String(255))
     public = db.Column(db.Boolean, default=False)
     owners = db.relationship('User', secondary=ownership_table,
                              backref=db.backref('builds', lazy='dynamic'),
@@ -142,7 +142,7 @@ class Release(db.Model):
     STATES = frozenset([RECEIVING, PROCESSING, REVIEWING, BAD, GOOD])
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(500), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
     number = db.Column(db.Integer, nullable=False)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
@@ -154,7 +154,7 @@ class Release(db.Model):
 
 artifact_ownership_table = db.Table(
     'artifact_ownership',
-    db.Column('artifact', db.Integer, db.ForeignKey('artifact.id')),
+    db.Column('artifact', db.String(100), db.ForeignKey('artifact.id')),
     db.Column('build_id', db.Integer, db.ForeignKey('build.id')))
 
 # TODO: Actually save the blob files somewhere else, like S3. Add a
@@ -167,7 +167,7 @@ class Artifact(db.Model):
     id = db.Column(db.String(100), primary_key=True)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     data = db.Column(db.LargeBinary)
-    content_type = db.Column(db.String(500))
+    content_type = db.Column(db.String(255))
     owners = db.relationship('Build', secondary=artifact_ownership_table,
                              backref=db.backref('artifacts', lazy='dynamic'),
                              lazy='dynamic')
@@ -193,7 +193,7 @@ class Run(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     release_id = db.Column(db.Integer, db.ForeignKey('release.id'))
-    name = db.Column(db.String(500), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
     # TODO: Put rigid DB constraint on uniqueness of (release_id, name)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,

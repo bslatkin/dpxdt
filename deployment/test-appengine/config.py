@@ -15,18 +15,29 @@
 
 """Configuration for local development."""
 
+import os
+
 SQLALCHEMY_DATABASE_URI = (
     'mysql+gaerdbms:///test?instance=dpxdt-project:test')
 
-# Google OAuth2 login config for test version development.
-GOOGLE_OAUTH2_CLIENT_ID = '918724168220.apps.googleusercontent.com'
-GOOGLE_OAUTH2_EMAIL_ADDRESS = '918724168220@developer.gserviceaccount.com'
-GOOGLE_OAUTH2_REDIRECT_PATH = '/oauth2callback'
-GOOGLE_OAUTH2_REDIRECT_URI = (
-    'https://dpxdt-test.appspot.com' + GOOGLE_OAUTH2_REDIRECT_PATH)
-
-
 from secrets import *
 
-
-GOOGLE_OAUTH2_CLIENT_SECRET = GOOGLE_OAUTH2_TEST_DEPLOY_CLIENT_SECRET
+if os.environ.get('SERVER_SOFTWARE', '').startswith('Development'):
+    GOOGLE_OAUTH2_EMAIL_ADDRESS = (
+        '918724168220-nqq27o7so1p7stukds23oo2vof5gkfmh@'
+        'developer.gserviceaccount.com')
+    GOOGLE_OAUTH2_REDIRECT_PATH = '/oauth2callback'
+    GOOGLE_OAUTH2_REDIRECT_URI = (
+        'http://localhost:5000' + GOOGLE_OAUTH2_REDIRECT_PATH)
+    GOOGLE_OAUTH2_CLIENT_ID = (
+        '918724168220-nqq27o7so1p7stukds23oo2vof5gkfmh'
+        '.apps.googleusercontent.com')
+    GOOGLE_OAUTH2_CLIENT_SECRET = 'EhiCP-PuQYN0OsWGAELTUHyl'
+else:
+    # Google OAuth2 login config for test version development.
+    GOOGLE_OAUTH2_EMAIL_ADDRESS = '918724168220@developer.gserviceaccount.com'
+    GOOGLE_OAUTH2_REDIRECT_PATH = '/oauth2callback'
+    GOOGLE_OAUTH2_REDIRECT_URI = (
+        'https://dpxdt-test.appspot.com' + GOOGLE_OAUTH2_REDIRECT_PATH)
+    GOOGLE_OAUTH2_CLIENT_ID = '918724168220.apps.googleusercontent.com'
+    GOOGLE_OAUTH2_CLIENT_SECRET = GOOGLE_OAUTH2_TEST_DEPLOY_CLIENT_SECRET

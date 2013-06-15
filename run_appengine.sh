@@ -6,4 +6,6 @@ dev_appserver.py \
     --mysql_user=root \
     --mysql_host=localhost \
     --mysql_port=3306 \
-    ./deployment/appengine-test/
+    --port=5000 \
+    --log_level=debug \
+    ./deployment/test-appengine/

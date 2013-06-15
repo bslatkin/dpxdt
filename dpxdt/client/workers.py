@@ -44,11 +44,6 @@ gflags.DEFINE_float(
     'polltime', 1.0,
     'How long to sleep between polling for work or subprocesses')
 
-gflags.DEFINE_bool(
-    'verbose', False,
-    'When set, do verbose logging output.')
-
-
 
 class Error(Exception):
     """Base class for exceptions in this module."""

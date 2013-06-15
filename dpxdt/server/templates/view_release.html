@@ -99,11 +99,13 @@ candidate description
 {% endif %}
 
 
-<div class="row footer-section">
+<div class="row">
     <div class="span12">
-        {% if release.url %}
-            <a href="{{ release.url }}" target="_blank">View release landing page</a>
-        {% endif %}
+        <div class="footer-section">
+            {% if release.url %}
+                <a href="{{ release.url }}" target="_blank">View release landing page</a>
+            {% endif %}
+        </div>
     </div>
 </div>
 

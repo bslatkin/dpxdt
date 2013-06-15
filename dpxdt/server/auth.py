@@ -59,11 +59,11 @@ def login_view():
         client_id=config.GOOGLE_OAUTH2_CLIENT_ID,
         redirect_uri=config.GOOGLE_OAUTH2_REDIRECT_URI,
         scope=GOOGLE_OAUTH2_SCOPES,
-        state=request.args.get('next'),
+        state=urllib.quote(request.args.get('next')),
     )
     target_url = '%s?%s' % (
         GOOGLE_OAUTH2_AUTH_URL, urllib.urlencode(params))
-    logging.debug('Redirecting url=%r', target_url)
+    logging.debug('Redirecting user to login at url=%r', target_url)
     return redirect(target_url)
 
 
@@ -78,7 +78,7 @@ def login_auth():
         grant_type='authorization_code'
     )
     payload = urllib.urlencode(params)
-    logging.debug('Posting url=%r, payload=%r',
+    logging.debug('Posting for token to url=%r, payload=%r',
                   GOOGLE_OAUTH2_TOKEN_URL, payload)
     fetch_request = urllib2.Request(GOOGLE_OAUTH2_TOKEN_URL, payload)
     conn = urllib2.urlopen(fetch_request, timeout=FETCH_TIMEOUT_SECONDS)
@@ -90,7 +90,7 @@ def login_auth():
     )
     payload = urllib.urlencode(params)
     target_url = '%s?%s' % (GOOGLE_OAUTH2_USERINFO_URL, payload)
-    logging.debug('Fetching url=%r', target_url)
+    logging.debug('Fetching user info from url=%r', target_url)
     fetch_request = urllib2.Request(target_url)
     conn = urllib2.urlopen(fetch_request, timeout=FETCH_TIMEOUT_SECONDS)
     data = conn.read()
@@ -106,8 +106,9 @@ def login_auth():
         db.session.commit()
 
     login_user(user)
-
-    return redirect(request.args.get('state'))
+    final_url = urllib.unquote(request.args.get('state'))
+    logging.debug('User is logged in. Redirecting to url=%r', final_url)
+    return redirect(final_url)
 
 
 @app.route('/whoami')

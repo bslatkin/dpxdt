@@ -35,6 +35,11 @@ gflags.DEFINE_bool(
     'When true, run queue worker threads locally in the same process '
     'as the server.')
 
+gflags.DEFINE_bool('reload_code', False,
+    'Reload code on every request. Should only be used in local development.')
+
+gflags.DEFINE_integer('port', 5000, 'Port to run the HTTP server on.')
+
 
 def run_workers():
     coordinator = workers.GetCoordinator()
@@ -52,13 +57,15 @@ def main(argv):
         print '%s\nUsage: %s ARGS\n%s' % (e, sys.argv[0], FLAGS)
         sys.exit(1)
 
+    logging.basicConfig(
+        format='%(levelname)s %(filename)s:%(lineno)s] %(message)s')
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
     if FLAGS.local_queue_workers:
         run_workers()
 
-    server.app.run(debug=True)
+    server.app.run(debug=FLAGS.reload_code, port=FLAGS.port)
 
 
 if __name__ == '__main__':
