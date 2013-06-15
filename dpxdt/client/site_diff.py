@@ -15,6 +15,7 @@
 
 """Utility for doing incremental diffs for a live website.
 
+TODO: Move these examples to the readme
 
 Example local usage:
 
@@ -56,6 +57,7 @@ FLAGS = gflags.FLAGS
 
 # Local modules
 import capture_worker
+import dpxdt
 import pdiff_worker
 import release_worker
 import workers

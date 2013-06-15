@@ -18,7 +18,7 @@
 import os
 
 SQLALCHEMY_DATABASE_URI = (
-    'mysql+gaerdbms:///test?instance=dpxdt-project:test')
+    'mysql+gaerdbms:///test?instance=dpxdt-cloud:test')
 
 from secrets import *
 

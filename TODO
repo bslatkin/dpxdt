@@ -7,6 +7,7 @@ Frontend
 - Add next/prev run to artifact page
 - Add approve/disapprove run to artifact page
 - Always allow localhost worker to talk to localhost so local testing isn't annoying
+- Diff says "None found" on comparison page when processing is pending
 
 -------
 
