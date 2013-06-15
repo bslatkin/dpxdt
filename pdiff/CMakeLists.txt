@@ -57,7 +57,15 @@ set(CPACK_SOURCE_GENERATOR TGZ)
 set(CPACK_SOURCE_IGNORE_FILES
 "~$"
 "\\\\.cvsignore$"
-"^${PROJECT_SOURCE_DIR}/build/"
+"^${PROJECT_SOURCE_DIR}/CMakeFiles/"
+"^${PROJECT_SOURCE_DIR}/CMakeCache.txt"
+"^${PROJECT_SOURCE_DIR}/CPackSourceConfig.cmake"
+"^${PROJECT_SOURCE_DIR}/CPackConfig.cmake"
+"^${PROJECT_SOURCE_DIR}/Makefile"
+"^${PROJECT_SOURCE_DIR}/_CPack_Packages"
 "^${PROJECT_SOURCE_DIR}/test/"
+"^${PROJECT_SOURCE_DIR}/cmake_install.cmake"
 )
 include(CPack)
+
+

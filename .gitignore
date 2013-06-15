@@ -10,4 +10,10 @@ CVS
 *.pyc
 secrets.py
 */secrets.py
-pdiff/build
+pdiff/CMakeCache.txt
+pdiff/CMakeFiles/
+pdiff/CPackConfig.cmake
+pdiff/CPackSourceConfig.cmake
+pdiff/Makefile
+pdiff/cmake_install.cmake
+pdiff/perceptualdiff
