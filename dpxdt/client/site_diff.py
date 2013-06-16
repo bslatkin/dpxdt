@@ -312,24 +312,20 @@ def real_main(start_url=None,
               coordinator=None):
     """Runs the site_diff."""
     if not coordinator:
-        coordinator = workers.GetCoordinator()
+        coordinator = workers.get_coordinator()
     capture_worker.register(coordinator)
     pdiff_worker.register(coordinator)
     coordinator.start()
 
-    try:
-        item = SiteDiff(
-            start_url=start_url,
-            ignore_prefixes=ignore_prefixes,
-            upload_build_id=upload_build_id,
-            upload_release_name=upload_release_name,
-            heartbeat=PrintWorkflow)
-        item.root = True
-        coordinator.input_queue.put(item)
-        result = coordinator.output_queue.get()
-        result.check_result()
-    finally:
-        coordinator.stop()
+    item = SiteDiff(
+        start_url=start_url,
+        ignore_prefixes=ignore_prefixes,
+        upload_build_id=upload_build_id,
+        upload_release_name=upload_release_name,
+        heartbeat=PrintWorkflow)
+    item.root = True
+    coordinator.input_queue.put(item)
+    coordinator.wait_until_interrupted()
 
 
 def main(argv):

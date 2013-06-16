@@ -32,23 +32,13 @@ from client import workers
 
 
 def run_workers():
-    coordinator = workers.GetCoordinator()
+    coordinator = workers.get_coordinator()
     capture_worker.register(coordinator)
     pdiff_worker.register(coordinator)
     queue_workers.register(coordinator)
     coordinator.start()
     logging.info('Workers started')
-
-    while True:
-        try:
-            item = coordinator.output_queue.get(True, 1)
-        except Queue.Empty:
-            continue
-        except KeyboardInterrupt:
-            logging.info('Exiting')
-            return
-        else:
-            item.check_result()
+    coordinator.wait_until_interrupted()
 
 
 def main(argv):

@@ -504,6 +504,19 @@ class WorkflowThread(WorkerThread):
             thread.join()
         WorkerThread.join(self)
 
+    def wait_until_interrupted(self):
+        """Waits until this worker is interrupted by a terminating signal."""
+        while True:
+            try:
+                item = self.output_queue.get(True, 1)
+            except Queue.Empty:
+                continue
+            except KeyboardInterrupt:
+                logging.debug('Exiting')
+                return
+            else:
+                item.check_result()
+
     def register(self, work_type, queue):
         """Registers where work for a specific type can be executed.
 
@@ -580,7 +593,7 @@ class WorkflowThread(WorkerThread):
             target_queue.put(item)
 
 
-def GetCoordinator():
+def get_coordinator():
     """Creates a coordinator and returns it."""
     fetch_queue = Queue.Queue()
     timer_queue = Queue.Queue()

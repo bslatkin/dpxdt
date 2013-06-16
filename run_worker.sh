@@ -8,4 +8,5 @@ source common.sh
     --pdiff_binary=$PDIFF_BINARY \
     --release_server_prefix=http://localhost:5000/api \
     --queue_server_prefix=http://localhost:5000/api/work_queue \
+    --verbose \
     $@

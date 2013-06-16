@@ -74,7 +74,7 @@ class WorkflowThreadTest(unittest.TestCase):
         """Sets up the test harness."""
         FLAGS.fetch_frequency = 100
         FLAGS.polltime = 0.01
-        self.coordinator = workers.GetCoordinator()
+        self.coordinator = workers.get_coordinator()
 
     def tearDown(self):
         """Cleans up the test harness."""

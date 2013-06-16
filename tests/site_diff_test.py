@@ -155,7 +155,7 @@ class SiteDiffTest(unittest.TestCase):
         self.test_dir = tempfile.mkdtemp('site_diff_test')
         self.output_dir = join(self.test_dir, 'output')
         self.reference_dir = join(self.test_dir, 'reference')
-        self.coordinator = workers.GetCoordinator()
+        self.coordinator = workers.get_coordinator()
 
     def output_readlines(self, path):
         """Reads the lines of an output file, stripping newlines."""
@@ -196,7 +196,7 @@ class SiteDiffTest(unittest.TestCase):
             output_dir=self.reference_dir,
             coordinator=self.coordinator)
 
-        self.coordinator = workers.GetCoordinator()
+        self.coordinator = workers.get_coordinator()
         site_diff.real_main(
             start_url='http://%s:%d/' % test.server_address,
             output_dir=self.output_dir,
@@ -236,7 +236,7 @@ class SiteDiffTest(unittest.TestCase):
             if path == '/':
                 return 200, 'text/html', 'Hello world a little different!'
 
-        self.coordinator = workers.GetCoordinator()
+        self.coordinator = workers.get_coordinator()
         site_diff.real_main(
             start_url='http://%s:%d/' % test.server_address,
             output_dir=self.output_dir,

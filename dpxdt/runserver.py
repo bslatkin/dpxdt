@@ -47,7 +47,7 @@ gflags.DEFINE_integer('port', 5000, 'Port to run the HTTP server on.')
 
 
 def run_workers():
-    coordinator = workers.GetCoordinator()
+    coordinator = workers.get_coordinator()
     capture_worker.register(coordinator)
     pdiff_worker.register(coordinator)
     queue_workers.register(coordinator)
