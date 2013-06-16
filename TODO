@@ -3,6 +3,7 @@ Frontend
 - Homepage shows the user all of the builds they have
 - Branding, footer on all pages
 - Fix the favicon URL
+- When a log file is sent to report_run without an image, don't change the state of the run
 
 Docs
 - Document the REST API

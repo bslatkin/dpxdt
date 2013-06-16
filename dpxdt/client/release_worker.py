@@ -272,28 +272,37 @@ class ReportRunWorkflow(workers.WorkflowItem):
             ref_url=None, ref_image=None, ref_log=None, ref_config=None):
 
         upload_jobs = [
-            UploadFileWorkflow(build_id, image_path),
             UploadFileWorkflow(build_id, log_path),
         ]
+        if image_path:
+            image_index = len(upload_jobs)
+            upload_jobs.append(UploadFileWorkflow(build_id, image_path))
 
         if config_path:
+            config_index = len(upload_jobs)
             upload_jobs.append(UploadFileWorkflow(build_id, config_path))
-            screenshot_id, log_id = yield upload_jobs
-        else:
-            screenshot_id, log_id = yield upload_jobs
-            config_id = None
+
+        results = yield upload_jobs
+        log_id = results[0]
+        image_id = None
+        config_id = None
+        if image_path:
+            image_id = results[image_index]
+        if config_path:
+            config_id = results[config_index]
 
         post = {
             'build_id': build_id,
             'release_name': release_name,
             'release_number': release_number,
             'run_name': run_name,
-            'image': screenshot_id,
             'log': log_id,
         }
 
         if url:
             post.update(url=url)
+        if image_id:
+            post.update(image=image_id),
         if config_id:
             post.update(config=config_id)
         if ref_url:
