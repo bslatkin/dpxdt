@@ -362,13 +362,13 @@ def report_run(build):
                      build.id, release.name, release.number, run.name,
                      run.diff_image, run.diff_log)
 
-    if run.diff_image:
+    if run.image and run.diff_image:
         run.status = models.Run.DIFF_FOUND
-    elif run.ref_image and not run.diff_log:
+    elif run.image and run.ref_image and not run.diff_log:
         run.status = models.Run.NEEDS_DIFF
-    elif run.ref_image and run.diff_log:
+    elif run.image and run.ref_image and run.diff_log:
         run.status = models.Run.DIFF_NOT_FOUND
-    elif not run.ref_image:
+    elif run.image and not run.ref_image:
         run.status = models.Run.NO_DIFF_NEEDED
 
     # TODO: Verify the build has access to both the current_image and

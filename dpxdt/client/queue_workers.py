@@ -266,13 +266,19 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
             yield heartbeat('Running webpage capture process')
             capture = yield capture_worker.CaptureItem(
                 log_path, config_path, image_path)
-            if capture.returncode != 0:
-                raise CaptureFailedError('returncode=%r' % capture.returncode)
 
             yield heartbeat('Reporting capture status to server')
+
+            # Don't upload bad captures, but always upload the error log.
+            if capture.returncode != 0:
+                image_path = None
+
             yield release_worker.ReportRunWorkflow(
                 build_id, release_name, release_number, run_name,
-                image_path, log_path)
+                image_path=image_path, log_path=log_path)
+
+            if capture.returncode != 0:
+                raise CaptureFailedError('returncode=%r' % capture.returncode)
         finally:
             shutil.rmtree(output_path, True)
 
@@ -324,11 +330,12 @@ def register(coordinator):
         item.root = True
         coordinator.input_queue.put(item)
 
-        site_diff_queue_url = '%s/%s' % (
-            FLAGS.queue_server_prefix, constants.SITE_DIFF_QUEUE_NAME)
-        item = RemoteQueueWorkflow(
-            site_diff_queue_url,
-            DoSiteDiffQueueWorkflow,
-            poll_period=FLAGS.queue_poll_seconds)
-        item.root = True
-        coordinator.input_queue.put(item)
+        # TODO: Reenable the site-diff queue later
+        # site_diff_queue_url = '%s/%s' % (
+        #     FLAGS.queue_server_prefix, constants.SITE_DIFF_QUEUE_NAME)
+        # item = RemoteQueueWorkflow(
+        #     site_diff_queue_url,
+        #     DoSiteDiffQueueWorkflow,
+        #     poll_period=FLAGS.queue_poll_seconds)
+        # item.root = True
+        # coordinator.input_queue.put(item)

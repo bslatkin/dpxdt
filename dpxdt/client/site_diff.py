@@ -32,9 +32,7 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-import capture_worker
 import dpxdt
-import pdiff_worker
 import release_worker
 import workers
 
@@ -57,13 +55,6 @@ gflags.DEFINE_string(
     'upload_release_name', None,
     'Along with upload_build_id, the name of the release to upload to. If '
     'not supplied, a new release will be created.')
-
-
-class Error(Exception):
-    """Base class for exceptions in this module."""
-
-class CaptureFailedError(Error):
-    """Capturing a page screenshot failed."""
 
 
 # URL regex rewriting code originally from mirrorrr
@@ -313,8 +304,6 @@ def real_main(start_url=None,
     """Runs the site_diff."""
     if not coordinator:
         coordinator = workers.get_coordinator()
-    capture_worker.register(coordinator)
-    pdiff_worker.register(coordinator)
     coordinator.start()
 
     item = SiteDiff(

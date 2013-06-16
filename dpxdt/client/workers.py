@@ -516,6 +516,7 @@ class WorkflowThread(WorkerThread):
                 return
             else:
                 item.check_result()
+                return
 
     def register(self, work_type, queue):
         """Registers where work for a specific type can be executed.

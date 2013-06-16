@@ -254,8 +254,8 @@ class ReportRunWorkflow(workers.WorkflowItem):
         release_name: Name of the release.
         release_number: Number of the release candidate.
         run_name: Name of the run being uploaded.
-        log_path: Path to the screenshot log to upload.
-        screenshot_path: Path to the screenshot to upload.
+        log_path: Optional. Path to the screenshot log to upload.
+        image_path: Optional. Path to the screenshot to upload.
         url: Optional. URL that was fetched for the run.
         config_path: Optional. Path to the config to upload.
         ref_url: Optional. Previously fetched URL this is being compared to.
@@ -268,11 +268,11 @@ class ReportRunWorkflow(workers.WorkflowItem):
     """
 
     def run(self, build_id, release_name, release_number, run_name,
-            screenshot_path, log_path, url=None, config_path=None,
+            image_path=None, log_path=None, url=None, config_path=None,
             ref_url=None, ref_image=None, ref_log=None, ref_config=None):
 
         upload_jobs = [
-            UploadFileWorkflow(build_id, screenshot_path),
+            UploadFileWorkflow(build_id, image_path),
             UploadFileWorkflow(build_id, log_path),
         ]
 
