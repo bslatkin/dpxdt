@@ -16,12 +16,11 @@
 import sys
 sys.path.insert(0, './lib/')
 
+from dpxdt.server import app
 
 import logging
 logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
 
-
-from dpxdt.server import app
 
 @app.route('/_ah/warmup')
 def appengine_warmup():
