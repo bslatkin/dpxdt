@@ -35,7 +35,7 @@ Work queue: {{ queue_name }}
                 <div class="span3 ellipsis-overflow">
                     {{ task.task_id }}
                 </div>
-                <div class="span1 ellipsis-overflow">
+                <div class="span1">
                     {{ task.source|default('-', true) }}
                 </div>
                 {% if task.lease_outstanding %}
@@ -60,10 +60,10 @@ Work queue: {{ queue_name }}
                         {{ task.finished|timesince }}
                     </div>
                 {% endif %}
-                <div class="span2 ellipsis-overflow">
+                <div class="span2">
                     {{ task.last_owner|default('-', true) }}
                 </div>
-                <div class="span3 ellipsis-overflow">
+                <div class="span3">
                     {{ task.heartbeat|default('-', true) }}
                 </div>
             </div>

@@ -15,11 +15,14 @@ tar zcf $OUTPUT_ARCHIVE -C /tmp $ARCHIVE_NAME
 
 echo "scp $OUTPUT_ARCHIVE foo@bar:/tmp"
 echo
-echo "On the host machine as root:"
+echo "# On the host machine as root:"
 echo
 echo "apt-get install perceptualdiff"
 echo "cp /tmp/$ARCHIVE_NAME.tar.gz $INSTALL_PATH"
 echo "cd $INSTALL_PATH"
 echo "tar zxf $ARCHIVE_NAME.tar.gz"
 echo "cp -R $ARCHIVE_NAME/runit /etc/service/dpxdt_worker"
+echo
+echo "# Modify dpxdt_worker/flags.cfg with your API keys"
+echo
 echo "sv start dpxdt_worker"
