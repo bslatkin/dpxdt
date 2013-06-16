@@ -6,16 +6,8 @@ Frontend
 - Add before/after/diff button on artifact page
 - Add next/prev run to artifact page
 - Add approve/disapprove run to artifact page
-- Always allow localhost worker to talk to localhost so local testing isn't annoying
 - Diff says "None found" on comparison page when processing is pending
 - Fix the favicon URL
-
-Site diff
-- Remove the local file diff
-- Rely on the API server to find the last good version, etc
-
-API
-- Add a 'request capture' API for a build to create a run; just like reporting a run except it will capture the URL for you
 
 Docs
 - Document the REST API

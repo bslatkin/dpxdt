@@ -21,18 +21,20 @@ build description
                 {% with candidate_list=release_dict[release_name] %}
                     <div class="row build-release-section">
                         <div class="span12">
-                            <div class="row build-release-first-row">
-                                <div class="span2 ellipsis-overflow">
-                                    {{ release_name }}
-                                </div>
-                                <div class="span2">
-                                    {% if candidate_list|length == 1 %}
-                                        1 candidate
-                                    {% elif candidate_list|length > 1 %}
-                                        {{ candidate_list|length }} candidates
-                                    {% else %}
-                                        No candidates
-                                    {% endif %}
+                            <div class="build-release-first-row">
+                                <div class="row">
+                                    <div class="span2 ellipsis-overflow">
+                                        {{ release_name }}
+                                    </div>
+                                    <div class="span2">
+                                        {% if candidate_list|length == 1 %}
+                                            1 candidate
+                                        {% elif candidate_list|length > 1 %}
+                                            {{ candidate_list|length }} candidates
+                                        {% else %}
+                                            No candidates
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                             {% for candidate in candidate_list %}
