@@ -135,7 +135,9 @@ def create_release(build):
 def _check_release_done_processing(release):
     """Moves a release candidate to reviewing if all runs are done."""
     if release.status != models.Release.PROCESSING:
-        logging.debug('Not yet processing: release_id=%r', release.id)
+        logging.info('Release not in processing state yet: build_id=%r, '
+                     'name=%r, number=%d', release.build_id, release.name,
+                     release.number)
         return False
 
     query = models.Run.query.filter_by(release_id=release.id)
