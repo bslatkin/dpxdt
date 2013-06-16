@@ -2,8 +2,6 @@ Frontend
 - Homepage
 - Homepage shows the user all of the builds they have
 - Branding, footer on all pages
-- Allow user to set build to good/bad when in processing state
-- Diff says "None found" on comparison page when processing is pending
 - Fix the favicon URL
 
 Docs
@@ -15,7 +13,6 @@ Docs
 Future
 - Let other users be owners of the same build ID
 - Add button to make build public
-- Free/test apps always have public assets
 - Add ToS click-through in login middleware
 - Cache DB queries
 - Capture diff fetch 500 errors automatically retried up to N times.
@@ -25,7 +22,6 @@ Future
 - Email or HTTP callback once processing / reviewing state hit for a release
 - All screenshots deleted after 3 days unless you're in pro mode
 - Create a sitediff crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
-- Split site-diff to use server-side capture queue, so it can be much faster in aggregate
 - Would be nice if the background servers self-registered themselves
 
 -------

@@ -6,8 +6,10 @@
     {% set run_status='warning' %}
 {% elif run.status == 'diff_approved' %}
     {% set run_status='info' %}
-{% else %}
+{% elif run.status == 'no_diff_needed' %}
     {% set run_status='normal' %}
+{% else %}
+    {% set run_status='warning' %}
 {% endif %}
 
 {% if alert_wrapper %}

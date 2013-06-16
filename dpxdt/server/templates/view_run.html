@@ -134,7 +134,7 @@ run description
                     {% if run.diff_image %}
                         <a href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='diff') }}"><img src="{{ url_for('download', sha1sum=run.diff_image, build_id=build.id) }}" class="run-image"></a>
                     {% else %}
-                        None found
+                        No image
                     {% endif %}
                 </div>
             </div>
