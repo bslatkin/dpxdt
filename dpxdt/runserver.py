@@ -28,6 +28,7 @@ from client import pdiff_worker
 from client import queue_workers
 from client import workers
 import server
+from server import models
 
 
 gflags.DEFINE_bool(
@@ -37,6 +38,10 @@ gflags.DEFINE_bool(
 
 gflags.DEFINE_bool('reload_code', False,
     'Reload code on every request. Should only be used in local development.')
+
+gflags.DEFINE_bool('ignore_auth', False,
+    'Ignore any need for authentication for API and frontend accesses. You '
+    'should only do this for local development!')
 
 gflags.DEFINE_integer('port', 5000, 'Port to run the HTTP server on.')
 
@@ -64,6 +69,16 @@ def main(argv):
 
     if FLAGS.local_queue_workers:
         run_workers()
+
+    if FLAGS.ignore_auth:
+        def create_anonymous_superuser():
+            return models.User(
+                id='anonymous_superuser',
+                email_address='superuser@example.com',
+                superuser=1)
+
+        server.app.config['IGNORE_AUTH'] = True
+        server.login.anonymous_user = create_anonymous_superuser
 
     server.app.run(debug=FLAGS.reload_code, port=FLAGS.port)
 

@@ -43,11 +43,6 @@ class User(db.Model):
     email_address = db.Column(db.String(255))
     superuser = db.Column(db.Boolean, default=False)
 
-    @property
-    def auth_type(self):
-        parts = self.id.split(':', 1)
-        return parts[0]
-
     # Methods required by flask-login.
     def is_authenticated(self):
         return True
@@ -167,6 +162,7 @@ class Artifact(db.Model):
     id = db.Column(db.String(100), primary_key=True)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     data = db.Column(db.LargeBinary)
+    alternate = db.Column(db.Text)
     content_type = db.Column(db.String(255))
     owners = db.relationship('Build', secondary=artifact_ownership_table,
                              backref=db.backref('artifacts', lazy='dynamic'),

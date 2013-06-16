@@ -210,6 +210,12 @@ def current_api_key():
     Returns:
         The API key.
     """
+    if app.config.get('IGNORE_AUTH'):
+        return models.ApiKey(
+            id='anonymous_superuser',
+            secret='',
+            superuser=True)
+
     auth_header = request.authorization
     if not auth_header:
         logging.debug('API request lacks authorization header')
@@ -272,9 +278,10 @@ def superuser_api_key_required(f):
     def wrapped(*args, **kwargs):
         api_key = current_api_key()
 
-        if not api_key.superuser:
-            logging.debug('API key=%r not a superuser')
-            abort(403)
+        utils.jsonify_assert(
+            api_key.superuser,
+            'API key=%r must be a super user' % api_key.id,
+            403)
 
         return f(*args, **kwargs)
 

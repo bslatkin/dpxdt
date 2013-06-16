@@ -10,6 +10,17 @@ Frontend
 - Diff says "None found" on comparison page when processing is pending
 - Fix the favicon URL
 
+Site diff
+- Remove the local file diff
+- Rely on the API server to find the last good version, etc
+
+API
+- Add a 'request capture' API for a build to create a run; just like reporting a run except it will capture the URL for you
+
+Docs
+- Document the REST API
+- Show example usage of the site_diff tool
+
 -------
 
 Future

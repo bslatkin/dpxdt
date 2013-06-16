@@ -73,11 +73,14 @@ class WorkItem(object):
             else:
                 return value_str
 
+    def _get_dict_for_repr(self):
+        return self.__dict__
+
     def __repr__(self):
         return '%s.%s(%s)' % (
             self.__class__.__module__,
             self.__class__.__name__,
-            self._print_tree(self.__dict__))
+            self._print_tree(self._get_dict_for_repr()))
 
     def check_result(self):
         # TODO: For WorkflowItems, remove generator.throw(*item.error) from
@@ -186,6 +189,12 @@ class FetchItem(WorkItem):
         self.data = None
         self.headers = None
         self._data_json = None
+
+    def _get_dict_for_repr(self):
+        result = self.__dict__.copy()
+        if result.get('password'):
+            result['password'] = 'ELIDED'
+        return result
 
     @property
     def json(self):

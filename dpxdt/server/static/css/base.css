@@ -16,6 +16,9 @@ h4 a:hover {
     overflow: hidden;
     white-space: nowrap;
 }
+.force-wrap {
+    word-wrap: break-word;
+}
 .alert-normal {
     color: #999999;
     background-color: #eeeeee;

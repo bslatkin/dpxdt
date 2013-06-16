@@ -46,7 +46,6 @@ gflags.DEFINE_string(
 class CaptureItem(workers.ProcessItem):
     """Work item for capturing a website screenshot using PhantomJs."""
 
-    # TODO: Change parameter order to config, log, output
     def __init__(self, log_path, config_path, output_path):
         """Initializer.
 

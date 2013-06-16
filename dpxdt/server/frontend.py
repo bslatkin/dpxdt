@@ -307,6 +307,7 @@ def view_run(build):
 
 @app.route('/image', endpoint='view_image')
 @app.route('/log', endpoint='view_log')
+@app.route('/config', endpoint='view_config')
 @auth.build_access_required
 def view_artifact(build):
     """Page for viewing a specific artifact from a test run."""
@@ -335,6 +336,8 @@ def view_artifact(build):
 
     image_file = False
     log_file = False
+    config_file = False
+
     if request.path == '/image':
         image_file = True
         if file_type == 'before':
@@ -355,6 +358,14 @@ def view_artifact(build):
             sha1sum = run.log
         else:
             abort(400)
+    elif request.path == '/config':
+        config_file = True
+        if file_type == 'before':
+            sha1sum = run.ref_config
+        elif file_type == 'after':
+            sha1sum = run.config
+        else:
+            abort(400)
 
     if not sha1sum:
         abort(404)
@@ -367,6 +378,7 @@ def view_artifact(build):
         file_type=file_type,
         image_file=image_file,
         log_file=log_file,
+        config_file=config_file,
         sha1sum=sha1sum)
 
 

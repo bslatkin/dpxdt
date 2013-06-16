@@ -243,6 +243,7 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
         release_name: Name of the release.
         release_number: Number of the release candidate.
         run_name: Run to run perceptual diff for.
+        url: URL of the content to screenshot.
         config_sha1sum: Content hash of the config for the new screenshot.
         heartbeat: Function to call with progress status.
 
@@ -251,19 +252,18 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
     """
 
     def run(self, build_id=None, release_name=None, release_number=None,
-            run_name=None, config_sha1sum=None, heartbeat=None):
+            run_name=None, url=None, config_sha1sum=None, heartbeat=None):
         output_path = tempfile.mkdtemp()
         try:
-            image_path = os.path.join(output_path, 'capture')
-            log_path = os.path.join(output_path, 'log')
-            config_path = os.path.join(output_path, 'config')
+            image_path = os.path.join(output_path, 'capture.png')
+            log_path = os.path.join(output_path, 'log.txt')
+            config_path = os.path.join(output_path, 'config.json')
 
             yield heartbeat('Fetching webpage capture config')
             yield release_worker.DownloadArtifactWorkflow(
                 build_id, config_sha1sum, result_path=config_path)
 
             yield heartbeat('Running webpage capture process')
-
             capture = yield capture_worker.CaptureItem(
                 log_path, config_path, image_path)
             if capture.returncode != 0:
@@ -272,7 +272,7 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
             yield heartbeat('Reporting capture status to server')
             yield release_worker.ReportRunWorkflow(
                 build_id, release_name, release_number, run_name,
-                image_path, log_path, config_path)
+                image_path, log_path)
         finally:
             shutil.rmtree(output_path, True)
 

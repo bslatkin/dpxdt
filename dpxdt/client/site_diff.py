@@ -13,31 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utility for doing incremental diffs for a live website.
-
-TODO: Move these examples to the readme
-
-Example local usage:
-
-./site_diff.py \
-    --phantomjs_binary=path/to/phantomjs-1.8.1-macosx/bin/phantomjs \
-    --phantomjs_script=path/to/client/capture.js \
-    --pdiff_binary=path/to/pdiff/perceptualdiff \
-    --output_dir=path/to/your/output \
-    http://www.example.com/my/website/here
-
-
-Example usage with API server:
-
-./site_diff.py \
-    --phantomjs_binary=path/to/phantomjs-1.8.1-macosx/bin/phantomjs \
-    --phantomjs_script=path/to/client/capture.js \
-    --pdiff_binary=path/to/pdiff/perceptualdiff \
-    --output_dir=path/to/your/output \
-    --upload_build_id=1234 \
-    http://www.example.com/my/website/here
-
-"""
+"""Utility for doing incremental diffs for a live website."""
 
 import HTMLParser
 import Queue
@@ -74,22 +50,13 @@ gflags.DEFINE_spaceseplist(
     'URL prefixes that should not be crawled.')
 
 gflags.DEFINE_string(
-    'output_dir', None,
-    'Directory where the output should be saved. If it does not exist '
-    'it will be created.')
-
-gflags.DEFINE_string(
-    'reference_dir', None,
-    'Directory where this tool last ran; used for generating new diffs. '
-    'When empty, no diffs will be made.')
-
-gflags.DEFINE_string(
     'upload_build_id', None,
     'ID of the build to upload this screenshot set to as a new release.')
 
 gflags.DEFINE_string(
     'upload_release_name', None,
-    'Along with upload_build_id, the name of the release to upload to.')
+    'Along with upload_build_id, the name of the release to upload to. If '
+    'not supplied, a new release will be created.')
 
 
 class Error(Exception):
@@ -228,81 +195,13 @@ def prune_urls(url_set, start_url, allowed_list, ignored_list):
     return result
 
 
-class PdiffWorkflow(workers.WorkflowItem):
-    """Workflow for generating Pdiffs."""
-
-    def run(self, url, output_dir, reference_dir, heartbeat=None):
-        parts = urlparse.urlparse(url)
-        clean_url = (
-            parts.path.replace('/', '_').replace('\\', '_')
-            .replace(':', '_').replace('.', '_'))
-        output_base = os.path.join(output_dir, clean_url)
-
-        config_path = output_base + '_config.js'
-        with open(config_path, 'w') as config_file:
-            # TODO: Take the base config from a standard file or flags.
-            config_file.write(json.dumps({
-                'targetUrl': url,
-                'viewportSize': {
-                    'width': 1024,
-                    'height': 768,
-                }
-            }))
-
-        capture = yield capture_worker.CaptureItem(
-            output_base + '_run.txt',
-            config_path,
-            output_base + '_run.png')
-
-        if capture.returncode != 0:
-            raise CaptureFailedError('Failed to capture url=%r' % url)
-
-        yield heartbeat('Captured: %s' % url)
-
-        if not reference_dir:
-            raise workers.Return((
-                parts.path, url, capture.output_path, capture.log_path,
-                capture.config_path))
-
-        ref_base = os.path.join(reference_dir, clean_url)
-        last_run = ref_base + '_run.png'
-        if not os.path.exists(last_run):
-            return
-
-        last_log = ref_base + '_run.txt'
-        if not os.path.exists(last_log):
-            return
-
-        ref_output = output_base + '_ref.png'
-        ref_log = output_base + '_ref.txt'
-        shutil.copy(last_run, ref_output)
-        shutil.copy(last_log, ref_log)
-
-        diff_output = output_base + '_diff.png'
-        diff = yield pdiff_worker.PdiffItem(
-            output_base + '_diff.txt',
-            ref_output,
-            capture.output_path,
-            diff_output)
-
-        yield heartbeat('Diffed: %s' % url)
-
-        if diff.returncode != 0 and os.path.exists(diff_output):
-            yield heartbeat('Found diff for path=%r, diff=%r' %
-                            (parts.path, diff_output))
-
-
 class SiteDiff(workers.WorkflowItem):
     """Workflow for coordinating the site diff.
 
     Args:
         start_url: URL to begin the site diff scan.
-        output_dir: Directory path where the results should be saved.
         ignore_prefixes: Optional. List of URL prefixes to ignore during
             the crawl; start_url should be a common prefix with all of these.
-        reference_dir: Optional, mutually exclusive with upload_build_id.
-            Directory of a previous run of this workflow with images to
-            compare this one to.
         upload_build_id: Optional. Build ID of the site being compared. When
             supplied a new release will be cut for this build comparing it
             to the last good release.
@@ -314,19 +213,14 @@ class SiteDiff(workers.WorkflowItem):
 
     def run(self,
             start_url,
-            output_dir,
             ignore_prefixes,
-            reference_dir=None,
             upload_build_id=None,
             upload_release_name=None,
             heartbeat=None):
-        assert not upload_build_id or (upload_build_id and not reference_dir)
+        output_dir = tempfile.mkdtemp()
 
         if not ignore_prefixes:
             ignore_prefixes = []
-
-        if not os.path.isdir(output_dir):
-            os.mkdir(output_dir)
 
         pending_urls = set([clean_url(start_url)])
         seen_urls = set()
@@ -370,74 +264,37 @@ class SiteDiff(workers.WorkflowItem):
             'Found %d total URLs, %d good HTML pages; starting '
             'screenshots' % (len(seen_urls), len(good_urls)))
 
-        if upload_build_id:
-            # TODO: Make the default release name prettier.
-            if not upload_release_name:
-                upload_release_name = str(datetime.datetime.utcnow())
-            release_number = yield release_worker.CreateReleaseWorkflow(
-                upload_build_id, upload_release_name, start_url)
+        # TODO: Make the default release name prettier.
+        if not upload_release_name:
+            upload_release_name = str(datetime.datetime.utcnow())
 
-        found_urls = os.path.join(output_dir, 'url_paths.txt')
-        good_paths = set(urlparse.urlparse(u).path for u in good_urls)
-        with open(found_urls, 'w') as urls_file:
-            urls_file.write('\n'.join(sorted(good_paths)))
+        release_number = yield release_worker.CreateReleaseWorkflow(
+            upload_build_id, upload_release_name, start_url)
 
-        results = []
+        run_requests = []
         for url in good_urls:
-            results.append(PdiffWorkflow(url, output_dir, reference_dir,
-                                         heartbeat=heartbeat))
-        results = yield results
+            parts = urlparse.urlparse(url)
+            run_name = parts.path
 
-        if upload_build_id:
-            # TODO: Parallelize this work with a sub-task
-            for pdiff_result in results:
-                (run_name, url, output_path, log_path, config_path
-                    ) = pdiff_result
-                yield heartbeat('Finding last good run for %s' %
-                                run_name)
-                ref_url, ref_image, ref_log, ref_config = (
-                    None, None, None, None)
-                try:
-                    ref_run_result = yield release_worker.FindRunWorkflow(
-                        upload_build_id, run_name)
-                except release_worker.FindRunError:
-                    yield heartbeat('Failed to find last good run for %s' %
-                                    run_name)
-                else:
-                    ref_url = ref_run_result.get('url')
-                    ref_image = ref_run_result.get('image')
-                    ref_log = ref_run_result.get('log')
-                    ref_config = ref_run_result.get('config')
+            # TODO: Include some more config options.
+            config_data = json.dumps({
+                'viewportSize': {
+                    'width': 1024,
+                    'height': 768,
+                }
+            })
 
-                yield heartbeat('Uploading captured screenshots for %s' %
-                                run_name)
+            run_requests.append(release_worker.RequestRunWorkflow(
+                upload_build_id, upload_release_name, release_number,
+                run_name, url, config_data=config_data))
 
-                no_diff_needed = False
-                if not ref_image:
-                    no_diff_needed = True
+        yield run_requests
 
-                yield release_worker.ReportRunWorkflow(
-                    upload_build_id,
-                    upload_release_name,
-                    release_number,
-                    run_name,
-                    url,
-                    output_path,
-                    log_path,
-                    config_path,
-                    ref_url=ref_url,
-                    ref_image=ref_image,
-                    ref_log=ref_log,
-                    ref_config=ref_config,
-                    no_diff_needed=no_diff_needed)
+        yield heartbeat('Marking runs as complete')
+        release_url = yield release_worker.RunsDoneWorkflow(
+            upload_build_id, upload_release_name, release_number)
 
-            yield heartbeat('Marking runs as complete')
-            release_url = yield release_worker.RunsDoneWorkflow(
-                upload_build_id, upload_release_name, release_number)
-
-            yield heartbeat('Results will be at: %s' % release_url)
-        else:
-            yield heartbeat('Results in %s' % output_dir)
+        yield heartbeat('Results viewable at: %s' % release_url)
 
 
 class PrintWorkflow(workers.WorkflowItem):
@@ -449,9 +306,7 @@ class PrintWorkflow(workers.WorkflowItem):
 
 
 def real_main(start_url=None,
-              output_dir=None,
               ignore_prefixes=None,
-              reference_dir=None,
               upload_build_id=None,
               upload_release_name=None,
               coordinator=None):
@@ -465,9 +320,7 @@ def real_main(start_url=None,
     try:
         item = SiteDiff(
             start_url=start_url,
-            output_dir=output_dir,
             ignore_prefixes=ignore_prefixes,
-            reference_dir=reference_dir,
             upload_build_id=upload_build_id,
             upload_release_name=upload_release_name,
             heartbeat=PrintWorkflow)
@@ -480,10 +333,8 @@ def real_main(start_url=None,
 
 
 def main(argv):
-    gflags.MarkFlagAsRequired('phantomjs_binary')
-    gflags.MarkFlagAsRequired('phantomjs_script')
-    gflags.MarkFlagAsRequired('pdiff_binary')
-    # If upload_build_id is set, then require release_server_prefix
+    gflags.MarkFlagAsRequired('upload_build_id')
+    gflags.MarkFlagAsRequired('release_server_prefix')
 
     try:
         argv = FLAGS(argv)
@@ -498,14 +349,8 @@ def main(argv):
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    output_dir = FLAGS.output_dir
-    if not output_dir:
-        output_dir = tempfile.mkdtemp()
-
     real_main(
         start_url=argv[1],
-        output_dir=output_dir,
-        reference_dir=FLAGS.reference_dir,
         ignore_prefixes=FLAGS.ignore_prefixes,
         upload_build_id=FLAGS.upload_build_id,
         upload_release_name=FLAGS.upload_release_name)

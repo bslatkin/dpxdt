@@ -92,7 +92,7 @@ class WorkQueue(db.Model):
 
 
 def add(queue_name, payload=None, content_type=None,
-                source=None, task_id=None):
+        source=None, task_id=None):
     """Adds a work item to a queue.
 
     Args:

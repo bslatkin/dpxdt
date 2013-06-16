@@ -89,7 +89,13 @@ run description
                         {% if run.ref_url %}
                             <a href="{{ run.url }}" target="_blank">Visit</a>
                         {% endif %}
-                        {% if run.ref_url and run.ref_log %}
+                        {% if run.ref_url and run.ref_config %}
+                            &ndash;
+                        {% endif %}
+                        {% if run.ref_config %}
+                            <a href="{{ url_for('view_config', id=build.id, name=release.name, number=release.number, test=run.name, type='before') }}">Config</a>
+                        {% endif %}
+                        {% if run.ref_config and run.ref_log %}
                             &ndash;
                         {% endif %}
                         {% if run.ref_log %}
@@ -141,7 +147,13 @@ run description
                         {% if run.url %}
                             <a href="{{ run.url }}" target="_blank">Visit</a>
                         {% endif %}
-                        {% if run.url and run.log %}
+                        {% if run.url and run.config %}
+                            &ndash;
+                        {% endif %}
+                        {% if run.config %}
+                            <a href="{{ url_for('view_config', id=build.id, name=release.name, number=release.number, test=run.name, type='after') }}">Config</a>
+                        {% endif %}
+                        {% if run.config and run.log %}
                             &ndash;
                         {% endif %}
                         {% if run.log %}

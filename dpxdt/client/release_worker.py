@@ -55,6 +55,9 @@ class UploadFileError(Error):
 class FindRunError(Error):
     """Finding a run failed for some reason."""
 
+class RequestRunError(Error):
+    """Requesting a run failed for some reason."""
+
 class ReportRunError(Error):
     """Reporting a run failed for some reason."""
 
@@ -196,6 +199,53 @@ class FindRunWorkflow(workers.WorkflowItem):
         raise workers.Return(call.json)
 
 
+class RequestRunWorkflow(workers.WorkflowItem):
+    """Requests the API server to do a test run and capture the results.
+
+    Args:
+        build_id: ID of the build.
+        release_name: Name of the release.
+        release_number: Number of the release candidate.
+        run_name: Name of the run being requested.
+        url: URL to fetch for the run.
+        config_path: Optional. Path to the JSON config to upload. Mutually
+            exclusive with config_data.
+        config_data: Optional. Mutually exclusive with config_path. The JSON
+            data that is the config for this run.
+
+    Raises:
+        RequestRunError if the run could not be requested.
+    """
+
+    def run(self, build_id, release_name, release_number, run_name,
+            url, config_path=None, config_data=None):
+        assert bool(config_path) != bool(config_data)
+
+        if not config_data:
+            config_data = open(config_path).read()
+
+        post = {
+            'build_id': build_id,
+            'release_name': release_name,
+            'release_number': release_number,
+            'run_name': run_name,
+            'url': url,
+            'config': config_data,
+        }
+
+        call = yield workers.FetchItem(
+            FLAGS.release_server_prefix + '/request_run',
+            post=post,
+            username=FLAGS.release_client_id,
+            password=FLAGS.release_client_secret)
+
+        if call.json and call.json.get('error'):
+            raise RequestRunError(call.json.get('error'))
+
+        if not call.json or not call.json.get('success'):
+            raise RequestRunError('Bad response: %r' % call)
+
+
 class ReportRunWorkflow(workers.WorkflowItem):
     """Reports a run as finished.
 
@@ -204,41 +254,48 @@ class ReportRunWorkflow(workers.WorkflowItem):
         release_name: Name of the release.
         release_number: Number of the release candidate.
         run_name: Name of the run being uploaded.
-        url: URL that was fetched for the run.
-        screenshot_path: Path to the screenshot to upload.
         log_path: Path to the screenshot log to upload.
-        config_path: Path to the config to upload.
+        screenshot_path: Path to the screenshot to upload.
+        url: Optional. URL that was fetched for the run.
+        config_path: Optional. Path to the config to upload.
         ref_url: Optional. Previously fetched URL this is being compared to.
         ref_image: Optional. Asset ID of the image to compare to.
         ref_log: Optional. Asset ID of the reference image's log.
         ref_config: Optional. Asset ID of the reference image's config.
-        no_diff_needed: Optional. When True, no diff will be needed for
-            this run.
 
     Raises:
         ReportRunError if the run could not be reported.
     """
 
     def run(self, build_id, release_name, release_number, run_name,
-            url, screenshot_path, log_path, config_path,
-            ref_url=None, ref_image=None, ref_log=None, ref_config=None,
-            no_diff_needed=None):
-        screenshot_id, log_id, config_id = yield [
+            screenshot_path, log_path, url=None, config_path=None,
+            ref_url=None, ref_image=None, ref_log=None, ref_config=None):
+
+        upload_jobs = [
             UploadFileWorkflow(build_id, screenshot_path),
             UploadFileWorkflow(build_id, log_path),
-            UploadFileWorkflow(build_id, config_path),
         ]
+
+        if config_path:
+            upload_jobs.append(UploadFileWorkflow(build_id, config_path))
+            screenshot_id, log_id = yield upload_jobs
+        else:
+            screenshot_id, log_id = yield upload_jobs
+            config_id = None
 
         post = {
             'build_id': build_id,
             'release_name': release_name,
             'release_number': release_number,
             'run_name': run_name,
-            'url': url,
             'image': screenshot_id,
             'log': log_id,
-            'config': config_id,
         }
+
+        if url:
+            post.update(url=url)
+        if config_id:
+            post.update(config=config_id)
         if ref_url:
             post.update(ref_url=ref_url)
         if ref_image:
@@ -247,8 +304,6 @@ class ReportRunWorkflow(workers.WorkflowItem):
             post.update(ref_log=ref_log)
         if ref_config:
             post.update(ref_config=ref_config)
-        if no_diff_needed:
-            post.update(no_diff_needed='true')
 
         call = yield workers.FetchItem(
             FLAGS.release_server_prefix + '/report_run',
@@ -271,8 +326,8 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
         release_name: Name of the release.
         release_number: Number of the release candidate.
         run_name: Name of the pdiff being uploaded.
-        diff_path: Optional. Path to the diff to upload.
-        log_path: Optional. Path to the diff log to upload.
+        diff_path: Path to the diff to upload.
+        log_path: Path to the diff log to upload.
 
     Raises:
         ReportPdiffError if the pdiff status could not be reported.
@@ -282,17 +337,13 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
             diff_path=None, log_path=None):
         diff_id = None
         log_id = None
-        no_diff_needed = False
-        if (diff_path and log_path and
-                os.path.isfile(diff_path) and os.path.isfile(log_path)):
+        if os.path.isfile(diff_path) and os.path.isfile(log_path):
             diff_id, log_id = yield [
                 UploadFileWorkflow(build_id, diff_path),
                 UploadFileWorkflow(build_id, log_path),
             ]
-        elif (log_path and os.path.isfile(log_path)):
+        elif os.path.isfile(log_path):
             log_id = yield UploadFileWorkflow(build_id, log_path)
-        else:
-            no_diff_needed = True
 
         post = {
             'build_id': build_id,
@@ -304,8 +355,6 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
             post.update(diff_image=diff_id)
         if log_id:
             post.update(diff_log=log_id)
-        if no_diff_needed:
-            post.update(no_diff_needed='true')
 
         call = yield workers.FetchItem(
             FLAGS.release_server_prefix + '/report_run',
@@ -327,6 +376,9 @@ class RunsDoneWorkflow(workers.WorkflowItem):
         build_id: ID of the build.
         release_name: Name of the release.
         release_number: Number of the release candidate.
+
+    Returns:
+        URL of where the results for this release candidate can be viewed.
 
     Raises:
         RunsDoneError if the release candidate could not have its runs
@@ -350,9 +402,7 @@ class RunsDoneWorkflow(workers.WorkflowItem):
         if not call.json or not call.json.get('success'):
             raise RunsDoneError('Bad response: %r' % call)
 
-        # TODO: Have this return the URL of the release (which may have
-        # pdiffs still in flight).
-        raise workers.Return('this would be a URL')
+        raise workers.Return(call.json['results_url'])
 
 
 class DownloadArtifactWorkflow(workers.WorkflowItem):
@@ -377,4 +427,4 @@ class DownloadArtifactWorkflow(workers.WorkflowItem):
             username=FLAGS.release_client_id,
             password=FLAGS.release_client_secret)
         if call.status_code != 200:
-            raise DownloadArtifactError('Bad response: %r', call)
+            raise DownloadArtifactError('Bad response: %r' % call)
