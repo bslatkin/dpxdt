@@ -1,5 +1,5 @@
-application: dpxdt-test
-version: 06-15-r01
+application: your-app-id-here
+version: your-version-here
 runtime: python27
 api_version: 1
 threadsafe: true
