@@ -36,17 +36,15 @@
                 <h4>Release: {{ release.name }} #{{ release.number }}</h4>
             {% endif %}
         </div>
-        {% if not sha1sum %}
-            <div class="span5 text-right">
-                {% if release.status == 'good' %}
-                    <h4>Status: {{ release.status|title }}</h4>
-                {% elif release.status == 'bad' %}
-                    <h4 class="text-error">Status: {{ release.status|title }}</h4>
-                {% else %}
-                    <h4>Status: {{ release.status|title }}</h4>
-                {% endif %}
-            </div>
-        {% endif %}
+        <div class="span5 text-right">
+            {% if release.status == 'good' %}
+                <h4>Status: {{ release.status|title }}</h4>
+            {% elif release.status == 'bad' %}
+                <h4 class="text-error">Status: {{ release.status|title }}</h4>
+            {% else %}
+                <h4>Status: {{ release.status|title }}</h4>
+            {% endif %}
+        </div>
     </div>
 {% endif %}
 

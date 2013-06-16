@@ -389,7 +389,7 @@ def view_run(build):
         config_file=config_file,
         sha1sum=sha1sum)
 
-    if sha1sum:
+    if file_type:
         template_name = 'view_artifact.html'
     else:
         template_name = 'view_run.html'

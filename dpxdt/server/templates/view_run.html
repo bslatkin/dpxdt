@@ -35,31 +35,29 @@ run description
     <div class="span12">
         <div class="row">
             <div class="span7">
-                <p class="inline-block">
-                    {% if run.status == 'diff_found' %}
-                        <form action="{{ url_for(request.endpoint) }}" method="post" class="inline-block">
-                            {{ run_form.csrf_token }}
-                            {{ run_form.id }}
-                            {{ run_form.name }}
-                            {{ run_form.number }}
-                            {{ run_form.type }}
-                            {{ run_form.test }}
-                            {{ run_form.approve }}
-                            <button type="submit" class="btn btn-primary">Approve difference</button>
-                        </form>
-                    {% elif run.status == 'diff_approved' %}
-                        <form action="{{ url_for(request.endpoint) }}" method="post" class="inline-block">
-                            {{ run_form.csrf_token }}
-                            {{ run_form.id }}
-                            {{ run_form.name }}
-                            {{ run_form.number }}
-                            {{ run_form.type }}
-                            {{ run_form.test }}
-                            {{ run_form.disapprove }}
-                            <button type="submit" class="btn btn-danger">Reject difference</button>
-                        </form>
-                    {% endif %}
-                </p>
+                {% if run.status == 'diff_found' %}
+                    <form action="{{ url_for(request.endpoint) }}" method="post" class="inline-block">
+                        {{ run_form.csrf_token }}
+                        {{ run_form.id }}
+                        {{ run_form.name }}
+                        {{ run_form.number }}
+                        {{ run_form.type }}
+                        {{ run_form.test }}
+                        {{ run_form.approve }}
+                        <button type="submit" class="btn btn-primary">Approve difference</button>
+                    </form>
+                {% elif run.status == 'diff_approved' %}
+                    <form action="{{ url_for(request.endpoint) }}" method="post" class="inline-block">
+                        {{ run_form.csrf_token }}
+                        {{ run_form.id }}
+                        {{ run_form.name }}
+                        {{ run_form.number }}
+                        {{ run_form.type }}
+                        {{ run_form.test }}
+                        {{ run_form.disapprove }}
+                        <button type="submit" class="btn btn-danger">Reject difference</button>
+                    </form>
+                {% endif %}
             </div>
             <div class="span5 text-right">
                 {% if previous_run %}

@@ -13,7 +13,7 @@
             Config:
         {% endif %}
         {% for type in ('before', 'diff', 'after') %}
-            {% if type == 'diff' and not run.diff_image %}
+            {% if type == 'diff' and request.endpoint == 'view_config' %}
 
             {% else %}
                 {% if file_type == type %}
@@ -34,7 +34,15 @@
 
 {% block belowbody %}
 
-{% if image_file %}
+{% if not sha1sum %}
+    <div class="container-fluid">
+        <div class="row-fluid">
+            <div class="span12 text-center">
+                <strong>No difference</strong>
+            </div>
+        </div>
+    </div>
+{% elif image_file %}
     <div class="container-fluid">
         <div class="row-fluid">
             <div class="span12 text-center">
