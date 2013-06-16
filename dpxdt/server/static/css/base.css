@@ -87,3 +87,10 @@ a.big-link {
     margin: 0;
     padding: 0;
 }
+
+
+/* For internal consoles. */
+.workqueue-task-row {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}

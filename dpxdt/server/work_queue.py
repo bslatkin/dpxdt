@@ -23,12 +23,13 @@ import uuid
 
 # Local libraries
 import flask
-from flask import Flask, render_template, request
+from flask import Flask, redirect, render_template, request, url_for
 
 # Local modules
 from . import app
 from . import db
 import auth
+import forms
 import utils
 
 
@@ -378,17 +379,38 @@ def handle_finish(queue_name):
 # TODO: Add an index page that shows all possible work queues
 
 
-@app.route('/api/work_queue/<string:queue_name>')
+@app.route('/api/work_queue/<string:queue_name>', methods=['GET', 'POST'])
 @auth.superuser_required
 def manage_work_queue(queue_name):
     """Page for viewing the contents of a work queue."""
-    query = (
+    modify_form = forms.ModifyWorkQueueTaskForm()
+    if modify_form.validate_on_submit():
+        primary_key = (modify_form.task_id.data, queue_name)
+        task = WorkQueue.query.get(primary_key)
+        if task:
+            logging.info('Deleted task_id=%r', modify_form.task_id.data)
+            db.session.delete(task)
+            db.session.commit()
+        else:
+            logging.warning('Could not find task_id=%r to delete',
+                            modify_form.task_id.data)
+        return redirect(url_for('manage_work_queue', queue_name=queue_name))
+
+    item_list = list(
         WorkQueue.query
         .filter_by(queue_name=queue_name)
-        .order_by(WorkQueue.eta)
+        .order_by(WorkQueue.eta.desc())
         .limit(1000))
+
+    work_list = []
+    for item in item_list:
+        form = forms.ModifyWorkQueueTaskForm()
+        form.task_id.data = item.task_id
+        form.delete.data = True
+        work_list.append((item, form))
+
     context = dict(
         queue_name=queue_name,
-        work_list=list(query)
+        work_list=work_list,
     )
     return render_template('view_work_queue.html', **context)

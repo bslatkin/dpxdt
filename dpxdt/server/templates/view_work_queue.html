@@ -27,8 +27,8 @@ Work queue: {{ queue_name }}
             <div class="span5"><strong>Heartbeat</strong></div>
             <div class="span5"><strong>Payload</strong></div>
         </div>
-        {% for task in work_list %}
-            <div class="row-fluid">
+        {% for task, modify_form in work_list %}
+            <div class="row-fluid workqueue-task-row">
                 <div class="span2">
                     <div class="row-fluid">
                         <div class="span12 ellipsis-overflow">
@@ -69,6 +69,15 @@ Work queue: {{ queue_name }}
                         <div class="span6">Owner</div>
                         <div class="span6 ellipsis-overflow">
                             {{ task.last_owner|default('-', true) }}
+                        </div>
+                    </div>
+                    <div class="row-fluid">
+                        <div class="span12">
+                            <form class="inline-form" action="{{ url_for('manage_work_queue', queue_name=queue_name) }}" method="post">
+                                {{ modify_form.csrf_token }}
+                                {{ modify_form.task_id }}
+                                {{ modify_form.delete(class_='btn btn-inverse btn-small') }}
+                            </form>
                         </div>
                     </div>
                 </div>

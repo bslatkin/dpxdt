@@ -70,3 +70,10 @@ class RevokeApiKeyForm(Form):
     id = HiddenField()
     build_id = HiddenField(validators=[NumberRange(min=1)])
     revoke = SubmitField('Revoke')
+
+
+class ModifyWorkQueueTaskForm(Form):
+    """Form for modifying a work queue task."""
+
+    task_id = HiddenField()
+    delete = SubmitField('Delete')
