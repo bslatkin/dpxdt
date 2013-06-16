@@ -1,4 +1,4 @@
-/* Bootstrap overrides and modifications. */
+/* Bootstrap overrides and common styles. */
 h1 a:link,
 h1 a:visited,
 h1 a:active,
@@ -27,6 +27,39 @@ h4 a:hover {
 .inline-form {
     margin: 0;
 }
+.body-section {
+    margin-top: 40px;
+}
+.footer-section {
+    margin-top: 60px;
+    border-top: 1px solid #ccc;
+    padding: 20px 0;
+}
+.inline-block {
+    display: inline-block;
+    margin: 0;
+}
+a.big-link {
+    display: block;
+}
+
+/* Page branding. */
+.logo-outside {
+    padding: 6px;
+    background-color: #59e;
+    display: inline-block;
+    text-align: center;
+}
+.logo-inside {
+    border: 1px solid #fff;
+    border-radius: 100px;
+    padding: 10px 0;
+    display: block;
+    width: 40px;
+    color: #fff;
+    letter-spacing: 2px;
+    font-size: 9px;
+}
 
 /* View styles */
 .build-release-first-row {
@@ -47,21 +80,6 @@ h4 a:hover {
     width: 20px;
     text-align: left;
     display: inline-block;
-}
-.body-section {
-    margin-top: 40px;
-}
-.footer-section {
-    margin-top: 60px;
-    border-top: 1px solid #ccc;
-    padding: 20px 0;
-}
-.inline-block {
-    display: inline-block;
-    margin: 0;
-}
-a.big-link {
-    display: block;
 }
 .run-status-section {
     margin-left: 30px;
@@ -87,7 +105,6 @@ a.big-link {
     margin: 0;
     padding: 0;
 }
-
 
 /* For internal consoles. */
 .workqueue-task-row {

@@ -8,6 +8,7 @@
         <link rel="stylesheet" type="text/css" href="/static/css/bootstrap.min.css">
         <link rel="stylesheet" type="text/css" href="/static/css/bootstrap-responsive.min.css">
         <link rel="stylesheet" type="text/css" href="/static/css/base.css">
+        <link rel="icon shortcut" href="/static/img/favicon.ico">
         <script src="/static/js/jquery.min.js"></script>
     </head>
     <body>
@@ -17,12 +18,26 @@
 
 {% if build %}
     <div class="row">
-        <div class="span12">
+        <div class="span2 text-left visible-phone">
+            <a href="/">
+                <div class="logo-outside">
+                    <div class="logo-inside">dpxdt</div>
+                </div>
+            </a>
+        </div>
+        <div class="span10">
             {% if url_for('view_build') != request.path %}
                 <h1><a href="{{ url_for('view_build', id=build.id) }}">Build: {{ build.name }}</a></h1>
             {% else %}
                 <h1>Build: {{ build.name }}</h1>
             {% endif %}
+        </div>
+        <div class="span2 text-right hidden-phone">
+            <a href="/">
+                <div class="logo-outside">
+                    <div class="logo-inside">dpxdt</div>
+                </div>
+            </a>
         </div>
     </div>
 {% endif %}

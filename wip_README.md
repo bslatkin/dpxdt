@@ -76,3 +76,15 @@ Example usage with API server:
       --upload_build_id=2 \
       --upload_release_name='blue' \
       http://localhost:5000/static/dummy_page1.html
+
+
+
+# To use for the first time, or when the schema changes during development:
+from dpxdt.server import db
+db.drop_all()
+db.create_all()
+
+# To deploy this to a CloudSQL database on App Engine. You will have to
+# change your instance name based on settings in config.py.
+./google_sql.sh dpxdt-project:test
+sql> create database test;
