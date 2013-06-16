@@ -66,3 +66,13 @@ Example usage with API server:
     #   --upload_build_id=2 \
     #   --upload_release_name='blue' \
     #   http://localhost:5000/static/dummy_page1.html
+
+
+    -------
+
+    Testing locally
+
+    ./run_site_diff.sh \
+      --upload_build_id=2 \
+      --upload_release_name='blue' \
+      http://localhost:5000/static/dummy_page1.html
