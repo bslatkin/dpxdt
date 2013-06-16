@@ -51,6 +51,10 @@ def load_user(user_id):
 
 @app.route('/login')
 def login_view():
+    if app.config.get('IGNORE_AUTH'):
+        login_user(login.anonymous_user())
+        return redirect(request.args.get('next'))
+
     # Inspired by:
     #   http://stackoverflow.com/questions/9499286
     #   /using-google-oauth2-with-flask
