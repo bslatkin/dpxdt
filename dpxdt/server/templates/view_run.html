@@ -37,21 +37,23 @@ run description
             <div class="span7">
                 <p class="inline-block">
                     {% if run.status == 'diff_found' %}
-                        <form action="{{ url_for('view_run') }}" method="post" class="inline-block">
+                        <form action="{{ url_for(request.endpoint) }}" method="post" class="inline-block">
                             {{ run_form.csrf_token }}
                             {{ run_form.id }}
                             {{ run_form.name }}
                             {{ run_form.number }}
+                            {{ run_form.type }}
                             {{ run_form.test }}
                             {{ run_form.approve }}
                             <button type="submit" class="btn btn-primary">Approve difference</button>
                         </form>
                     {% elif run.status == 'diff_approved' %}
-                        <form action="{{ url_for('view_run') }}" method="post" class="inline-block">
+                        <form action="{{ url_for(request.endpoint) }}" method="post" class="inline-block">
                             {{ run_form.csrf_token }}
                             {{ run_form.id }}
                             {{ run_form.name }}
                             {{ run_form.number }}
+                            {{ run_form.type }}
                             {{ run_form.test }}
                             {{ run_form.disapprove }}
                             <button type="submit" class="btn btn-danger">Reject difference</button>
@@ -61,15 +63,17 @@ run description
             </div>
             <div class="span5 text-right">
                 {% if previous_run %}
-                    <a href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=previous_run.name) }}" class="btn">&larr; Prev test</a>
+                    <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=previous_run.name, type=file_type) }}" class="btn">&larr; Prev test</a>
                 {% endif %}
                 {% if next_run %}
-                    <a href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=next_run.name) }}" class="btn">&thinsp;Next test &rarr;</a>
+                    <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=next_run.name, type=file_type) }}" class="btn">&thinsp;Next test &rarr;</a>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+{% block run_detail %}{% endblock run_detail %}
 
 {% endblock body %}
 

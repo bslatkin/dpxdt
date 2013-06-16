@@ -69,6 +69,10 @@ a.big-link {
 .run-image {
     border: 1px solid #ccc;
 }
+.diff-section {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
 #artifact-iframe-container {
     position: absolute;
     left: 0;

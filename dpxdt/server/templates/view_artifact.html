@@ -1,33 +1,41 @@
-{% extends 'base.html' %}
+{% extends 'view_run.html' %}
 
-{% block description -%}
 
-image description
-
-{%- endblock description %}
-
-{% block body %}
+{% block run_detail %}
 
 <div class="row diff-section">
     <div class="span12">
-        {{ file_type|title }}
         {% if image_file %}
-            image
+            Image:
         {% elif log_file %}
-            log
+            Log:
         {% elif config_file %}
-            config
+            Config:
         {% endif %}
+        {% for type in ('before', 'diff', 'after') %}
+            {% if type == 'diff' and not run.diff_image %}
+
+            {% else %}
+                {% if file_type == type %}
+                    <span class="artifact-type-selected">{{ type|title }}</span>
+                {% else %}
+                    <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=run.name, type=type) }}">{{ type|title }}</a>
+                {% endif %}
+                {% if not loop.last %}
+                    &ndash;
+                {% endif %}
+            {% endif %}
+        {% endfor %}
     </div>
 </div>
 
-{% endblock body %}
+{% endblock run_detail %}
 
 
 {% block belowbody %}
 
 {% if image_file %}
-    <div class="container-fluid body-section">
+    <div class="container-fluid">
         <div class="row-fluid">
             <div class="span12 text-center">
                 <img src="{{ url_for('download', sha1sum=sha1sum, build_id=build.id) }}" class="run-image">

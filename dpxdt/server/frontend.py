@@ -228,112 +228,9 @@ def view_release(build):
         release_form=form)
 
 
-@app.route('/run', methods=['GET', 'POST'])
-@auth.build_access_required
-def view_run(build):
-    """Page for viewing before/after for a specific test run."""
-    if request.method == 'POST':
-        form = forms.RunForm(request.form)
-    else:
-        form = forms.RunForm(request.args)
-
-    form.validate()
-
-    release = (
-        models.Release.query
-        .filter_by(
-            build_id=build.id,
-            name=form.name.data,
-            number=form.number.data)
-        .first())
-    if not release:
-        abort(404)
-
-    run = (
-        models.Run.query
-        .filter_by(release_id=release.id, name=form.test.data)
-        .first())
-    if not run:
-        abort(404)
-
-    if request.method == 'POST':
-        if form.approve.data and run.status == models.Run.DIFF_FOUND:
-            run.status = models.Run.DIFF_APPROVED
-        elif form.disapprove.data and run.status == models.Run.DIFF_APPROVED:
-            run.status = models.Run.DIFF_FOUND
-        else:
-            abort(400)
-
-        db.session.add(run)
-        db.session.commit()
-
-        return redirect(url_for(
-            'view_run',
-            id=build.id,
-            name=release.name,
-            number=release.number,
-            test=run.name))
-
-    # Find the previous and next runs in this release for easy linking.
-    # TODO: Sort this by diff status first, then by name (ones with a diff
-    # found should come first).
-    previous_run = (
-        models.Run.query
-        .filter_by(release_id=release.id)
-        .filter(models.Run.name < run.name)
-        .order_by(models.Run.name.desc())
-        .first())
-
-    next_run = (
-        models.Run.query
-        .filter_by(release_id=release.id)
-        .filter(models.Run.name > run.name)
-        .order_by(models.Run.name)
-        .first())
-
-    # Update form values for rendering
-    form.approve.data = True
-    form.disapprove.data = True
-
-    return render_template(
-        'view_run.html',
-        build=build,
-        release=release,
-        run=run,
-        run_form=form,
-        previous_run=previous_run,
-        next_run=next_run)
-
-
-@app.route('/image', endpoint='view_image')
-@app.route('/log', endpoint='view_log')
-@app.route('/config', endpoint='view_config')
-@auth.build_access_required
-def view_artifact(build):
-    """Page for viewing a specific artifact from a test run."""
-    build_id = request.args.get('id', type=int)
-    release_name = request.args.get('name', type=str)
-    release_number = request.args.get('number', type=int)
-    run_name = request.args.get('test', type=str)
-    file_type = request.args.get('type', type=str)
-    if not (build_id and release_name and release_number and
-            run_name and file_type):
-        abort(400)
-
-    release = (
-        models.Release.query
-        .filter_by(build_id=build_id, name=release_name, number=release_number)
-        .first())
-    if not release:
-        abort(404)
-
-    run = (
-        models.Run.query
-        .filter_by(release_id=release.id, name=run_name)
-        .first())
-    if not run:
-        abort(404)
-
+def _get_artifact_context(run, file_type):
+    """Gets the artifact details for the given run and file_type."""
+    sha1sum = None
     image_file = False
     log_file = False
     config_file = False
@@ -367,19 +264,137 @@ def view_artifact(build):
         else:
             abort(400)
 
-    if not sha1sum:
+    return image_file, log_file, config_file, sha1sum
+
+
+@app.route('/run', methods=['GET', 'POST'])
+@app.route('/image', endpoint='view_image', methods=['GET', 'POST'])
+@app.route('/log', endpoint='view_log', methods=['GET', 'POST'])
+@app.route('/config', endpoint='view_config', methods=['GET', 'POST'])
+@auth.build_access_required
+def view_run(build):
+    """Page for viewing before/after for a specific test run."""
+    if request.method == 'POST':
+        form = forms.RunForm(request.form)
+    else:
+        form = forms.RunForm(request.args)
+
+    form.validate()
+
+    release = (
+        models.Release.query
+        .filter_by(
+            build_id=build.id,
+            name=form.name.data,
+            number=form.number.data)
+        .first())
+    if not release:
         abort(404)
 
-    return render_template(
-        'view_artifact.html',
+    run = (
+        models.Run.query
+        .filter_by(release_id=release.id, name=form.test.data)
+        .first())
+    if not run:
+        abort(404)
+
+    file_type = form.type.data
+    image_file, log_file, config_file, sha1sum = (
+        _get_artifact_context(run, file_type))
+
+    if request.method == 'POST':
+        if form.approve.data and run.status == models.Run.DIFF_FOUND:
+            run.status = models.Run.DIFF_APPROVED
+        elif form.disapprove.data and run.status == models.Run.DIFF_APPROVED:
+            run.status = models.Run.DIFF_FOUND
+        else:
+            abort(400)
+
+        db.session.add(run)
+        db.session.commit()
+
+        return redirect(url_for(
+            request.endpoint,
+            id=build.id,
+            name=release.name,
+            number=release.number,
+            test=run.name,
+            type=file_type))
+
+    # We sort the runs in the release by diffs first, then by name. Simulate
+    # that behavior here with multiple queries.
+    previous_run = None
+    next_run = None
+    if run.status == models.Run.DIFF_FOUND:
+        previous_run = (
+            models.Run.query
+            .filter_by(release_id=release.id)
+            .filter(models.Run.status == models.Run.DIFF_FOUND)
+            .filter(models.Run.name < run.name)
+            .order_by(models.Run.name.desc())
+            .first())
+        next_run = (
+            models.Run.query
+            .filter_by(release_id=release.id)
+            .filter(models.Run.status == models.Run.DIFF_FOUND)
+            .filter(models.Run.name > run.name)
+            .order_by(models.Run.name)
+            .first())
+
+        if not next_run:
+            next_run = (
+                models.Run.query
+                .filter_by(release_id=release.id)
+                .filter(models.Run.status != models.Run.DIFF_FOUND)
+                .order_by(models.Run.name)
+                .first())
+    else:
+        previous_run = (
+            models.Run.query
+            .filter_by(release_id=release.id)
+            .filter(models.Run.status != models.Run.DIFF_FOUND)
+            .filter(models.Run.name < run.name)
+            .order_by(models.Run.name.desc())
+            .first())
+        next_run = (
+            models.Run.query
+            .filter_by(release_id=release.id)
+            .filter(models.Run.status != models.Run.DIFF_FOUND)
+            .filter(models.Run.name > run.name)
+            .order_by(models.Run.name)
+            .first())
+
+        if not previous_run:
+            previous_run = (
+                models.Run.query
+                .filter_by(release_id=release.id)
+                .filter(models.Run.status == models.Run.DIFF_FOUND)
+                .order_by(models.Run.name.desc())
+                .first())
+
+    # Update form values for rendering
+    form.approve.data = True
+    form.disapprove.data = True
+
+    context = dict(
         build=build,
         release=release,
         run=run,
+        run_form=form,
+        previous_run=previous_run,
+        next_run=next_run,
         file_type=file_type,
         image_file=image_file,
         log_file=log_file,
         config_file=config_file,
         sha1sum=sha1sum)
+
+    if sha1sum:
+        template_name = 'view_artifact.html'
+    else:
+        template_name = 'view_run.html'
+
+    return render_template(template_name, **context)
 
 
 @app.route('/static/dummy')

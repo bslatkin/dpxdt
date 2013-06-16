@@ -51,6 +51,7 @@ class RunForm(Form):
     name = HiddenField(validators=[Length(min=1, max=500)])
     number = HiddenField(validators=[NumberRange(min=1)])
     test = HiddenField(validators=[Length(min=1, max=500)])
+    type = HiddenField(validators=[Length(min=1, max=500)])
     approve = HiddenField()
     disapprove = HiddenField()
 
