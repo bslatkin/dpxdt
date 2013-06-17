@@ -12,3 +12,4 @@ Future
 - All screenshots deleted after 3 days unless you're in pro mode
 - Create a sitediff crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
 - Would be nice if the background servers self-registered themselves
+- Add tools for online schema migration
