@@ -279,6 +279,7 @@ def request_run(build):
 
     config_artifact = _save_artifact(build, config_data, 'application/json')
     db.session.add(config_artifact)
+    db.session.flush()
 
     current_run.url = current_url
     current_run.config = config_artifact.id
