@@ -1,11 +1,3 @@
-Frontend
-- Remove API playground message for prod version
-
-Docs
-- Document the REST API
-- Show example usage of the site_diff tool
-
--------
 
 Future
 - Let other users be owners of the same build ID
@@ -20,23 +12,3 @@ Future
 - All screenshots deleted after 3 days unless you're in pro mode
 - Create a sitediff crud; have config section for CSS to inject (to hide tweet buttons with changing counts, etc), prefixes to ignore, email address to notify
 - Would be nice if the background servers self-registered themselves
-
--------
-
-What is needed for each capture run:
-
-- build name
-- release name
-- common code to define across all tests
-  - can be remote resources?
-- list of:
-  - test name
-  - host-prefix A
-  - host-prefix B
-  - relative URL to test
-  - Code to run on both
-  - username/password using HTTP basic auth
-  - header key/value pairs
-  - css selectors to hide
-  - screen size (for responsive CSS)
-  - User agent spoofing (can just do this with headers?)

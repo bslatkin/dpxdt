@@ -142,6 +142,7 @@ def _check_release_done_processing(release):
 
     query = models.Run.query.filter_by(release_id=release.id)
     for run in query:
+        # TODO: Either it needs diff OR it has no uploaded image yet.
         if run.status == models.Run.NEEDS_DIFF:
             return False
 
@@ -432,32 +433,6 @@ def runs_done(build):
         results_url=results_url)
 
 
-@app.route('/api/release_done', methods=['POST'])
-@auth.build_api_access_required
-def release_done(build):
-    """Marks a release candidate as good or bad."""
-    release_name, release_number = _get_release_params()
-    status = request.form.get('status')
-    valid_statuses = (models.Release.GOOD, models.Release.BAD)
-    utils.jsonify_assert(status in valid_statuses,
-                         'status must be in %r' % valid_statuses)
-
-    release = (
-        models.Release.query
-        .filter_by(build_id=build.id, name=release_name, number=release_number)
-        .first())
-    utils.jsonify_assert(release, 'Release does not exist')
-
-    release.status = status
-    db.session.add(release)
-    db.session.commit()
-
-    logging.info('Release marked as %s: build_id=%r, release_name=%r, '
-                 'number=%d', status, build.id, release.name, release.number)
-
-    return flask.jsonify(success=True)
-
-
 def _save_artifact(build, data, content_type):
     """Saves an artifact to the DB and returns it.
 
@@ -500,6 +475,7 @@ def upload(build):
 
     return flask.jsonify(
         success=True,
+        build_id=build.id,
         sha1sum=artifact.id,
         content_type=content_type)
 
