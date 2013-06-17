@@ -17,14 +17,17 @@
 {% block header %}
 
 <div class="row">
-    <div class="span2 text-left visible-phone base-logo-container">
-        <a href="{{ url_for('homepage') }}">
+    <div class="span10">
+        <a href="{{ url_for('homepage') }}" class="mobile-logo visible-phone">
             <div class="logo-outside">
                 <div class="logo-inside">dpxdt</div>
             </div>
         </a>
-    </div>
-    <div class="span10">
+        <div class="homepage-logo hidden-phone">
+            <div class="logo-outside">
+                <div class="logo-inside">dpxdt</div>
+            </div>
+        </div>
         {% if build %}
             {% if url_for('view_build') != request.path %}
                 <h1><a href="{{ url_for('view_build', id=build.id) }}">Build: {{ build.name }}</a></h1>
@@ -32,16 +35,6 @@
                 <h1>Build: {{ build.name }}</h1>
             {% endif %}
         {% else %}
-            <div class="base-logo-header visible-phone">
-                <div class="logo-outside">
-                    <div class="logo-inside">dpxdt</div>
-                </div>
-            </div>
-            <div class="base-logo-header visible-desktop visible-tablet">
-                <div class="logo-outside">
-                    <div class="logo-inside">dpxdt</div>
-                </div>
-            </div>
             <h1>{% block page_title %}{% endblock page_title %}</h1>
         {% endif %}
     </div>

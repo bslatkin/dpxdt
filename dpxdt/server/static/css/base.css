@@ -46,7 +46,6 @@ h4 a:hover {
 a.big-link {
     display: block;
 }
-
 @media (max-width: 767px) {
     .text-right, .text-center {
         text-align: left;
@@ -55,15 +54,15 @@ a.big-link {
 
 /* Page branding. */
 .endpoint-homepage .base-logo-container {
-    display: none !important;
+    display: none;
 }
-.base-logo-header {
-    display: none !important;
+.homepage-logo {
+    display: none;
     float: left;
     margin-right: 15px;
     vertical-align: top;
 }
-.endpoint-homepage .base-logo-header {
+.endpoint-homepage .homepage-logo {
     display: inline-block;
 }
 .logo-outside {
@@ -71,10 +70,6 @@ a.big-link {
     background-color: #59e;
     display: inline-block;
     text-align: center;
-}
-.visible-phone.base-logo-header .logo-outside {
-    position: relative;
-    top: -10px;
 }
 .logo-inside {
     border: 1px solid #fff;
