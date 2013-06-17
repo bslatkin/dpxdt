@@ -48,8 +48,20 @@ a.big-link {
 }
 
 /* Page branding. */
+.endpoint-homepage .base-logo-container {
+    display: none;
+}
+.base-logo-header {
+    display: none;
+    float: left;
+    margin-right: 15px;
+    vertical-align: top;
+}
+.endpoint-homepage .base-logo-header {
+    display: inline-block;
+}
 .logo-outside {
-    padding: 6px;
+    padding: 9px 6px 6px 6px;
     background-color: #59e;
     display: inline-block;
     text-align: center;
