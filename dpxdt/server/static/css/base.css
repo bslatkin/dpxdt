@@ -49,7 +49,7 @@ a.big-link {
 
 /* Page branding. */
 .endpoint-homepage .base-logo-container {
-    display: none;
+    display: none !important;
 }
 .base-logo-header {
     display: none;
@@ -61,10 +61,14 @@ a.big-link {
     display: inline-block;
 }
 .logo-outside {
-    padding: 9px 6px 6px 6px;
+    padding: 12px 6px 6px 6px;
     background-color: #59e;
     display: inline-block;
     text-align: center;
+}
+.visible-phone .logo-outside {
+    position: relative;
+    top: -10px;
 }
 .logo-inside {
     border: 1px solid #fff;
