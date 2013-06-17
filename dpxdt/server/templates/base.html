@@ -104,6 +104,8 @@
                                 {{ current_user.email_address }}
                                 &ndash;
                                 <a href="{{ url_for('logout') }}">Sign out</a>
+                            {% else %}
+                                <a href="{{ url_for('login_view', next=url_for('homepage')) }}">Sign in</a>
                             {% endif %}
                         {% endblock footer_right %}
                     </div>

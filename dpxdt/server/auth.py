@@ -52,6 +52,8 @@ def load_user(user_id):
 
 @app.route('/login')
 def login_view():
+    next_url = request.args.get('next', default='/', type=str)
+
     if app.config.get('IGNORE_AUTH'):
         fake_id = 'anonymous_superuser'
         anonymous_superuser = models.User.query.get(fake_id)
@@ -63,7 +65,7 @@ def login_view():
             db.session.add(anonymous_superuser);
             db.session.commit()
         login_user(anonymous_superuser)
-        return redirect(request.args.get('next'))
+        return redirect(next_url)
 
     # Inspired by:
     #   http://stackoverflow.com/questions/9499286
@@ -73,7 +75,7 @@ def login_view():
         client_id=config.GOOGLE_OAUTH2_CLIENT_ID,
         redirect_uri=config.GOOGLE_OAUTH2_REDIRECT_URI,
         scope=GOOGLE_OAUTH2_SCOPES,
-        state=urllib.quote(request.args.get('next')),
+        state=urllib.quote(next_url),
     )
     target_url = '%s?%s' % (
         GOOGLE_OAUTH2_AUTH_URL, urllib.urlencode(params))
