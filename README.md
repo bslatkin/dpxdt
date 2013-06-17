@@ -68,7 +68,7 @@ curl -v \
 
 ### Example tool that uses the API
 
-An example client tool that exercises the whole workflow is [available in the client repository here](./blob/master/dpxdt/client/site_diff.py). It's called "Site Diff". It will crawl a webpage, follow all links with the same prefix path, then create a new release that screenshots all the URLs. Running the tool multiple times lets you diff your entire site with little effort. Site Diff is very helpful, for example, when you have a blog with a lot of content and want to make a change to your base template and be sure you haven't broken any pages.
+An example client tool that exercises the whole workflow is [available in the client repository here](./dpxdt/client/site_diff.py). It's called "Site Diff". It will crawl a webpage, follow all links with the same prefix path, then create a new release that screenshots all the URLs. Running the tool multiple times lets you diff your entire site with little effort. Site Diff is very helpful, for example, when you have a blog with a lot of content and want to make a change to your base template and be sure you haven't broken any pages.
 
 Here's an example invocation of site_diff:
 
