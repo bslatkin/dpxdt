@@ -16,13 +16,12 @@ Depicted is:
 
 **Depicted is not finished! [Please let us know if you have feedback or find bugs](https://github.com/bslatkin/dpxdt/issues/new).**
 
-See this video for a presentation about how perceptual diffs have made continuous deployment safe.
-
-<iframe width="640" height="360" class="video-promo" src="https://www.youtube-nocookie.com/embed/UMnZiTL0tUc?rel=0&html5=1" frameborder="0" allowfullscreen></iframe>
+See [this video for a presentation](http://youtu.be/UMnZiTL0tUc) about how perceptual diffs have made continuous deployment safe.
 
 ## Overview
 
 Here are the steps to making Depicted useful to you:
+
 1. Establish a baseline release with an initial set of screenshots of your site.
 1. Create a new release with a new set of screenshots of your new version.
 1. Manually approve or reject each difference the tool finds.
@@ -38,6 +37,7 @@ Each release may be attempted many times. The full history of each release attem
 A release consists of many separate test runs. A test run is a single screenshot of a single page. A test run has a name that is used to pair it up with a baseline test run from the known-good, previous release. Usually the test run is named as the path of the URL being tested (like /foo?bar=meep). This lets the baseline release and new release serve on different hostnames.
 
 The life-cycle of a release:
+
 1. Created: A new release is created with a specific name. The system gives it a release number.
 1. Receiving: The release is waiting for all test runs to be requested or reported.
 1. Processing: All test runs have been reported, but additional processing (like screenshotting or pdiffing) is required.
@@ -281,19 +281,27 @@ SECRET_KEY = 'my-key-here'
 
 To run the API server locally, without any worker threads:
 
-```./run_server.sh```
+```
+./run_server.sh
+```
 
 To run the background workers independently against the local API server:
 
-```./run_worker.sh```
+```
+./run_worker.sh
+```
 
 To run the API server locally with all background workers:
 
-```./run_combined.sh```
+```
+./run_combined.sh
+```
 
 To run in the App Engine development environment:
 
-```./run_appengine.sh```
+```
+./run_appengine.sh
+```
 
 ## Deployment
 
@@ -311,7 +319,9 @@ Go to the deployment/test-appengine directory. Update app.yaml with your paramet
 
 Deploy the app:
 
-```./deploy.sh```
+```
+./deploy.sh
+```
 
 Navigate to /admin on your app and run in the interactive console:
 
