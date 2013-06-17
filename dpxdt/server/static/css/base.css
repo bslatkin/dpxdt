@@ -47,12 +47,18 @@ a.big-link {
     display: block;
 }
 
+@media (max-width: 767px) {
+    .text-right, .text-center {
+        text-align: left;
+    }
+}
+
 /* Page branding. */
 .endpoint-homepage .base-logo-container {
     display: none !important;
 }
 .base-logo-header {
-    display: none;
+    display: none !important;
     float: left;
     margin-right: 15px;
     vertical-align: top;
@@ -66,7 +72,7 @@ a.big-link {
     display: inline-block;
     text-align: center;
 }
-.visible-phone .logo-outside {
+.visible-phone.base-logo-header .logo-outside {
     position: relative;
     top: -10px;
 }
