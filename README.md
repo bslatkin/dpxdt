@@ -263,6 +263,8 @@ Marks a release candidate as having all runs reported.
 
 Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it easy to run in your environment. It works with SQLite out of the box. The API server runs on App Engine. The workers run [perceptualdiff](http://pdiff.sourceforge.net/) and [PhantomJS](http://phantomjs.org/) as subprocesses. I like to run the worker on a cloud VM, but you could run it on your laptop behind a firewall if that's important to you.
 
+Update the common.sh file to match your environment.
+
 To use the server locally for the first time, or when the schema changes during development:
 
 ```
