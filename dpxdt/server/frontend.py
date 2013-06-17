@@ -33,12 +33,31 @@ import forms
 import models
 
 
+def _render_template_with_defaults(template_path, **context):
+    """Renders the template with some extra context"""
+    context.setdefault('current_user', current_user)
+    return render_template(template_path, **context)
+
+
 @app.route('/')
 def homepage():
     """Renders the homepage."""
-    context = {
-    }
-    return render_template('home.html', **context)
+    build_list = list(
+        models.Build.query
+        .filter_by(public=True)
+        .order_by(models.Build.created.desc())
+        .limit(1000))
+
+    if current_user.is_authenticated():
+        # List builds you own first, followed by public ones.
+        build_list = list(
+            current_user.builds
+            .order_by(models.Build.created.desc())
+            .limit(1000)) + build_list
+
+    return _render_template_with_defaults(
+        'home.html',
+        build_list=build_list)
 
 
 @app.route('/new', methods=['GET', 'POST'])
@@ -57,7 +76,7 @@ def new_build():
                      build.id, build.name)
         return redirect(url_for('view_build', id=build.id))
 
-    return render_template(
+    return _render_template_with_defaults(
         'new_build.html',
         build_form=form)
 
@@ -118,7 +137,7 @@ def view_build(build):
 
         run_stats_dict[candidate] = (total, complete, successful, failed)
 
-    return render_template(
+    return _render_template_with_defaults(
         'view_build.html',
         build=build,
         release_name_list=release_name_list,
@@ -215,7 +234,7 @@ def view_release(build):
     form.bad.data = True
     form.reviewing.data = True
 
-    return render_template(
+    return _render_template_with_defaults(
         'view_release.html',
         build=build,
         release=release,
@@ -394,7 +413,7 @@ def view_run(build):
     else:
         template_name = 'view_run.html'
 
-    return render_template(template_name, **context)
+    return _render_template_with_defaults(template_name, **context)
 
 
 @app.route('/static/dummy')

@@ -86,12 +86,11 @@ build description
     </div>
 {% endif %}
 
-<div class="row">
-    <div class="span12">
-        <div class="footer-section">
-            <a href="{{ url_for('manage_api_keys', build_id=build.id) }}">Set up API keys</a>
-        </div>
-    </div>
-</div>
-
 {% endblock body %}
+
+
+{% block footer_left %}
+
+<a href="{{ url_for('manage_api_keys', build_id=build.id) }}">Set up API keys</a>
+
+{% endblock footer_left %}

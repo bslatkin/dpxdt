@@ -1,6 +1,5 @@
 Frontend
-- Homepage
-- Homepage shows the user all of the builds they have
+- Remove API playground message for prod version
 
 Docs
 - Document the REST API

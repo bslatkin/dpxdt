@@ -4,11 +4,14 @@
 Who am I? Debug user login
 {%- endblock title %}
 
+{% block page_title %}
+    Who am I?
+{% endblock %}
+
 {% block body %}
 
 <div class="row">
     <div class="span12">
-        <h1>Who am I?</h1>
         <h4>Debug user login</h4>
     </div>
 </div>
@@ -19,15 +22,6 @@ Who am I? Debug user login
     </div>
     <div class="span4">
         {{ user.id }}
-    </div>
-</div>
-
-<div class="row">
-    <div class="span4">
-        Auth Type:
-    </div>
-    <div class="span4">
-        {{ user.auth_type }}
     </div>
 </div>
 

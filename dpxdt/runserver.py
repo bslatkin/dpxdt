@@ -71,14 +71,7 @@ def main(argv):
         run_workers()
 
     if FLAGS.ignore_auth:
-        def create_anonymous_superuser():
-            return models.User(
-                id='anonymous_superuser',
-                email_address='superuser@example.com',
-                superuser=1)
-
         server.app.config['IGNORE_AUTH'] = True
-        server.login.anonymous_user = create_anonymous_superuser
 
     server.app.run(debug=FLAGS.reload_code, port=FLAGS.port)
 

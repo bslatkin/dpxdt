@@ -16,31 +16,33 @@
 
 {% block header %}
 
-{% if build %}
-    <div class="row">
-        <div class="span2 text-left visible-phone">
-            <a href="/">
-                <div class="logo-outside">
-                    <div class="logo-inside">dpxdt</div>
-                </div>
-            </a>
-        </div>
-        <div class="span10">
+<div class="row">
+    <div class="span2 text-left visible-phone">
+        <a href="{{ url_for('homepage') }}">
+            <div class="logo-outside">
+                <div class="logo-inside">dpxdt</div>
+            </div>
+        </a>
+    </div>
+    <div class="span10">
+        {% if build %}
             {% if url_for('view_build') != request.path %}
                 <h1><a href="{{ url_for('view_build', id=build.id) }}">Build: {{ build.name }}</a></h1>
             {% else %}
                 <h1>Build: {{ build.name }}</h1>
             {% endif %}
-        </div>
-        <div class="span2 text-right hidden-phone">
-            <a href="/">
-                <div class="logo-outside">
-                    <div class="logo-inside">dpxdt</div>
-                </div>
-            </a>
-        </div>
+        {% else %}
+            <h1>{% block page_title %}{% endblock page_title %}</h1>
+        {% endif %}
     </div>
-{% endif %}
+    <div class="span2 text-right hidden-phone">
+        <a href="{{ url_for('homepage') }}">
+            <div class="logo-outside">
+                <div class="logo-inside">dpxdt</div>
+            </div>
+        </a>
+    </div>
+</div>
 
 {% if release %}
     <div class="row">
@@ -86,6 +88,31 @@
 
 {% block belowbody %}
 {% endblock belowbody%}
+
+{% block footer_container %}
+<div class="container">
+    <div class="row">
+        <div class="span12">
+            <div class="footer-section">
+                <div class="row">
+                    <div class="span6">
+                        {% block footer_left %}{% endblock footer_left %}
+                    </div>
+                    <div class="span6 text-right">
+                        {% block footer_right %}
+                            {% if current_user.is_authenticated() %}
+                                {{ current_user.email_address }}
+                                &ndash;
+                                <a href="{{ url_for('logout') }}">Sign out</a>
+                            {% endif %}
+                        {% endblock footer_right %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock footer_container %}
 
     </body>
 </html>

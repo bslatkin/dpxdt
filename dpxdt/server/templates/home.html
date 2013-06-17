@@ -1,18 +1,72 @@
 {% extends 'base.html' %}
 
 {% block description -%}
-
 home description
-
 {%- endblock description %}
 
+{% block page_title -%}
+Depicted
+{%- endblock page_title %}
 
 {% block body %}
 
-home!
+<div class="row">
+    <div class="span6 body-subsection">
+        <p>
+            Make continuous deployment safe by comparing before and after webpage screenshots for each release. Depicted shows when any visual, perceptual differences are found. This is the ultimate, automated end-to-end test.
+        </p>
+        <h4 class="body-subsection">Depicted is</h4>
+        <ul>
+            <li>An API server for taking webpage screenshots and automatically generating visual, perceptual difference images ("pdiffs").</li>
+            <li>A workflow for teams to coordinate new releases using pdiffs.</li>
+            <li>A client library for integrating with existing continuous integration processes.</li>
+            <li>Built for portability; runs on App Engine, behind the firewall, on EC2&mdash;whatever.</li>
+            <li><a href="https://github.com/bslatkin/dpxdt">Open source</a>, Apache 2.0 licensed.</li>
+            <li>Not a framework, not a religion.</li>
+        </ul>
+        <p class="body-subsection">
+            See the video (right) for a presentation about how perceptual diffs have made continuous deployment safe. <a href="https://github.com/bslatkin/dpxdt">Learn about the tool and API on GitHub</a>.
+        </p>
+        <p class="body-subsection">
+            <a href="{{ url_for('new_build') }}" class="btn btn-primary">Create new build</a>
+        </p>
+    </div>
+    <div class="span6 body-subsection">
+        <iframe width="640" height="360" class="video-promo" src="https://www.youtube-nocookie.com/embed/UMnZiTL0tUc?rel=0&html5=1" frameborder="0" allowfullscreen></iframe>
+    </div>
+</div>
 
-Marketing stuff
-My list of builds (optional)
-Form to create a new build (sign-in link)
+{% if build_list %}
+
+<div class="row body-section">
+    <div class="span6">
+        <h4>Builds you have access to</h4>
+    </div>
+</div>
+
+{% for build in build_list %}
+    <div class="row">
+        <div class="span8">
+            <a href="{{ url_for('view_build', id=build.id) }}" class="big-link">{{ build.name }}</a>
+        </div>
+        <div class="span2">
+            {% if build.public %}
+                Public
+            {% else %}
+                Private
+            {% endif %}
+        </div>
+        <div class="span2">
+            Created {{ build.created|timesince }}
+        </div>
+    </div>
+{% endfor %}
+
+{% endif %}
 
 {% endblock body %}
+
+
+{% block footer_left %}
+another <a href="http://onebigfluke.com">haxor industry</a>
+{% endblock footer_left %}

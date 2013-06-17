@@ -25,7 +25,8 @@ import urllib2
 import flask
 from flask import abort, redirect, render_template, request, url_for
 from flask.ext.login import (
-    current_user, fresh_login_required, login_required, login_user)
+    current_user, fresh_login_required, login_required,
+    login_user, logout_user)
 
 # Local modules
 from . import app
@@ -52,7 +53,16 @@ def load_user(user_id):
 @app.route('/login')
 def login_view():
     if app.config.get('IGNORE_AUTH'):
-        login_user(login.anonymous_user())
+        fake_id = 'anonymous_superuser'
+        anonymous_superuser = models.User.query.get(fake_id)
+        if not anonymous_superuser:
+            anonymous_superuser = models.User(
+                id=fake_id,
+                email_address='superuser@example.com',
+                superuser=1)
+            db.session.add(anonymous_superuser);
+            db.session.commit()
+        login_user(anonymous_superuser)
         return redirect(request.args.get('next'))
 
     # Inspired by:
@@ -69,6 +79,13 @@ def login_view():
         GOOGLE_OAUTH2_AUTH_URL, urllib.urlencode(params))
     logging.debug('Redirecting user to login at url=%r', target_url)
     return redirect(target_url)
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('homepage'))
 
 
 @app.route(config.GOOGLE_OAUTH2_REDIRECT_PATH)
@@ -118,10 +135,8 @@ def login_auth():
 @app.route('/whoami')
 @login_required
 def debug_login():
-    context = {
-        'user': current_user,
-    }
-    return render_template('whoami.html', **context)
+    return render_template(
+        'whoami.html', user=current_user)
 
 
 def superuser_required(f):
