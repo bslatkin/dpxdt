@@ -614,7 +614,7 @@ def get_coordinator():
     ]
 
     for i in xrange(FLAGS.fetch_threads):
-        coorindator.worker_threads.append(
+        coordinator.worker_threads.append(
             FetchThread(fetch_queue, workflow_queue))
 
     return coordinator
