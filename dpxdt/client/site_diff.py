@@ -280,7 +280,7 @@ class SiteDiff(workers.WorkflowItem):
             config_dict = {
                 'viewportSize': {
                     'width': 1280,
-                    'height': 2048,
+                    'height': 1024,
                 }
             }
             if FLAGS.inject_css:
