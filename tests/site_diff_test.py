@@ -13,16 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for the site_diff utility.
-
-To run:
-
-PYTHONPATH=./lib:$PYTHONPATH \
-./tests/site_diff_test.py \
-    --phantomjs_binary=path/to/phantomjs-1.8.1-macosx/bin/phantomjs \
-    --phantomjs_script=path/to/client/capture.js \
-    --pdiff_binary=path/to/pdiff/perceptualdiff
-"""
+"""Tests for the site_diff utility."""
 
 import BaseHTTPServer
 import logging
@@ -344,7 +335,6 @@ class SiteDiffTest(unittest.TestCase):
 def main(argv):
     gflags.MarkFlagAsRequired('phantomjs_binary')
     gflags.MarkFlagAsRequired('phantomjs_script')
-    gflags.MarkFlagAsRequired('pdiff_binary')
 
     try:
         argv = FLAGS(argv)

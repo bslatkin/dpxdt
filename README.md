@@ -76,7 +76,6 @@ Here's an example invocation of site_diff:
 ./site_diff.py \
     --phantomjs_binary=path/to/phantomjs-1.8.1-macosx/bin/phantomjs \
     --phantomjs_script=path/to/client/capture.js \
-    --pdiff_binary=path/to/pdiff/perceptualdiff \
     --upload_build_id=1234 \
     --release_server_prefix=https://my-dpxdt-apiserver.example.com/api \
     http://www.example.com/my/website/here
@@ -249,6 +248,8 @@ Reports data for a run for a release candidate. May be called multiple times as 
     <dd>Artifact ID (SHA1 hash) of the perceptual diff image associated with the run.</dd>
     <dt>diff_log</dt>
     <dd>Artifact ID (SHA1 hash) of the log file from the perceptual diff process associated with the run.</dd>
+    <dt>diff_success</dt>
+    <dd>Present and non-empty string when the diff process ran successfully. May be missing when diff ran and reported a log but may need to retry for this run.</dd>
 </dl>
 
 ##### Returns
@@ -276,7 +277,7 @@ Marks a release candidate as having all runs reported.
 
 ## Development
 
-Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it easy to run in your environment. It works with SQLite out of the box. The API server runs on App Engine. The workers run [perceptualdiff](http://pdiff.sourceforge.net/) and [PhantomJS](http://phantomjs.org/) as subprocesses. I like to run the worker on a cloud VM, but you could run it on your laptop behind a firewall if that's important to you.
+Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it easy to run in your environment. It works with SQLite out of the box. The API server runs on App Engine. The workers run [ImageMagick](http://www.imagemagick.org/Usage/compare/) and [PhantomJS](http://phantomjs.org/) as subprocesses. I like to run the worker on a cloud VM, but you could run it on your laptop behind a firewall if that's important to you.
 
 Update the common.sh file to match your environment.
 

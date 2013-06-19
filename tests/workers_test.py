@@ -13,13 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for the workers module.
-
-To run:
-
-PYTHONPATH=./lib:$PYTHONPATH \
-./tests/workers_test.py
-"""
+"""Tests for the workers module."""
 
 import Queue
 import logging

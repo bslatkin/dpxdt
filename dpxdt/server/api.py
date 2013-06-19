@@ -323,6 +323,7 @@ def report_run(build):
     ref_log = request.form.get('ref_log', type=str)
     ref_config = request.form.get('ref_config', type=str)
 
+    diff_success = request.form.get('diff_success', type=str)
     diff_image = request.form.get('diff_image', type=str)
     diff_log = request.form.get('diff_log', type=str)
 
@@ -371,7 +372,7 @@ def report_run(build):
         run.status = models.Run.DIFF_FOUND
     elif run.image and run.ref_image and not run.diff_log:
         run.status = models.Run.NEEDS_DIFF
-    elif run.image and run.ref_image and run.diff_log:
+    elif run.image and run.ref_image and diff_success:
         run.status = models.Run.DIFF_NOT_FOUND
     elif run.image and not run.ref_image:
         run.status = models.Run.NO_DIFF_NEEDED

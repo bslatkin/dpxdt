@@ -17,7 +17,7 @@ echo "scp $OUTPUT_ARCHIVE foo@bar:/tmp"
 echo
 echo "# On the host machine as root:"
 echo
-echo "apt-get install perceptualdiff libfreetype6 libfontconfig"
+echo "apt-get install imagemagick libfreetype6 libfontconfig"
 echo "cp /tmp/$ARCHIVE_NAME.tar.gz $INSTALL_PATH"
 echo "cd $INSTALL_PATH"
 echo "tar zxf $ARCHIVE_NAME.tar.gz"

@@ -222,17 +222,23 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
             pdiff = yield pdiff_worker.PdiffItem(
                 log_path, ref_path, run_path, diff_path)
 
-            output_exists = os.path.isfile(diff_path)
-            if not output_exists and pdiff.returncode != 0:
-                raise PdiffFailedError('output_exists=%r, returncode=%r' %
-                                       (output_exists, pdiff.returncode))
+            diff_success = pdiff.returncode == 0
+
+            log_data = open(log_path).read()
+            if 'all: 0 (0)' in log_data:
+                diff_path = None
 
             yield heartbeat('Reporting diff status to server')
             yield release_worker.ReportPdiffWorkflow(
                 build_id, release_name, release_number, run_name,
-                diff_path, log_path)
+                diff_path, log_path, diff_success)
+
+            if not diff_success:
+                raise PdiffFailedError(
+                    'Comparison failed. returncode=%r' % pdiff.returncode)
         finally:
-            shutil.rmtree(output_path, True)
+            pass
+            #shutil.rmtree(output_path, True)
 
 
 class DoCaptureQueueWorkflow(workers.WorkflowItem):

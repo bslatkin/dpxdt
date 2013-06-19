@@ -32,11 +32,12 @@ FLAGS = gflags.FLAGS
 import workers
 
 
-gflags.DEFINE_string(
-    'pdiff_binary', None, 'Path to the perceptualdiff binary')
-
 gflags.DEFINE_integer(
     'pdiff_threads', 1, 'Number of perceptual diff threads to run')
+
+gflags.DEFINE_integer(
+    'pdiff_timeout', 60,
+    'Seconds until we should give up on a pdiff sub-process and try again.')
 
 
 
@@ -52,7 +53,8 @@ class PdiffItem(workers.ProcessItem):
             run_path: Path to the most recent run screenshot to diff.
             output_path: Where the diff image should be written, if any.
         """
-        workers.ProcessItem.__init__(self, log_path)
+        workers.ProcessItem.__init__(
+            self, log_path, timeout_seconds=FLAGS.pdiff_timeout)
         self.ref_path = ref_path
         self.run_path = run_path
         self.output_path = output_path
@@ -62,20 +64,24 @@ class PdiffThread(workers.ProcessThread):
     """Worker thread that runs pdiff."""
 
     def get_args(self, item):
+        # Method from http://www.imagemagick.org/Usage/compare/
         return [
-            FLAGS.pdiff_binary,
-            '-fov',
-            '85',
-            '-output',
-            item.output_path,
+            'compare',
+            '-verbose',
+            '-metric',
+            'RMSE',
+            '-highlight-color',
+            'Red',
+            '-compose',
+            'Src',
             item.ref_path,
             item.run_path,
+            item.output_path,
         ]
 
 
 def register(coordinator):
     """Registers this module as a worker with the given coordinator."""
-    assert FLAGS.pdiff_binary
     assert FLAGS.pdiff_threads > 0
     pdiff_queue = Queue.Queue()
     coordinator.register(PdiffItem, pdiff_queue)

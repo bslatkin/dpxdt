@@ -3,6 +3,7 @@ Productionizing:
 
 Bugs:
 - Let the user mark a "processing" release as bad
+- When the screenshots change sizes, you need to reset the whole baseline. Should this be a whole new build or just add have a way to upload a run without referencing a previous one?
 
 
 ---
