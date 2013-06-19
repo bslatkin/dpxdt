@@ -161,7 +161,7 @@ class Artifact(db.Model):
 
     id = db.Column(db.String(100), primary_key=True)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    data = db.Column(db.LargeBinary)
+    data = db.Column(db.LargeBinary(length=2**31))
     alternate = db.Column(db.Text)
     content_type = db.Column(db.String(255))
     owners = db.relationship('Build', secondary=artifact_ownership_table,

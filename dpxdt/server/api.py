@@ -142,8 +142,9 @@ def _check_release_done_processing(release):
 
     query = models.Run.query.filter_by(release_id=release.id)
     for run in query:
-        # TODO: Either it needs diff OR it has no uploaded image yet.
         if run.status == models.Run.NEEDS_DIFF:
+            return False
+        if not run.image:
             return False
 
     logging.info('Release done processing, now reviewing: build_id=%r, '

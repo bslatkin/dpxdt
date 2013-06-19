@@ -7,4 +7,4 @@ source common.sh
     --phantomjs_script=$CAPTURE_SCRIPT \
     --pdiff_binary=$PDIFF_BINARY \
     --release_server_prefix=http://localhost:5000/api \
-    $@
+    "$@"

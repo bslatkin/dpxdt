@@ -91,22 +91,47 @@ page.onResourceReceived = function(response) {
     }
 };
 
-// TODO: Custom headers
-// TODO: Path to code to inject
 // TODO: Username/password using HTTP basic auth
 // TODO: Header key/value pairs
-// TODO: CSS selectors to hide
 // TODO: User agent spoofing shortcut
+
+page.onInitialized = function() {
+    page.evaluate(function() {
+        document.addEventListener('DOMContentLoaded', function() {
+            window.callPhantom('DOMContentLoaded');
+        }, false);
+    });
+};
+
+page.onCallback = function() {
+    console.log('Dom ready: ' + config.targetUrl);
+
+    if (config.injectCss) {
+        console.log('Injecting CSS: ' + config.injectCss);
+        page.evaluate(function(config) {
+            var styleEl = document.createElement('style');
+            styleEl.type = 'text/css';
+            styleEl.innerHTML = config.injectCss;
+            document.getElementsByTagName('head')[0].appendChild(styleEl);
+        }, config);
+    }
+
+    if (config.injectJs) {
+        console.log('Injecting JS: ' + config.injectJs);
+        page.evaluate(function(config) {
+            window.eval(config.injectJs);
+        }, config);
+    }
+
+    // TODO: Add callback event to wait for DOM completion after JS injection
+
+    window.setTimeout(function() {
+        page.render(outputPath);
+        phantom.exit(0);
+    }, 10000);
+};
 
 // Screenshot
 page.open(config.targetUrl, function(status) {
     console.log('Finished loading page: ' + config.targetUrl);
-
-    // TODO: Inject code
-    // TODO: Wait for completion
-    // TODO: Check status
-    setTimeout(function() {
-        page.render(outputPath);
-        phantom.exit(0);
-    }, 1000);
 });

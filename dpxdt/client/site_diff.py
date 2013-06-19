@@ -56,6 +56,16 @@ gflags.DEFINE_string(
     'Along with upload_build_id, the name of the release to upload to. If '
     'not supplied, a new release will be created.')
 
+gflags.DEFINE_string(
+    'inject_css', None,
+    'CSS to inject into all captured pages after they have loaded but '
+    'before screenshotting.')
+
+gflags.DEFINE_string(
+    'inject_js', None,
+    'JavaScript to inject into all captured pages after they have loaded '
+    'but before screenshotting.')
+
 
 # URL regex rewriting code originally from mirrorrr
 # http://code.google.com/p/mirrorrr/source/browse/trunk/transform_content.py
@@ -267,13 +277,17 @@ class SiteDiff(workers.WorkflowItem):
             parts = urlparse.urlparse(url)
             run_name = parts.path
 
-            # TODO: Include some more config options.
-            config_data = json.dumps({
+            config_dict = {
                 'viewportSize': {
-                    'width': 1024,
-                    'height': 768,
+                    'width': 1280,
+                    'height': 2048,
                 }
-            })
+            }
+            if FLAGS.inject_css:
+                config_dict['injectCss'] = FLAGS.inject_css
+            if FLAGS.inject_js:
+                config_dict['injectJs'] = FLAGS.inject_js
+            config_data = json.dumps(config_dict)
 
             run_requests.append(release_worker.RequestRunWorkflow(
                 upload_build_id, upload_release_name, release_number,

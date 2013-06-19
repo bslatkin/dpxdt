@@ -6,7 +6,7 @@ Make continuous deployment safe by comparing before and after webpage screenshot
 
 Depicted is:
 
-- An API server for taking webpage screenshots and automatically generating visual, perceptual difference images ("pdiffs").
+- An API server for capturing webpage screenshots and automatically generating visual, perceptual difference images ("pdiffs").
 - A workflow for teams to coordinate new releases using pdiffs.
 - A client library for integrating with existing continuous integration processes.
 - Built for portability; API server runs on App Engine, behind the firewall, etc.
@@ -161,6 +161,21 @@ Requests a new run for a release candidate. Causes the API system to take screen
     <dt>config</dt>
     <dd>JSON data that is the config for the new run.</dd>
 </dl>
+
+###### Format of `config`
+
+The config passed to the `request_run` function may have any or all of these fields. All fields are optional and have reasonably sane defaults.
+
+```json
+{
+    "viewportSize": {
+        "width": 1024,
+        "height": 768
+    },
+    "injectCss": ".my-css-rules-here { display: none; }",
+    "injectJs": "document.getElementById('foobar').innerText = 'foo';"
+}
+```
 
 ##### Returns
 <dl>
