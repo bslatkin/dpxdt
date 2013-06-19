@@ -40,6 +40,9 @@ gflags.DEFINE_float(
     'fetch_frequency', 1.0,
     'Maximum number of fetches to make per second per thread.')
 
+gflags.DEFINE_integer(
+    'fetch_threads', 1, 'Number of fetch threads to run')
+
 gflags.DEFINE_float(
     'polltime', 1.0,
     'How long to sleep between polling for work or subprocesses')
@@ -605,12 +608,13 @@ def get_coordinator():
     coordinator.register(FetchItem, fetch_queue)
     coordinator.register(TimerItem, timer_queue)
 
-    # TODO: Make number of threads configurable.
     # TODO: Enable multiple coodinator threads.
     coordinator.worker_threads = [
-        FetchThread(fetch_queue, workflow_queue),
-        FetchThread(fetch_queue, workflow_queue),
         TimerThread(timer_queue, workflow_queue),
     ]
+
+    for i in xrange(FLAGS.fetch_threads):
+        coorindator.worker_threads.append(
+            FetchThread(fetch_queue, workflow_queue))
 
     return coordinator

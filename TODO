@@ -1,6 +1,9 @@
 Productionizing:
 - Save phantomjs crash logs somewhere useful
 
+Bugs:
+- Let the user mark a "processing" release as bad
+
 
 ---
 
