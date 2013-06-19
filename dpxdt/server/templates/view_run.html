@@ -35,6 +35,7 @@ run description
     <div class="span12">
         <div class="row">
             <div class="span7">
+                <p>
                 {% if run.status == 'diff_found' %}
                     <form action="{{ url_for(request.endpoint) }}" method="post" class="inline-block">
                         {{ run_form.csrf_token }}
@@ -58,14 +59,17 @@ run description
                         <button type="submit" class="btn btn-danger">Reject difference</button>
                     </form>
                 {% endif %}
+                </p>
             </div>
             <div class="span5 text-right">
+                <p>
                 {% if previous_run %}
                     <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=previous_run.name, type=file_type) }}" class="btn">&larr; Prev test</a>
                 {% endif %}
                 {% if next_run %}
                     <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=next_run.name, type=file_type) }}" class="btn">&thinsp;Next test &rarr;</a>
                 {% endif %}
+                </p>
             </div>
         </div>
     </div>
