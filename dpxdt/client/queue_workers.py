@@ -237,8 +237,7 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
                 raise PdiffFailedError(
                     'Comparison failed. returncode=%r' % pdiff.returncode)
         finally:
-            pass
-            #shutil.rmtree(output_path, True)
+            shutil.rmtree(output_path, True)
 
 
 class DoCaptureQueueWorkflow(workers.WorkflowItem):
