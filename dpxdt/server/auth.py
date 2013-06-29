@@ -197,7 +197,7 @@ def can_user_access_build(param_name):
         if request.method != 'GET':
             logging.debug('No way to log in user via modifying request')
             abort(403)
-        elif build.public:
+        elif build.public or current_user.superuser:
             pass
         elif current_user.is_authenticated():
             logging.debug('User does not have access to this build')
