@@ -264,27 +264,35 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
             image_path = os.path.join(output_path, 'capture.png')
             log_path = os.path.join(output_path, 'log.txt')
             config_path = os.path.join(output_path, 'config.json')
+            capture_success = False
+            failure_reason = None
 
             yield heartbeat('Fetching webpage capture config')
             yield release_worker.DownloadArtifactWorkflow(
                 build_id, config_sha1sum, result_path=config_path)
 
             yield heartbeat('Running webpage capture process')
-            capture = yield capture_worker.CaptureItem(
-                log_path, config_path, image_path)
-
-            yield heartbeat('Reporting capture status to server')
+            try:
+                capture = yield capture_worker.CaptureItem(
+                    log_path, config_path, image_path)
+            except workers.TimeoutError, e:
+                failure_reason = str(e)
+            else:
+                capture_success = capture.returncode == 0
+                failure_reason = 'returncode=%s' % capture.returncode
 
             # Don't upload bad captures, but always upload the error log.
-            if capture.returncode != 0:
+            if not capture_success:
                 image_path = None
+
+            yield heartbeat('Reporting capture status to server')
 
             yield release_worker.ReportRunWorkflow(
                 build_id, release_name, release_number, run_name,
                 image_path=image_path, log_path=log_path)
 
-            if capture.returncode != 0:
-                raise CaptureFailedError('returncode=%r' % capture.returncode)
+            if not capture_success:
+                raise CaptureFailedError(failure_reason)
         finally:
             shutil.rmtree(output_path, True)
 

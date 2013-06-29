@@ -23,8 +23,6 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-import capture_worker
-import pdiff_worker
 import workers
 
 
@@ -337,7 +335,8 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
         run_name: Name of the pdiff being uploaded.
         diff_path: Path to the diff to upload.
         log_path: Path to the diff log to upload.
-        diff_success: True when the diff was computed successfully. False when there was a problem computing the diff. Defaults to False.
+        diff_success: True when the diff was computed successfully. False when
+            there was a problem computing the diff. Defaults to False.
 
     Raises:
         ReportPdiffError if the pdiff status could not be reported.
@@ -347,12 +346,15 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
             diff_path=None, log_path=None, diff_success=False):
         diff_id = None
         log_id = None
-        if os.path.isfile(diff_path) and os.path.isfile(log_path):
+        if (isinstance(diff_path, basestring) and
+                os.path.isfile(diff_path) and
+                isinstance(log_path, basestring) and
+                os.path.isfile(log_path)):
             diff_id, log_id = yield [
                 UploadFileWorkflow(build_id, diff_path),
                 UploadFileWorkflow(build_id, log_path),
             ]
-        elif os.path.isfile(log_path):
+        elif isinstance(log_path, basestring) and os.path.isfile(log_path):
             log_id = yield UploadFileWorkflow(build_id, log_path)
 
         post = {

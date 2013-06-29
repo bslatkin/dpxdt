@@ -21,6 +21,7 @@ import heapq
 import json
 import logging
 import shutil
+import socket
 import subprocess
 import sys
 import threading
@@ -250,6 +251,7 @@ class FetchThread(WorkerThread):
             except urllib2.HTTPError, e:
                 conn = e
             except urllib2.URLError, e:
+                # TODO: Make this status more clear
                 item.status_code = 400
                 return item
 
@@ -261,6 +263,10 @@ class FetchThread(WorkerThread):
                         shutil.copyfileobj(conn, result_file)
                 else:
                     item.data = conn.read()
+            except socket.timeout, e:
+                # TODO: Make this status more clear
+                item.status_code = 400
+                return item
             finally:
                 conn.close()
 

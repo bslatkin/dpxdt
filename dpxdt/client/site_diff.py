@@ -237,6 +237,8 @@ class SiteDiff(workers.WorkflowItem):
             # cause this job to never stop.
             seen_urls.update(pending_urls)
             output = yield [workers.FetchItem(u) for u in pending_urls]
+            yield heartbeat(
+                'Scanning %d pages for good urls' % len(pending_urls))
             pending_urls.clear()
 
             for item in output:
@@ -274,6 +276,7 @@ class SiteDiff(workers.WorkflowItem):
 
         run_requests = []
         for url in good_urls:
+            yield heartbeat('Requesting run for %s' % url)
             parts = urlparse.urlparse(url)
             run_name = parts.path
 
