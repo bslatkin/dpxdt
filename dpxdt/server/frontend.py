@@ -21,7 +21,8 @@ import logging
 # Local libraries
 import flask
 from flask import Flask, abort, redirect, render_template, request, url_for
-from flask.ext.login import current_user, login_required
+from flask.ext.login import (
+    current_user, fresh_login_required, login_fresh, login_required)
 from flask.ext.wtf import Form
 
 # Local modules
@@ -49,6 +50,11 @@ def homepage():
         .limit(1000))
 
     if current_user.is_authenticated():
+        if not login_fresh():
+            abort(login.needs_refresh())
+
+        auth.claim_invitations(current_user)
+
         # List builds you own first, followed by public ones.
         build_list = list(
             current_user.builds
@@ -61,7 +67,7 @@ def homepage():
 
 
 @app.route('/new', methods=['GET', 'POST'])
-@login_required
+@fresh_login_required
 def new_build():
     """Page for crediting or editing a build."""
     form = forms.BuildForm()

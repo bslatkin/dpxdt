@@ -15,6 +15,7 @@
 
 """Implements authentication for the API server and frontend."""
 
+import datetime
 import functools
 import json
 import logging
@@ -25,7 +26,7 @@ import urllib2
 import flask
 from flask import abort, redirect, render_template, request, url_for
 from flask.ext.login import (
-    current_user, fresh_login_required, login_required,
+    current_user, fresh_login_required, login_fresh, login_required,
     login_user, logout_user)
 
 # Local modules
@@ -118,15 +119,27 @@ def login_auth():
     conn = urllib2.urlopen(fetch_request, timeout=FETCH_TIMEOUT_SECONDS)
     data = conn.read()
     result_dict = json.loads(data)
+    logging.debug('Result user info dict: %r', result_dict)
+    email_address = result_dict['email']
+
+    if not result_dict['verified_email']:
+        abort(flask.Response('Your email address must be verified', 403))
 
     user_id = '%s:%s' % (models.User.GOOGLE_OAUTH2, result_dict['id'])
     user = models.User.query.get(user_id)
     if not user:
-        user = models.User(
-            id=user_id,
-            email_address=result_dict['email'])
-        db.session.add(user)
-        db.session.commit()
+        user = models.User(id=user_id)
+
+    # Email address on the account may change, user ID will stay the same.
+    # Do not allow the user to claim existing build invitations with their
+    # old email address.
+    if user.email_address != email_address:
+        user.email_address = email_address
+
+    user.last_seen = datetime.datetime.utcnow()
+
+    db.session.add(user)
+    db.session.commit()
 
     login_user(user)
     final_url = urllib.unquote(request.args.get('state'))
@@ -187,11 +200,14 @@ def can_user_access_build(param_name):
         elif build.public:
             pass
         elif current_user.is_authenticated():
-            logging.debug('User must authenticate to see non-public build')
-            abort(403)
+            logging.debug('User does not have access to this build')
+            abort(flask.Response('You cannot access this build', 403))
         else:
             logging.debug('Redirecting user to login to get build access')
             abort(login.unauthorized())
+    elif not login_fresh():
+        logging.debug('User login is old; forcing refresh')
+        abort(login.needs_refresh())
 
     return build
 
@@ -368,3 +384,102 @@ def revoke_api_key(build):
         db.session.commit()
 
     return redirect(url_for('manage_api_keys', build_id=build.id))
+
+
+def claim_invitations(user):
+    """Claims any pending invitations for the given user's email address."""
+    # See if there are any build invitations present for the user with this
+    # email address. If so, replace all those invitations with the real user.
+    invitation_user_id = '%s:%s' % (
+        models.User.EMAIL_INVITATION, user.email_address)
+    invitation_user = models.User.query.get(invitation_user_id)
+    if invitation_user:
+        logging.debug('Found build admin invitation for id=%r',
+                      invitation_user_id)
+        for build in invitation_user.builds:
+            build.owners.remove(invitation_user)
+            user_is_owner = build.owners.filter_by(id=user.id).first()
+            if not user_is_owner:
+                build.owners.append(user)
+                logging.debug('Claiming invitation for build_id=%r', build.id)
+            else:
+                logging.debug('User already owner of build. '
+                              'id=%r, build_id=%r', user.id, build.id)
+            db.session.add(build)
+
+        db.session.delete(invitation_user)
+        db.session.commit()
+
+
+@app.route('/admins', methods=['GET', 'POST'])
+@fresh_login_required
+@build_access_required('build_id')
+def manage_admins(build):
+    """Page for viewing and managing build admins."""
+    add_form = forms.AddAdminForm()
+    if add_form.validate_on_submit():
+        invitation_user_id = '%s:%s' % (
+            models.User.EMAIL_INVITATION, add_form.email_address.data)
+
+        invitation_user = models.User.query.get(invitation_user_id)
+        if not invitation_user:
+            invitation_user = models.User(
+                id=invitation_user_id,
+                email_address=add_form.email_address.data)
+            db.session.add(invitation_user)
+
+        build.owners.append(invitation_user)
+        db.session.add(build)
+        db.session.commit()
+
+        logging.info('Added user=%r as owner to build_id=%r',
+                     invitation_user.id, build.id)
+        return redirect(url_for('manage_admins', build_id=build.id))
+
+    add_form.build_id.data = build.id
+
+    revoke_form_list = []
+    for user in build.owners:
+        form = forms.RemoveAdminForm()
+        form.user_id.data = user.id
+        form.build_id.data = build.id
+        form.revoke.data = True
+        revoke_form_list.append((user, form))
+
+    return render_template(
+        'view_admins.html',
+        build=build,
+        add_form=add_form,
+        revoke_form_list=revoke_form_list,
+        current_user=current_user)
+
+
+@app.route('/admins.revoke', methods=['POST'])
+@fresh_login_required
+@build_access_required('build_id')
+def revoke_admin(build):
+    """Form submission handler for revoking admin access to a build."""
+    form = forms.RemoveAdminForm()
+    if form.validate_on_submit():
+        user = models.User.query.get(form.user_id.data)
+        if not user:
+            logging.debug('User being revoked admin access does not exist.'
+                          'id=%r, build_id=%r', form.user_id.data, build.id)
+            abort(400)
+
+        if user == current_user:
+            logging.debug('User trying to remove themself as admin. '
+                          'id=%r, build_id=%r', user.id, build.id)
+            abort(400)
+
+        user_is_owner = build.owners.filter_by(id=user.id)
+        if not user_is_owner:
+            logging.debug('User being revoked admin access is not owner. '
+                          'id=%r, build_id=%r.', user.id, build.id)
+            abort(400)
+
+        build.owners.remove(user)
+        db.session.add(build)
+        db.session.commit()
+
+    return redirect(url_for('manage_admins', build_id=build.id))

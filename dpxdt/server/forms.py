@@ -29,14 +29,14 @@ from . import app
 class BuildForm(Form):
     """Form for creating or editing a build."""
 
-    name = TextField(validators=[Length(min=1, max=100)])
+    name = TextField(validators=[Length(min=1, max=200)])
 
 
 class ReleaseForm(Form):
     """Form for viewing or approving a release."""
 
     id = HiddenField(validators=[NumberRange(min=1)])
-    name = HiddenField(validators=[Length(min=1, max=500)])
+    name = HiddenField(validators=[Length(min=1, max=200)])
     number = HiddenField(validators=[NumberRange(min=1)])
 
     good = HiddenField()
@@ -48,10 +48,10 @@ class RunForm(Form):
     """Form for viewing or approving a run."""
 
     id = HiddenField(validators=[NumberRange(min=1)])
-    name = HiddenField(validators=[Length(min=1, max=500)])
+    name = HiddenField(validators=[Length(min=1, max=200)])
     number = HiddenField(validators=[NumberRange(min=1)])
-    test = HiddenField(validators=[Length(min=1, max=500)])
-    type = HiddenField(validators=[Length(min=1, max=500)])
+    test = HiddenField(validators=[Length(min=1, max=200)])
+    type = HiddenField(validators=[Length(min=1, max=200)])
     approve = HiddenField()
     disapprove = HiddenField()
 
@@ -60,7 +60,7 @@ class CreateApiKeyForm(Form):
     """Form for creating an API key."""
 
     build_id = HiddenField(validators=[NumberRange(min=1)])
-    purpose = TextField('Purpose', validators=[Length(min=1, max=500)])
+    purpose = TextField('Purpose', validators=[Length(min=1, max=200)])
     create = SubmitField('Create')
 
 
@@ -68,6 +68,23 @@ class RevokeApiKeyForm(Form):
     """Form for revoking an API key."""
 
     id = HiddenField()
+    build_id = HiddenField(validators=[NumberRange(min=1)])
+    revoke = SubmitField('Revoke')
+
+
+class AddAdminForm(Form):
+    """Form for adding a build admin."""
+
+    email_address = TextField('Email address',
+                              validators=[Length(min=1, max=200)])
+    build_id = HiddenField(validators=[NumberRange(min=1)])
+    add = SubmitField('Add')
+
+
+class RemoveAdminForm(Form):
+    """Form for removing a build admin."""
+
+    user_id = HiddenField(validators=[Length(min=1, max=200)])
     build_id = HiddenField(validators=[NumberRange(min=1)])
     revoke = SubmitField('Revoke')
 

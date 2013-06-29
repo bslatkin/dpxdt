@@ -15,6 +15,8 @@
 
 """Main module for the API server."""
 
+import datetime
+
 # Local libraries
 from flask import Flask, url_for
 from flask.ext.sqlalchemy import SQLAlchemy
@@ -25,9 +27,11 @@ import config
 
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.config['REMEMBER_COOKIE_NAME'] = 'dpxdt_uid'
+app.config['REMEMBER_COOKIE_DURATION'] = datetime.timedelta(days=1)
 app.config['SECRET_KEY'] = config.SECRET_KEY
+app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
 
 
 db = SQLAlchemy(app)

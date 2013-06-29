@@ -34,14 +34,18 @@ class User(db.Model):
         update user set superuser = 1 where user.id = '<user id here>';
     """
 
+    EMAIL_INVITATION = 'email_invitation'
     GOOGLE_OAUTH2 = 'google_oauth2'
-    AUTH_TYPES = frozenset([GOOGLE_OAUTH2])
+    AUTH_TYPES = frozenset([EMAIL_INVITATION, GOOGLE_OAUTH2])
 
     id = db.Column(db.String(255), primary_key=True)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     last_seen = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     email_address = db.Column(db.String(255))
     superuser = db.Column(db.Boolean, default=False)
+
+    def get_auth_type(self):
+        return self.id.split(':', 1)[0]
 
     # Methods required by flask-login.
     def is_authenticated(self):

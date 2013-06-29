@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title -%}
+
+Admins
+
+{%- endblock title %}
+
+
+{% block body %}
+
+<div class="row">
+    <div class="span12">
+        <h4>Add admin</h4>
+
+        {% if add_form.errors %}
+            <div class="row">
+                <div class="span6 alert alert-error">
+                {% for field, field_errors in add_form.errors|dictsort %}
+                    <div>
+                        Invalid {{ add_form[field].label(class='inline') }}
+                    </div>
+                {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <form action="{{ url_for('manage_admins') }}" method="post">
+            {{ add_form.csrf_token }}
+            {{ add_form.build_id }}
+            {{ add_form.email_address.label }} {{ add_form.email_address }}
+            <br>
+            {{ add_form.add(class_='btn btn-primary') }}
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <div class="span12">
+        <h4>Existing admins</h4>
+    </div>
+</div>
+
+{% if revoke_form_list %}
+    {% for admin_user, revoke_form in revoke_form_list %}
+        <div class="row">
+            <div class="span9 well well-small">
+                <div class="row">
+                    <div class="span7">
+                        {% if admin_user.superuser %}
+                            <div class="row">
+                                <div class="span2 text-error">
+                                    <strong>Superuser</strong>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="row">
+                            <div class="span2"><strong>Email address</strong></div>
+                            <div class="span5">{{ admin_user.email_address }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="span2"><strong>Authorization type</strong></div>
+                            <div class="span5">{{ admin_user.get_auth_type() }}</div>
+                        </div>
+                    </div>
+                    <div class="span2 text-right">
+                        {% if admin_user == current_user %}
+                            <strong>You</strong>
+                        {% else %}
+                            <form class="inline-form" action="{{ url_for('revoke_admin') }}" method="post">
+                                {{ revoke_form.csrf_token }}
+                                {{ revoke_form.user_id }}
+                                {{ revoke_form.build_id }}
+                                {{ revoke_form.revoke(class_='btn btn-inverse btn-small') }}
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="row">
+        <div class="span12">
+            There are no API keys for this build.
+        </div>
+    </div>
+{% endif %}
+
+
+{% endblock body %}

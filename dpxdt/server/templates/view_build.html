@@ -91,6 +91,8 @@ build description
 
 {% block footer_left %}
 
+<a href="{{ url_for('manage_admins', build_id=build.id) }}">Manage admins</a>
+&ndash;
 <a href="{{ url_for('manage_api_keys', build_id=build.id) }}">Set up API keys</a>
 
 {% endblock footer_left %}
