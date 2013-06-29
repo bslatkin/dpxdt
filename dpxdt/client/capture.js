@@ -97,9 +97,16 @@ page.onResourceReceived = function(response) {
 
 page.onInitialized = function() {
     page.evaluate(function() {
-        document.addEventListener('DOMContentLoaded', function() {
+        if (document.readyState == 'complete' ||
+            document.readyState == 'loaded') {
+            // This fires when there is no JS on the page or other slow-loading
+            // resources that prevent DOM readiness.
             window.callPhantom('DOMContentLoaded');
-        }, false);
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                window.callPhantom('DOMContentLoaded');
+            }, false);
+        }
     });
 };
 
