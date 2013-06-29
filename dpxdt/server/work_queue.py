@@ -24,6 +24,7 @@ import uuid
 # Local libraries
 import flask
 from flask import Flask, redirect, render_template, request, url_for
+from sqlalchemy.orm.exc import StaleDataError
 
 # Local modules
 from . import app
