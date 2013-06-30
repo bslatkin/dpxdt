@@ -236,9 +236,9 @@ class SiteDiff(workers.WorkflowItem):
             # URL discovery, to make sure infinitely deep sites do not
             # cause this job to never stop.
             seen_urls.update(pending_urls)
-            output = yield [workers.FetchItem(u) for u in pending_urls]
             yield heartbeat(
                 'Scanning %d pages for good urls' % len(pending_urls))
+            output = yield [workers.FetchItem(u) for u in pending_urls]
             pending_urls.clear()
 
             for item in output:

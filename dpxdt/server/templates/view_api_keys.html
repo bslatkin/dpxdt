@@ -1,10 +1,12 @@
 {% extends 'base.html' %}
 
 {% block title -%}
-
-API Keys
-
+{{ build.name }} &rsaquo; API keys
 {%- endblock title %}
+
+{% block description -%}
+API key management for '{{ build.name }}'
+{%- endblock description %}
 
 
 {% block body %}

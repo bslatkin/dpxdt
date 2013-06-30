@@ -9,7 +9,10 @@
         <link rel="stylesheet" type="text/css" href="/static/css/bootstrap-responsive.min.css">
         <link rel="stylesheet" type="text/css" href="/static/css/base.css">
         <link rel="icon shortcut" href="/static/img/favicon.ico">
+        <link rel="apple-touch-icon" href="/static/img/logo_big.png">
+        <meta property="og:image" content="/static/img/logo_big.png">
         <script src="/static/js/jquery.min.js"></script>
+        {% block head_extra %}{% endblock head_extra %}
     </head>
     <body class="endpoint-{{ request.endpoint }}">
         <div class="container" id="body-container">

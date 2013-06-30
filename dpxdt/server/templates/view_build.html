@@ -1,9 +1,11 @@
 {% extends 'base.html' %}
 
+{% block title -%}
+{{ build.name }}
+{%- endblock title %}
+
 {% block description -%}
-
-build description
-
+Build '{{ build.name }}'
 {%- endblock description %}
 
 

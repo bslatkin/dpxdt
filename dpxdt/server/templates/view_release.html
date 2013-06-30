@@ -1,9 +1,11 @@
 {% extends 'base.html' %}
 
+{% block title -%}
+{{ build.name }} &rsaquo; {{release.name}} #{{ release.number }}
+{%- endblock title %}
+
 {% block description -%}
-
-candidate description
-
+Release '{{ release.name }}' attempt #{{ release.number }}
 {%- endblock description %}
 
 

@@ -1,10 +1,24 @@
 {% extends 'base.html' %}
 
+{% block title -%}
+{{ build.name }} &rsaquo; {{release.name}} #{{ release.number }} &rsaquo; {{ run.name }}
+{%- endblock title %}
+
 {% block description -%}
-
-run description
-
+Test run '{{ run.name }}'
 {%- endblock description %}
+
+
+{% block head_extra -%}
+
+{% if previous_run %}
+    <link rel="prefetch prerender" href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=previous_run.name, type=file_type) }}">
+{% endif %}
+{% if next_run %}
+    <link rel="prefetch prerender"  href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=next_run.name, type=file_type) }}">
+{% endif %}
+
+{%- endblock head_extra %}
 
 
 {% block body %}

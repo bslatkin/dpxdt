@@ -14,7 +14,7 @@
         {% endif %}
         {% for type in ('before', 'diff', 'after') %}
             {% if type == 'diff' and request.endpoint == 'view_config' %}
-
+                {# Do not show a config link for diffs #}
             {% else %}
                 {% if file_type == type %}
                     <span class="artifact-type-selected">{{ type|title }}</span>
