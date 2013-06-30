@@ -244,12 +244,15 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
                 log_path, ref_path, run_path, diff_path)
 
             diff_success = pdiff.returncode == 0
+            max_attempts = 2
 
-            # Check for a successful run.
-            if diff_success and os.path.isfile(log_path):
+            # Check for a successful run or a known failure.
+            if os.path.isfile(log_path):
                 log_data = open(log_path).read()
                 if 'all: 0 (0)' in log_data:
                     diff_path = None
+                elif 'image widths or heights differ' in log_data:
+                    max_attempts = 1
 
             yield heartbeat('Reporting diff status to server')
             yield release_worker.ReportPdiffWorkflow(
@@ -258,7 +261,8 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
 
             if not diff_success:
                 raise PdiffFailedError(
-                    2, 'Comparison failed. returncode=%r' % pdiff.returncode)
+                    max_attempts,
+                    'Comparison failed. returncode=%r' % pdiff.returncode)
         finally:
             shutil.rmtree(output_path, True)
 

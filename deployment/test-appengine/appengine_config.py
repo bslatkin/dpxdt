@@ -19,7 +19,8 @@ sys.path.insert(0, './lib/')
 from dpxdt.server import app
 
 import logging
-logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
+# TODO: Only do this in local development mode.
+# logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
 
 
 @app.route('/_ah/warmup')
