@@ -403,7 +403,7 @@ def manage_work_queue(queue_name):
     item_list = list(
         WorkQueue.query
         .filter_by(queue_name=queue_name)
-        .order_by(WorkQueue.eta.desc())
+        .order_by(WorkQueue.created.desc())
         .limit(1000))
 
     work_list = []
