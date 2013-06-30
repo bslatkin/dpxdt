@@ -47,15 +47,30 @@ gflags.DEFINE_integer(
 class Error(Exception):
     """Base-class for exceptions in this module."""
 
+
+class GiveUpAfterAttemptsError(Exception):
+    """Exception indicates the task should give up after N attempts."""
+
+    def __init__(self, max_attempts, *args, **kwargs):
+        """Initializer.
+
+        Args:
+            max_attempts: Maximum number of attempts to make for this task,
+                inclusive. So 2 means try two times and then retire the task.
+            *args, **kwargs: Optional Exception arguments.
+        """
+        Exception.__init__(self, *args, **kwargs)
+        self.max_attempts = max_attempts
+
+
 class HeartbeatError(Error):
     """Reporting the status of a task in progress failed for some reason."""
 
-class PdiffFailedError(Error):
+class PdiffFailedError(GiveUpAfterAttemptsError):
     """Running a perceptual diff failed for some reason."""
 
-class CaptureFailedError(Error):
+class CaptureFailedError(GiveUpAfterAttemptsError):
     """Capturing a webpage screenshot failed for some reason."""
-
 
 
 # TODO: Split this out into a separate FetchItem thread so we don't gum-up
@@ -162,7 +177,9 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
                     logging.exception('Failed to report error because '
                                       'heartbeat failed.')
                 else:
-                    continue
+                    if (isinstance(e, GiveUpAfterAttemptsError) and
+                            task['lease_attempts'] < e.max_attempts):
+                        continue
 
             try:
                 finish_item = yield workers.FetchItem(
@@ -224,9 +241,11 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
 
             diff_success = pdiff.returncode == 0
 
-            log_data = open(log_path).read()
-            if 'all: 0 (0)' in log_data:
-                diff_path = None
+            # Check for a successful run.
+            if diff_success and os.path.isfile(log_path):
+                log_data = open(log_path).read()
+                if 'all: 0 (0)' in log_data:
+                    diff_path = None
 
             yield heartbeat('Reporting diff status to server')
             yield release_worker.ReportPdiffWorkflow(
@@ -235,7 +254,7 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
 
             if not diff_success:
                 raise PdiffFailedError(
-                    'Comparison failed. returncode=%r' % pdiff.returncode)
+                    3, 'Comparison failed. returncode=%r' % pdiff.returncode)
         finally:
             shutil.rmtree(output_path, True)
 
@@ -291,7 +310,7 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
                 image_path=image_path, log_path=log_path)
 
             if not capture_success:
-                raise CaptureFailedError(failure_reason)
+                raise CaptureFailedError(3, failure_reason)
         finally:
             shutil.rmtree(output_path, True)
 

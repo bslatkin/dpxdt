@@ -377,6 +377,9 @@ def report_run(build):
     elif run.image and not run.ref_image:
         run.status = models.Run.NO_DIFF_NEEDED
 
+    # TODO: Consider adding another status of "diff failed" or capture
+    # failed for situations where it couldn't finish.
+
     # TODO: Verify the build has access to both the current_image and
     # the reference_sha1sum so they can't make a diff from a black image
     # and still see private data in the diff image.

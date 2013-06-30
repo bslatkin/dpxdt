@@ -24,7 +24,6 @@ import uuid
 # Local libraries
 import flask
 from flask import Flask, redirect, render_template, request, url_for
-from sqlalchemy.orm.exc import StaleDataError
 
 # Local modules
 from . import app
@@ -152,6 +151,10 @@ def _task_to_dict(task):
         last_lease=_datetime_to_epoch_seconds(task.last_lease),
         payload=task.payload,
         content_type=task.content_type)
+
+
+# TODO: Allow requesting key to lease a task if the source matches. This
+# would let users run their own workers for server-side capture queues.
 
 
 def lease(queue_name, owner, timeout):
