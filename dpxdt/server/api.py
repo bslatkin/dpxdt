@@ -246,6 +246,8 @@ def _get_or_create_run(build):
             release_id=release.id,
             name=run_name,
             status=models.Run.DATA_PENDING)
+        db.session.add(run)
+        db.session.flush()
 
     return release, run
 
@@ -286,14 +288,22 @@ def request_run(build):
     current_run.url = current_url
     current_run.config = config_artifact.id
 
-    work_queue.add(constants.CAPTURE_QUEUE_NAME, dict(
-        build_id=build.id,
-        release_name=current_release.name,
-        release_number=current_release.number,
-        run_name=current_run.name,
-        url=current_run.url,
-        config_sha1sum=current_run.config,
-    ))
+    task_id = '%s:%s' % (
+        current_run.id, hashlib.sha1(current_run.url).hexdigest())
+    logging.info('Enqueueing capture task=%r', task_id)
+
+    work_queue.add(
+        constants.CAPTURE_QUEUE_NAME,
+        payload=dict(
+            build_id=build.id,
+            release_name=current_release.name,
+            release_number=current_release.number,
+            run_name=current_run.name,
+            url=current_run.url,
+            config_sha1sum=current_run.config,
+        ),
+        source='request_run',
+        task_id=task_id)
 
     db.session.add(current_run)
     db.session.commit()
@@ -362,6 +372,7 @@ def report_run(build):
         run.diff_image = diff_image
     if diff_log:
         run.diff_log = diff_log
+
     if diff_image or diff_log:
         logging.info('Saved pdiff: build_id=%r, release_name=%r, '
                      'release_number=%d, run_name=%r, '
@@ -386,14 +397,21 @@ def report_run(build):
     # and still see private data in the diff image.
 
     if run.status == models.Run.NEEDS_DIFF:
-        work_queue.add(constants.PDIFF_QUEUE_NAME, dict(
-            build_id=build.id,
-            release_name=release.name,
-            release_number=release.number,
-            run_name=run.name,
-            run_sha1sum=run.image,
-            reference_sha1sum=run.ref_image,
-        ))
+        task_id = '%s:%s:%s' % (run.id, run.image, run.ref_image)
+        logging.info('Enqueuing pdiff task=%r', task_id)
+
+        work_queue.add(
+            constants.PDIFF_QUEUE_NAME,
+            payload=dict(
+                build_id=build.id,
+                release_name=release.name,
+                release_number=release.number,
+                run_name=run.name,
+                run_sha1sum=run.image,
+                reference_sha1sum=run.ref_image,
+            ),
+            source='report_run',
+            task_id=task_id)
 
     # Flush the run so querying for Runs in _check_release_done_processing
     # will be find the new run too.
@@ -504,7 +522,7 @@ def _get_artifact_response(artifact):
         mimetype=artifact.content_type)
     response.cache_control.private = True
     response.cache_control.max_age = 8640000
-    response.set_etag(sha1sum)
+    response.set_etag(artifact.id)
     return response
 
 

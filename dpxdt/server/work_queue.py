@@ -114,6 +114,8 @@ def add(queue_name, payload=None, content_type=None,
         task = WorkQueue.query.filter_by(task_id=task_id).first()
         if task:
             return task.task_id
+    else:
+        task_id = uuid.uuid4().hex
 
     if payload and not content_type    and not isinstance(payload, basestring):
         payload = json.dumps(payload)
@@ -121,7 +123,7 @@ def add(queue_name, payload=None, content_type=None,
 
     now = datetime.datetime.utcnow()
     task = WorkQueue(
-        task_id=uuid.uuid4().hex,
+        task_id=task_id,
         queue_name=queue_name,
         eta=now,
         source=source,

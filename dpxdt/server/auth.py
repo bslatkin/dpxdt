@@ -66,6 +66,7 @@ def login_view():
             db.session.add(anonymous_superuser);
             db.session.commit()
         login_user(anonymous_superuser)
+        confirm_login()
         return redirect(next_url)
 
     # Inspired by:
