@@ -48,7 +48,7 @@ class Error(Exception):
     """Base-class for exceptions in this module."""
 
 
-class GiveUpAfterAttemptsError(Exception):
+class GiveUpAfterAttemptsError(Error):
     """Exception indicates the task should give up after N attempts."""
 
     def __init__(self, max_attempts, *args, **kwargs):
@@ -178,7 +178,11 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
                                       'heartbeat failed.')
                 else:
                     if (isinstance(e, GiveUpAfterAttemptsError) and
-                            task['lease_attempts'] < e.max_attempts):
+                            task['lease_attempts'] >= e.max_attempts):
+                        logging.warning(
+                            'Hit max attempts on task=%r, giving up',
+                            task)
+                    else:
                         continue
 
             try:
@@ -254,7 +258,7 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
 
             if not diff_success:
                 raise PdiffFailedError(
-                    3, 'Comparison failed. returncode=%r' % pdiff.returncode)
+                    2, 'Comparison failed. returncode=%r' % pdiff.returncode)
         finally:
             shutil.rmtree(output_path, True)
 
@@ -310,7 +314,7 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
                 image_path=image_path, log_path=log_path)
 
             if not capture_success:
-                raise CaptureFailedError(3, failure_reason)
+                raise CaptureFailedError(2, failure_reason)
         finally:
             shutil.rmtree(output_path, True)
 
