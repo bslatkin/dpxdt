@@ -133,6 +133,8 @@ def view_build(build):
             models.Run.release_id,
             models.Run.status,
             sqlalchemy.func.count(models.Run.id))
+        .join(models.Release)
+        .filter(models.Release.build_id == build.id)
         .group_by(models.Run.status, models.Run.release_id))
 
     for candidate_id, status, count in stats_counts:
