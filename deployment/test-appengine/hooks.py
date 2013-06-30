@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Hook overrides for the App Engine environment."""
+
 import datetime
 import logging
 

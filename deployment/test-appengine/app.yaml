@@ -22,8 +22,13 @@ handlers:
   script: google.appengine.ext.admin.application
   login: admin
 
+- url: /appstats(/.*)?
+  script: google.appengine.ext.appstats.ui.app
+  login: admin
+
 - url: /static
   static_dir: dpxdt/server/static
+  expiration: 1h
 
 - url: .*
   script: dpxdt.server.app

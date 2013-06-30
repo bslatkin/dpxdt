@@ -22,9 +22,16 @@ from dpxdt.server import app
 import hooks
 
 
+# For debugging SQL queries.
 # import logging
-# TODO: Only do this in local development mode.
 # logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
+
+
+# For RPC performance optimization.
+# def webapp_add_wsgi_middleware(app):
+#     from google.appengine.ext.appstats import recording
+#     app = recording.appstats_wsgi_middleware(app)
+#     return app
 
 
 @app.route('/_ah/warmup')
@@ -32,6 +39,6 @@ def appengine_warmup():
     return 'OK'
 
 
-# Install hooks.
+# Install override hooks.
 api._artifact_created = hooks._artifact_created
 api._get_artifact_response = hooks._get_artifact_response
