@@ -536,7 +536,11 @@ def download():
                       build_id, sha1sum)
         abort(403)
 
-    # TODO: Make sure the session cookie is not re-set on this response.
+    # Make sure the session cookie is not re-set on this response.
+    @utils.after_this_request
+    def no_session(response):
+        flask._request_ctx_stack.top.session = app.make_null_session()
+        return response
 
     if request.if_none_match and request.if_none_match.contains(sha1sum):
         response = flask.Response(status=304)

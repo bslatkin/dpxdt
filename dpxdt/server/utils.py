@@ -24,7 +24,7 @@ import uuid
 
 # Local libraries
 import flask
-from flask import abort, jsonify
+from flask import abort, g, jsonify
 
 # Local modules
 from . import app
@@ -108,3 +108,18 @@ def password_uuid():
     """Returns a good UUID for using as a password."""
     return base64.b64encode(
         hashlib.sha1(uuid.uuid4().bytes).digest()).strip('=')
+
+
+# From http://flask.pocoo.org/snippets/53/
+def after_this_request(func):
+    if not hasattr(g, 'call_after_request'):
+        g.call_after_request = []
+    g.call_after_request.append(func)
+    return func
+
+
+@app.after_request
+def per_request_callbacks(response):
+    for func in getattr(g, 'call_after_request', ()):
+        response = func(response)
+    return response
