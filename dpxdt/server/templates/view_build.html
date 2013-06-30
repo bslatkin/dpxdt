@@ -49,7 +49,11 @@ Build '{{ build.name }}'
                                             {{ candidate.created|timesince }}
                                         </abbr>
                                     </div>
-                                    {% with runs_total, runs_complete, runs_successful, runs_failed = run_stats_dict[candidate] %}
+                                    {% with stats_dict = run_stats_dict[candidate.id] %}
+                                        {% set runs_total = stats_dict.runs_total %}
+                                        {% set runs_complete = stats_dict.runs_complete %}
+                                        {% set runs_successful = stats_dict.runs_successful %}
+                                        {% set runs_failed = stats_dict.runs_failed %}
                                         <div class="span2">
                                             {% include 'fragment_runs_complete.html' with context %}
                                         </div>

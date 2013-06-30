@@ -24,6 +24,7 @@ from flask import Flask, abort, redirect, render_template, request, url_for
 from flask.ext.login import (
     current_user, fresh_login_required, login_fresh, login_required)
 from flask.ext.wtf import Form
+import sqlalchemy
 
 # Local modules
 from . import app
@@ -98,15 +99,23 @@ def view_build(build):
         .order_by(models.Release.created.desc())
         .all())
 
-    # Collate by release name, order releases by latest creation
+    # Collate by release name, order releases by latest creation. Init stats.
     release_dict = {}
     created_dict = {}
+    run_stats_dict = {}
     for candidate in candidate_list:
         release_list = release_dict.setdefault(candidate.name, [])
         release_list.append(candidate)
 
         max_created = created_dict.get(candidate.name, candidate.created)
+
         created_dict[candidate.name] = max(candidate.created, max_created)
+
+        run_stats_dict[candidate.id] = dict(
+            runs_total=0,
+            runs_complete=0,
+            runs_successful=0,
+            runs_failed=0)
 
     # Sort each release by candidate number descending
     for release_list in release_dict.itervalues():
@@ -119,30 +128,23 @@ def view_build(build):
     release_name_list = [key for _, key in release_age_list]
 
     # Extract run metadata about each release
-    run_stats_dict = {}
-    for candidate in candidate_list:
-        successful = (
-            models.Run.query
-            .filter_by(release_id=candidate.id)
-            .filter(models.Run.status.in_([
-                        models.Run.DIFF_APPROVED, models.Run.DIFF_NOT_FOUND]))
-            .count())
-        failed = (
-            models.Run.query
-            .filter_by(release_id=candidate.id, status=models.Run.DIFF_FOUND)
-            .count())
-        needs_diff = (
-            models.Run.query
-            .filter_by(release_id=candidate.id, status=models.Run.NEEDS_DIFF)
-            .count())
-        pending = (
-            models.Run.query
-            .filter_by(release_id=candidate.id, status=models.Run.DATA_PENDING)
-            .count())
-        total = pending + needs_diff + successful + failed
-        complete = successful + failed
+    stats_counts = list(
+        db.session.query(
+            models.Run.release_id,
+            models.Run.status,
+            sqlalchemy.func.count(models.Run.id))
+        .group_by(models.Run.status, models.Run.release_id))
 
-        run_stats_dict[candidate] = (total, complete, successful, failed)
+    for candidate_id, status, count in stats_counts:
+        stats_dict = run_stats_dict[candidate_id]
+        stats_dict['runs_total'] += count
+
+        if status in (models.Run.DIFF_APPROVED, models.Run.DIFF_NOT_FOUND):
+            stats_dict['runs_successful'] += count
+            stats_dict['runs_complete'] += count
+        elif status == models.Run.DIFF_FOUND:
+            stats_dict['runs_failed'] += count
+            stats_dict['runs_complete'] += count
 
     return _render_template_with_defaults(
         'view_build.html',
