@@ -26,8 +26,8 @@ import urllib2
 import flask
 from flask import abort, redirect, render_template, request, url_for
 from flask.ext.login import (
-    current_user, fresh_login_required, login_fresh, login_required,
-    login_user, logout_user)
+    confirm_login, current_user, fresh_login_required, login_fresh,
+    login_required, login_user, logout_user)
 
 # Local modules
 from . import app
@@ -142,6 +142,11 @@ def login_auth():
     db.session.commit()
 
     login_user(user)
+    confirm_login()
+
+    # Clear all flashed messages from the session on login.
+    flask.get_flashed_messages()
+
     final_url = urllib.unquote(request.args.get('state'))
     logging.debug('User is logged in. Redirecting to url=%r', final_url)
     return redirect(final_url)
@@ -197,7 +202,9 @@ def can_user_access_build(param_name):
         if request.method != 'GET':
             logging.debug('No way to log in user via modifying request')
             abort(403)
-        elif build.public or current_user.superuser:
+        elif build.public:
+            pass
+        elif current_user.is_authenticated() and current_user.superuser:
             pass
         elif current_user.is_authenticated():
             logging.debug('User does not have access to this build')

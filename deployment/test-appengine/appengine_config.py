@@ -16,9 +16,13 @@
 import sys
 sys.path.insert(0, './lib/')
 
+# Local modules
+from dpxdt.server import api
 from dpxdt.server import app
+import hooks
 
-import logging
+
+# import logging
 # TODO: Only do this in local development mode.
 # logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
 
@@ -26,3 +30,8 @@ import logging
 @app.route('/_ah/warmup')
 def appengine_warmup():
     return 'OK'
+
+
+# Install hooks.
+api._artifact_created = hooks._artifact_created
+api._get_artifact_response = hooks._get_artifact_response

@@ -25,3 +25,5 @@ GOOGLE_OAUTH2_REDIRECT_PATH = '/oauth2callback'
 GOOGLE_OAUTH2_REDIRECT_URI = 'http://localhost:5000' + GOOGLE_OAUTH2_REDIRECT_PATH
 GOOGLE_OAUTH2_CLIENT_ID = '918724168220-nqq27o7so1p7stukds23oo2vof5gkfmh.apps.googleusercontent.com'
 GOOGLE_OAUTH2_CLIENT_SECRET = 'EhiCP-PuQYN0OsWGAELTUHyl'
+
+GOOGLE_CLOUD_STORAGE_BUCKET = 'fake-bucket-name-here/artifacts'

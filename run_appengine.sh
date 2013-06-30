@@ -8,4 +8,6 @@ dev_appserver.py \
     --mysql_port=3306 \
     --port=5000 \
     --log_level=debug \
+    --require_indexes=yes \
+    "$@" \
     ./deployment/test-appengine/

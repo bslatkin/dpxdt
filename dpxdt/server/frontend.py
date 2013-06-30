@@ -51,6 +51,7 @@ def homepage():
 
     if current_user.is_authenticated():
         if not login_fresh():
+            logging.debug('User needs a fresh token')
             abort(login.needs_refresh())
 
         auth.claim_invitations(current_user)

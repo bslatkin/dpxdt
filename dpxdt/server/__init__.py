@@ -28,8 +28,6 @@ import config
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-app.config['REMEMBER_COOKIE_NAME'] = 'dpxdt_uid'
-app.config['REMEMBER_COOKIE_DURATION'] = datetime.timedelta(days=1)
 app.config['SECRET_KEY'] = config.SECRET_KEY
 app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
 

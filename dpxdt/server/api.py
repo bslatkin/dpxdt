@@ -78,6 +78,7 @@ import functools
 import json
 import logging
 import mimetypes
+import time
 
 # Local libraries
 import flask
@@ -439,13 +440,18 @@ def runs_done(build):
         results_url=results_url)
 
 
-def _save_artifact(build, data, content_type):
-    """Saves an artifact to the DB and returns it.
+def _artifact_created(artifact):
+    """Called whenever an Artifact is created.
 
     This method may be overridden in environments that have a different way of
     storing artifact files, such as on-disk or S3. Use the artifact.alternate
     field to hold the environment-specific data you need.
     """
+    pass
+
+
+def _save_artifact(build, data, content_type):
+    """Saves an artifact to the DB and returns it."""
     sha1sum = hashlib.sha1(data).hexdigest()
     artifact = models.Artifact.query.filter_by(id=sha1sum).first()
 
@@ -458,6 +464,7 @@ def _save_artifact(build, data, content_type):
           id=sha1sum,
           content_type=content_type,
           data=data)
+      _artifact_created(artifact)
 
     artifact.owners.append(build)
     return artifact
@@ -484,6 +491,21 @@ def upload(build):
         build_id=build.id,
         sha1sum=artifact.id,
         content_type=content_type)
+
+
+def _get_artifact_response(artifact):
+    """Gets the response object for the given artifact.
+
+    This method may be overridden in environments that have a different way of
+    storing artifact files, such as on-disk or S3.
+    """
+    response = flask.Response(
+        artifact.data,
+        mimetype=artifact.content_type)
+    response.cache_control.private = True
+    response.cache_control.max_age = 8640000
+    response.set_etag(sha1sum)
+    return response
 
 
 @app.route('/api/download')
@@ -514,13 +536,10 @@ def download():
                       build_id, sha1sum)
         abort(403)
 
-    if request.if_none_match and request.if_none_match.contains(sha1sum):
-        return flask.Response(status=304)
+    # TODO: Make sure the session cookie is not re-set on this response.
 
-    response = flask.Response(
-        artifact.data,
-        mimetype=artifact.content_type)
-    response.cache_control.private = True
-    response.cache_control.max_age = 8640000
-    response.set_etag(sha1sum)
-    return response
+    if request.if_none_match and request.if_none_match.contains(sha1sum):
+        response = flask.Response(status=304)
+        return response
+
+    return _get_artifact_response(artifact)
