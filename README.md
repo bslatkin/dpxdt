@@ -145,7 +145,7 @@ Finds the last good run of the given name for a release. Returns an error if no 
 
 #### /api/request_run
 
-Requests a new run for a release candidate. Causes the API system to take screenshots and do pdiffs.
+Requests a new run for a release candidate. Causes the API system to take screenshots and do pdiffs. When `ref_url` and `ref_config` are supplied, the system will run two sets of captures (one for the baseline, one for the new release) and then compare them. When `rel_url` and `ref_config` are not specified, the last good run for this build is found and used for comparison.
 
 ##### Parameters
 <dl>
@@ -159,6 +159,10 @@ Requests a new run for a release candidate. Causes the API system to take screen
     <dd>URL to request as a run.</dd>
     <dt>config</dt>
     <dd>JSON data that is the config for the new run.</dd>
+    <dt>ref_url</dt>
+    <dd>URL of the baseline to request as a run.</dd>
+    <dt>ref_config</dt>
+    <dd>JSON data that is the config for the baseline of the new run.</dd>
 </dl>
 
 ###### Format of `config`
@@ -190,6 +194,10 @@ The config passed to the `request_run` function may have any or all of these fie
     <dd>URL that was requested for the run.</dd>
     <dt>config</dt>
     <dd>Artifact ID (SHA1 hash) of the config file that will be used for the screenshot process associated with the run.</dd>
+    <dt>ref_url</dt>
+    <dd>URL that was requested for the baseline reference for the run.</dd>
+    <dt>ref_config</dt>
+    <dd>Artifact ID (SHA1 hash) of the config file used for the baseline screenshot process of the run.</dd>
 </dl>
 
 #### /api/upload

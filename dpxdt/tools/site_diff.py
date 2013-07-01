@@ -22,9 +22,7 @@ import json
 import logging
 import os
 import re
-import shutil
 import sys
-import tempfile
 import urlparse
 
 # Local Libraries
@@ -32,9 +30,9 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-import dpxdt
-import release_worker
-import workers
+from dpxdt.client import release_worker
+from dpxdt.client import workers
+import flags
 
 
 gflags.DEFINE_integer(
@@ -46,25 +44,6 @@ gflags.DEFINE_integer(
 gflags.DEFINE_spaceseplist(
     'ignore_prefixes', [],
     'URL prefixes that should not be crawled.')
-
-gflags.DEFINE_string(
-    'upload_build_id', None,
-    'ID of the build to upload this screenshot set to as a new release.')
-
-gflags.DEFINE_string(
-    'upload_release_name', None,
-    'Along with upload_build_id, the name of the release to upload to. If '
-    'not supplied, a new release will be created.')
-
-gflags.DEFINE_string(
-    'inject_css', None,
-    'CSS to inject into all captured pages after they have loaded but '
-    'before screenshotting.')
-
-gflags.DEFINE_string(
-    'inject_js', None,
-    'JavaScript to inject into all captured pages after they have loaded '
-    'but before screenshotting.')
 
 
 # URL regex rewriting code originally from mirrorrr
@@ -203,9 +182,7 @@ class SiteDiff(workers.WorkflowItem):
         start_url: URL to begin the site diff scan.
         ignore_prefixes: Optional. List of URL prefixes to ignore during
             the crawl; start_url should be a common prefix with all of these.
-        upload_build_id: Optional. Build ID of the site being compared. When
-            supplied a new release will be cut for this build comparing it
-            to the last good release.
+        upload_build_id: Build ID of the site being compared.
         upload_release_name: Optional. Release name to use for the build. When
             not supplied, a new release based on the current time will be
             created.
@@ -215,11 +192,9 @@ class SiteDiff(workers.WorkflowItem):
     def run(self,
             start_url,
             ignore_prefixes,
-            upload_build_id=None,
+            upload_build_id,
             upload_release_name=None,
             heartbeat=None):
-        output_dir = tempfile.mkdtemp()
-
         if not ignore_prefixes:
             ignore_prefixes = []
 
@@ -294,7 +269,7 @@ class SiteDiff(workers.WorkflowItem):
 
             run_requests.append(release_worker.RequestRunWorkflow(
                 upload_build_id, upload_release_name, release_number,
-                run_name, url, config_data=config_data))
+                run_name, url, config_data))
 
         yield run_requests
 
@@ -335,9 +310,6 @@ def real_main(start_url=None,
 
 
 def main(argv):
-    gflags.MarkFlagAsRequired('upload_build_id')
-    gflags.MarkFlagAsRequired('release_server_prefix')
-
     try:
         argv = FLAGS(argv)
     except gflags.FlagsError, e:
@@ -347,6 +319,9 @@ def main(argv):
     if len(argv) != 2:
         print 'Must supply a website URL as the first argument.'
         sys.exit(1)
+
+    assert FLAGS.upload_build_id
+    assert FLAGS.release_server_prefix
 
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)

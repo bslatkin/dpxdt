@@ -252,58 +252,85 @@ def _get_or_create_run(build):
     return release, run
 
 
-@app.route('/api/request_run', methods=['POST'])
-@auth.build_api_access_required
-def request_run(build):
-    """Requests a new run for a release candidate."""
-    current_release, current_run = _get_or_create_run(build)
-    last_good_release, last_good_run = _find_last_good_run(build)
-
-    if last_good_run:
-        current_run.ref_url = last_good_run.url
-        current_run.ref_image = last_good_run.image
-        current_run.ref_log = last_good_run.log
-        current_run.ref_config = last_good_run.config
-
-    current_url = request.form.get('url', type=str)
-    config_data = request.form.get('config', default='{}', type=str)
-    utils.jsonify_assert(current_url, 'url to capture required')
-    utils.jsonify_assert(config_data, 'config document required')
-
+def _enqueue_capture(build, release, run, url, config_data, baseline=False):
+    """Enqueues a task to run a capture process."""
     # Validate the JSON config parses.
     try:
         config_dict = json.loads(config_data)
     except Exception, e:
-        return jsonify_error(e)
+        abort(utils.jsonify_error(e))
 
     # Rewrite the config JSON to include the URL specified in this request.
     # Blindly overwrite anything that was there.
-    config_dict['targetUrl'] = current_url
+    config_dict['targetUrl'] = url
     config_data = json.dumps(config_dict)
 
     config_artifact = _save_artifact(build, config_data, 'application/json')
     db.session.add(config_artifact)
     db.session.flush()
 
-    current_run.url = current_url
-    current_run.config = config_artifact.id
+    suffix = ''
+    if baseline:
+        suffix = ':baseline'
 
-    task_id = '%s:%s' % (
-        current_run.id, hashlib.sha1(current_run.url).hexdigest())
-    logging.info('Enqueueing capture task=%r', task_id)
+    task_id = '%s:%s%s' % (run.id, hashlib.sha1(url).hexdigest(), suffix)
+    logging.info('Enqueueing capture task=%r, baseline=%r', task_id, baseline)
 
     work_queue.add(
         constants.CAPTURE_QUEUE_NAME,
         payload=dict(
             build_id=build.id,
-            release_name=current_release.name,
-            release_number=current_release.number,
-            run_name=current_run.name,
-            url=current_run.url,
-            config_sha1sum=current_run.config,
+            release_name=release.name,
+            release_number=release.number,
+            run_name=run.name,
+            url=url,
+            config_sha1sum=config_artifact.id,
+            baseline=baseline,
         ),
         source='request_run',
         task_id=task_id)
+
+    # Set the URL and config early to indicate to report_run that there is
+    # still data pending even if 'image' and 'ref_image' are unset.
+    if baseline:
+        run.ref_url = url
+        run.ref_config = config_artifact.id
+    else:
+        run.url = url
+        run.config = config_artifact.id
+
+
+@app.route('/api/request_run', methods=['POST'])
+@auth.build_api_access_required
+def request_run(build):
+    """Requests a new run for a release candidate."""
+    current_release, current_run = _get_or_create_run(build)
+
+    current_url = request.form.get('url', type=str)
+    config_data = request.form.get('config', default='{}', type=str)
+    utils.jsonify_assert(current_url, 'url to capture required')
+    utils.jsonify_assert(config_data, 'config document required')
+
+    config_artifact = _enqueue_capture(
+        build, current_release, current_run, current_url, config_data)
+
+    ref_url = request.form.get('ref_url', type=str)
+    ref_config_data = request.form.get('ref_config', type=str)
+    utils.jsonify_assert(
+        bool(ref_url) == bool(ref_config_data),
+        'ref_url and ref_config must both be specified or not specified')
+
+    if ref_url and ref_config_data:
+        ref_config_artifact = _enqueue_capture(
+            build, current_release, current_run, ref_url, ref_config_data,
+            baseline=True)
+    else:
+        _, last_good_run = _find_last_good_run(build)
+        if last_good_run:
+            current_run.ref_url = last_good_run.url
+            current_run.ref_image = last_good_run.image
+            current_run.ref_log = last_good_run.log
+            current_run.ref_config = last_good_run.config
 
     db.session.add(current_run)
     db.session.commit()
@@ -315,7 +342,9 @@ def request_run(build):
         release_number=current_release.number,
         run_name=current_run.name,
         url=current_run.url,
-        config=current_run.config)
+        config=current_run.config,
+        ref_url=current_run.ref_url,
+        ref_config=current_run.ref_config)
 
 
 @app.route('/api/report_run', methods=['POST'])
@@ -386,7 +415,7 @@ def report_run(build):
         run.status = models.Run.NEEDS_DIFF
     elif run.image and run.ref_image and diff_success:
         run.status = models.Run.DIFF_NOT_FOUND
-    elif run.image and not run.ref_image:
+    elif run.image and not run.ref_config:
         run.status = models.Run.NO_DIFF_NEEDED
 
     # TODO: Consider adding another status of "diff failed" or capture

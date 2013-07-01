@@ -277,6 +277,8 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
         run_name: Run to run perceptual diff for.
         url: URL of the content to screenshot.
         config_sha1sum: Content hash of the config for the new screenshot.
+        baseline: Optional. When specified and True, this capture is for
+            the reference baseline of the specified run, not the new capture.
         heartbeat: Function to call with progress status.
 
     Raises:
@@ -284,7 +286,8 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
     """
 
     def run(self, build_id=None, release_name=None, release_number=None,
-            run_name=None, url=None, config_sha1sum=None, heartbeat=None):
+            run_name=None, url=None, config_sha1sum=None, baseline=None,
+            heartbeat=None):
         output_path = tempfile.mkdtemp()
         try:
             image_path = os.path.join(output_path, 'capture.png')
@@ -315,37 +318,12 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
 
             yield release_worker.ReportRunWorkflow(
                 build_id, release_name, release_number, run_name,
-                image_path=image_path, log_path=log_path)
+                image_path=image_path, log_path=log_path, baseline=baseline)
 
             if not capture_success:
                 raise CaptureFailedError(2, failure_reason)
         finally:
             shutil.rmtree(output_path, True)
-
-
-# TODO: Reenable server-side site diffing
-# class DoSiteDiffQueueWorkflow(workers.WorkflowItem):
-#     """Runs a site diff from queue parameters.
-
-#     Args:
-#         build_Id: ID of the build.
-#         start_url: URL to begin the scan.
-#         ignore_prefixes: List of prefixes to ignore during the scan.
-#         heartbeat: Fucntion to call with progress status.
-#     """
-
-#     def run(self, build_id=None, start_url=None, ignore_prefixes=None,
-#             heartbeat=None):
-#         output_path = tempfile.mkdtemp()
-#         try:
-#             yield site_diff.SiteDiff(
-#                 start_url,
-#                 output_path,
-#                 ignore_prefixes,
-#                 upload_build_id=build_id,
-#                 heartbeat=heartbeat)
-#         finally:
-#             shutil.rmtree(output_path, True)
 
 
 def register(coordinator):
@@ -374,13 +352,3 @@ def register(coordinator):
                 poll_period=FLAGS.queue_poll_seconds)
             item.root = True
             coordinator.input_queue.put(item)
-
-        # TODO: Reenable the site-diff queue later
-        # site_diff_queue_url = '%s/%s' % (
-        #     FLAGS.queue_server_prefix, constants.SITE_DIFF_QUEUE_NAME)
-        # item = RemoteQueueWorkflow(
-        #     site_diff_queue_url,
-        #     DoSiteDiffQueueWorkflow,
-        #     poll_period=FLAGS.queue_poll_seconds)
-        # item.root = True
-        # coordinator.input_queue.put(item)

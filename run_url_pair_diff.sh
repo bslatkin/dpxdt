@@ -2,6 +2,6 @@
 
 source common.sh
 
-./dpxdt/tools/site_diff.py \
+./dpxdt/tools/url_pair_diff.py \
     --release_server_prefix=http://localhost:5000/api \
     "$@"

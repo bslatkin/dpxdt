@@ -206,22 +206,17 @@ class RequestRunWorkflow(workers.WorkflowItem):
         release_number: Number of the release candidate.
         run_name: Name of the run being requested.
         url: URL to fetch for the run.
-        config_path: Optional. Path to the JSON config to upload. Mutually
-            exclusive with config_data.
-        config_data: Optional. Mutually exclusive with config_path. The JSON
-            data that is the config for this run.
+        config_data: The JSON data that is the config for this run.
+        ref_url: Optional. URL of the baseline to fetch for the run.
+        ref_config_data: Optional. The JSON data that is the config for the
+            baseline of this run.
 
     Raises:
         RequestRunError if the run could not be requested.
     """
 
     def run(self, build_id, release_name, release_number, run_name,
-            url, config_path=None, config_data=None):
-        assert bool(config_path) != bool(config_data)
-
-        if not config_data:
-            config_data = open(config_path).read()
-
+            url, config_data, ref_url=None, ref_config_data=None):
         post = {
             'build_id': build_id,
             'release_name': release_name,
@@ -230,6 +225,10 @@ class RequestRunWorkflow(workers.WorkflowItem):
             'url': url,
             'config': config_data,
         }
+        if ref_url and ref_config_data:
+            post.update(
+                ref_url=ref_url,
+                ref_config=ref_config_data)
 
         call = yield workers.FetchItem(
             FLAGS.release_server_prefix + '/request_run',
@@ -260,6 +259,10 @@ class ReportRunWorkflow(workers.WorkflowItem):
         ref_image: Optional. Asset ID of the image to compare to.
         ref_log: Optional. Asset ID of the reference image's log.
         ref_config: Optional. Asset ID of the reference image's config.
+        baseline: Optional. When specified and True, the log_path, url,
+            and image_path are for the reference baseline of the specified
+            run, not the new capture. If this is True, the ref_* parameters
+            must not be provided.
 
     Raises:
         ReportRunError if the run could not be reported.
@@ -267,7 +270,11 @@ class ReportRunWorkflow(workers.WorkflowItem):
 
     def run(self, build_id, release_name, release_number, run_name,
             image_path=None, log_path=None, url=None, config_path=None,
-            ref_url=None, ref_image=None, ref_log=None, ref_config=None):
+            ref_url=None, ref_image=None, ref_log=None, ref_config=None,
+            baseline=None):
+        if baseline and (ref_url or ref_image or ref_log or ref_config):
+            raise ReportRunError(
+                'Cannot specify "baseline" along with any "ref_*" arguments.')
 
         upload_jobs = [
             UploadFileWorkflow(build_id, log_path),
@@ -294,15 +301,27 @@ class ReportRunWorkflow(workers.WorkflowItem):
             'release_name': release_name,
             'release_number': release_number,
             'run_name': run_name,
-            'log': log_id,
         }
+
+        if baseline:
+            ref_url = url
+            ref_log = log_id
+            ref_image = image_id
+            ref_config = config_id
+            url = None
+            log_id = None
+            image_id = None
+            config_id = None
 
         if url:
             post.update(url=url)
         if image_id:
-            post.update(image=image_id),
+            post.update(image=image_id)
+        if log_id:
+            post.update(log=log_id)
         if config_id:
             post.update(config=config_id)
+
         if ref_url:
             post.update(ref_url=ref_url)
         if ref_image:
