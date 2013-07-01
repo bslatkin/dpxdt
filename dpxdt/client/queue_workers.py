@@ -29,7 +29,6 @@ from dpxdt import constants
 import capture_worker
 import pdiff_worker
 import release_worker
-import site_diff
 import workers
 
 
