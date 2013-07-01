@@ -93,11 +93,18 @@ def new_build():
 @auth.build_access_required
 def view_build(build):
     """Page for viewing all releases in a build."""
-    candidate_list = (
+    page_size = 20
+    offset = request.args.get('offset', 0, type=int)
+    candidate_list = list(
         models.Release.query
         .filter_by(build_id=build.id)
         .order_by(models.Release.created.desc())
-        .all())
+        .offset(offset)
+        .limit(page_size + 1))
+
+    has_next_page = len(candidate_list) > page_size
+    if has_next_page:
+        candidate_list = candidate_list[:-1]
 
     # Collate by release name, order releases by latest creation. Init stats.
     release_dict = {}
@@ -134,7 +141,7 @@ def view_build(build):
             models.Run.status,
             sqlalchemy.func.count(models.Run.id))
         .join(models.Release)
-        .filter(models.Release.build_id == build.id)
+        .filter(models.Release.id.in_(run_stats_dict.keys()))
         .group_by(models.Run.status, models.Run.release_id))
 
     for candidate_id, status, count in stats_counts:
@@ -153,7 +160,11 @@ def view_build(build):
         build=build,
         release_name_list=release_name_list,
         release_dict=release_dict,
-        run_stats_dict=run_stats_dict)
+        run_stats_dict=run_stats_dict,
+        has_next_page=has_next_page,
+        current_offset=offset,
+        next_offset=offset + page_size,
+        last_offset=max(0, offset -  page_size))
 
 
 def classify_runs(run_list):
