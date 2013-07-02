@@ -19,14 +19,17 @@ import datetime
 
 # Local libraries
 from flask import Flask, url_for
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask.ext.cache import Cache
 from flask.ext.login import LoginManager
+from flask.ext.sqlalchemy import SQLAlchemy
 
 # Local modules required for app setup
 import config
 
 
 app = Flask(__name__)
+app.config['CACHE_TYPE'] = config.CACHE_TYPE
+app.config['CACHE_DEFAULT_TIMEOUT'] = config.CACHE_DEFAULT_TIMEOUT
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['SECRET_KEY'] = config.SECRET_KEY
 app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
@@ -39,6 +42,10 @@ login = LoginManager()
 login.init_app(app)
 login.login_view = 'login_view'
 login.refresh_view = 'login_view'
+
+
+cache = Cache()
+cache.init_app(app)
 
 
 # Modules with handlers to register with the app

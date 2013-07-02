@@ -19,10 +19,27 @@ import datetime
 
 # Local modules
 from . import app
+from . import cache
 from . import db
 
 
-class User(db.Model):
+class BaseMixin(object):
+    """Base class for models. Convenience methods, caching, etc."""
+
+    # Used as the cache key
+    def __repr__(self):
+        return '%s(id=%r)' % (self.__class__.__name__, self.id)
+
+    @classmethod
+    @cache.memoize()
+    def get_by_id(cls, model_id):
+        result = cls.query.get(model_id)
+        if result is not None:
+            db.session.expunge(result)
+        return result
+
+
+class User(db.Model, BaseMixin):
     """Represents a user who is authenticated in the system.
 
     Primary key is prefixed with a valid AUTH_TYPES like:
@@ -73,7 +90,7 @@ api_key_ownership_table = db.Table(
     db.Column('user_id', db.String(255), db.ForeignKey('user.id')))
 
 
-class ApiKey(db.Model):
+class ApiKey(db.Model, BaseMixin):
     """API access for an automated system.
 
     May be owned by multiple users if necessary. Owners can set its state
@@ -103,7 +120,7 @@ ownership_table = db.Table(
     db.Column('user_id', db.String(255), db.ForeignKey('user.id')))
 
 
-class Build(db.Model):
+class Build(db.Model, BaseMixin):
     """A single repository of artifacts and diffs owned by someone.
 
     Queries:
@@ -122,8 +139,12 @@ class Build(db.Model):
                              backref=db.backref('builds', lazy='dynamic'),
                              lazy='dynamic')
 
+    @cache.memoize()
+    def is_owned_by(self, user_id):
+        return self.owners.filter_by(id=user_id).first() is not None
 
-class Release(db.Model):
+
+class Release(db.Model, BaseMixin):
     """A set of runs that are part of a build, grouped by a user-supplied name.
 
     Queries:
@@ -160,7 +181,7 @@ artifact_ownership_table = db.Table(
 # queue worker that uploads them there and purges the database. Move to
 # saving blobs in a directory by content-addressable filename.
 
-class Artifact(db.Model):
+class Artifact(db.Model, BaseMixin):
     """Contains a single file uploaded by a diff worker."""
 
     id = db.Column(db.String(100), primary_key=True)
@@ -173,7 +194,7 @@ class Artifact(db.Model):
                              lazy='dynamic')
 
 
-class Run(db.Model):
+class Run(db.Model, BaseMixin):
     """Contains a set of screenshot records uploaded by a diff worker.
 
     Queries:

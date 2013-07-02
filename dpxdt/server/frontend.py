@@ -58,6 +58,8 @@ def homepage():
         auth.claim_invitations(current_user)
 
         # List builds you own first, followed by public ones.
+        # TODO: Cache this list
+        db.session.add(current_user)
         build_list = list(
             current_user.builds
             .order_by(models.Build.created.desc())

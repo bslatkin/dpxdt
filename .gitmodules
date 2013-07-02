@@ -22,3 +22,6 @@
 [submodule "flask-login"]
 	path = flask-login
 	url = https://github.com/maxcountryman/flask-login
+[submodule "flask-cache"]
+	path = flask-cache
+	url = https://github.com/thadeusb/flask-cache.git

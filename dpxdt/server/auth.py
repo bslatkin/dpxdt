@@ -31,6 +31,7 @@ from flask.ext.login import (
 
 # Local modules
 from . import app
+from . import cache
 from . import db
 from . import login
 import config
@@ -48,7 +49,7 @@ FETCH_TIMEOUT_SECONDS = 60
 
 @login.user_loader
 def load_user(user_id):
-    return models.User.query.get(user_id)
+    return models.User.get_by_id(user_id)
 
 
 @app.route('/login')
@@ -194,10 +195,8 @@ def can_user_access_build(param_name):
         abort(404)
 
     user_is_owner = False
-
     if current_user.is_authenticated():
-        user_is_owner = build.owners.filter_by(
-            id=current_user.get_id()).first()
+        user_is_owner = build.is_owned_by(current_user.id)
 
     if not user_is_owner:
         if request.method != 'GET':
@@ -249,6 +248,12 @@ def build_access_required(function_or_param_name):
         return get_wrapper('id', function_or_param_name)
 
 
+@cache.memoize
+def _get_api_key(key_id):
+    """Gets the ApiKey with the given ID."""
+    return models.ApiKey.query.get(key_id)
+
+
 def current_api_key():
     """Determines the API key for the current request.
 
@@ -268,7 +273,7 @@ def current_api_key():
             'API key required', 401,
             {'WWW-Authenticate': 'Basic realm="API key required"'}))
 
-    api_key = models.ApiKey.query.get(auth_header.username)
+    api_key = _get_api_key(auth_header.username)
     utils.jsonify_assert(api_key, 'API key must exist', 403)
     utils.jsonify_assert(api_key.active, 'API key must be active', 403)
     utils.jsonify_assert(api_key.secret == auth_header.password,
@@ -294,7 +299,8 @@ def can_api_key_access_build(param_name):
         request.args.get(param_name, type=int) or
         request.form.get(param_name, type=int))
     utils.jsonify_assert(build_id, 'build_id required')
-    build = models.Build.query.get(build_id)
+
+    build = models.Build.get_by_id(build_id)
     utils.jsonify_assert(build is not None, 'build must exist', 404)
 
     if not api_key.superuser:
@@ -391,6 +397,9 @@ def revoke_api_key(build):
         db.session.add(api_key)
         db.session.commit()
 
+        cache.delete_memoized(
+            models.ApiKey.get_by_id, models.ApiKey, api_key.id)
+
     return redirect(url_for('manage_api_keys', build_id=build.id))
 
 
@@ -402,12 +411,17 @@ def claim_invitations(user):
         models.User.EMAIL_INVITATION, user.email_address)
     invitation_user = models.User.query.get(invitation_user_id)
     if invitation_user:
-        logging.debug('Found build admin invitation for id=%r',
-                      invitation_user_id)
-        for build in invitation_user.builds:
+        invited_build_list = list(invitation_user.builds)
+        if not invited_build_list:
+            return
+
+        db.session.add(user)
+        logging.debug('Found %d build admin invitations for id=%r, user=%r',
+                      len(invited_build_list), invitation_user_id, user)
+
+        for build in invited_build_list:
             build.owners.remove(invitation_user)
-            user_is_owner = build.owners.filter_by(id=user.id).first()
-            if not user_is_owner:
+            if not build.is_owned_by(user.id):
                 build.owners.append(user)
                 logging.debug('Claiming invitation for build_id=%r', build.id)
             else:
@@ -417,6 +431,9 @@ def claim_invitations(user):
 
         db.session.delete(invitation_user)
         db.session.commit()
+
+        for build in invited_build_list:
+            cache.delete_memoized(models.Build.is_owned_by, build, user.id)
 
 
 @app.route('/admins', methods=['GET', 'POST'])
@@ -489,5 +506,7 @@ def revoke_admin(build):
         build.owners.remove(user)
         db.session.add(build)
         db.session.commit()
+
+        cache.delete_memoized(models.Build.is_owned_by, build, user.id)
 
     return redirect(url_for('manage_admins', build_id=build.id))
