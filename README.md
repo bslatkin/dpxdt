@@ -292,6 +292,7 @@ Update the common.sh file to match your environment.
 To use the server locally for the first time, or when the schema changes during development:
 
 ```
+# git submodule update --init --recursive
 # ./run_shell.sh
 >>> from dpxdt.server import db
 >>> db.drop_all()
