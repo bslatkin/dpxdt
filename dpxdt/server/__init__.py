@@ -22,6 +22,7 @@ from flask import Flask, url_for
 from flask.ext.cache import Cache
 from flask.ext.login import LoginManager
 from flask.ext.sqlalchemy import SQLAlchemy
+import jinja2
 
 # Local modules required for app setup
 import config
@@ -46,6 +47,9 @@ login.refresh_view = 'login_view'
 
 cache = Cache()
 cache.init_app(app)
+
+
+app.jinja_env.bytecode_cache = jinja2.MemcachedBytecodeCache(cache)
 
 
 # Modules with handlers to register with the app
