@@ -266,7 +266,7 @@ def current_api_key():
             'API key required', 401,
             {'WWW-Authenticate': 'Basic realm="API key required"'}))
 
-    api_key = models.ApiKey.get_by_id(auth_header.username)
+    api_key = models.ApiKey.query.get(auth_header.username)
     utils.jsonify_assert(api_key, 'API key must exist', 403)
     utils.jsonify_assert(api_key.active, 'API key must be active', 403)
     utils.jsonify_assert(api_key.secret == auth_header.password,

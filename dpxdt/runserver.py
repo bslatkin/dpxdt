@@ -66,6 +66,7 @@ def main(argv):
         format='%(levelname)s %(filename)s:%(lineno)s] %(message)s')
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+        logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
 
     if FLAGS.local_queue_workers:
         run_workers()

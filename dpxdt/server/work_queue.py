@@ -177,7 +177,8 @@ def lease(queue_name, owner, timeout):
         WorkQueue.query
         .filter_by(queue_name=queue_name, live=True)
         .filter(WorkQueue.eta <= now)
-        .order_by(WorkQueue.eta))
+        .order_by(WorkQueue.eta)
+        .with_lockmode('update'))
     task = query.first()
     if not task:
         return None
