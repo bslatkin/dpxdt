@@ -20,7 +20,7 @@ import logging
 
 # Local libraries
 import flask
-from flask import Flask, abort, redirect, render_template, request, url_for
+from flask import Flask, abort, g, redirect, render_template, request, url_for
 from flask.ext.login import (
     current_user, fresh_login_required, login_fresh, login_required)
 from flask.ext.wtf import Form
@@ -93,8 +93,9 @@ def new_build():
 
 @app.route('/build')
 @auth.build_access_required
-def view_build(build):
+def view_build():
     """Page for viewing all releases in a build."""
+    build = g.build
     page_size = 20
     offset = request.args.get('offset', 0, type=int)
     candidate_list = list(
@@ -188,8 +189,9 @@ def classify_runs(run_list):
 
 @app.route('/release', methods=['GET', 'POST'])
 @auth.build_access_required
-def view_release(build):
+def view_release():
     """Page for viewing all tests runs in a release."""
+    build = g.build
     if request.method == 'POST':
         form = forms.ReleaseForm(request.form)
     else:
@@ -315,8 +317,9 @@ def _get_artifact_context(run, file_type):
 @app.route('/log', endpoint='view_log', methods=['GET', 'POST'])
 @app.route('/config', endpoint='view_config', methods=['GET', 'POST'])
 @auth.build_access_required
-def view_run(build):
+def view_run():
     """Page for viewing before/after for a specific test run."""
+    build = g.build
     if request.method == 'POST':
         form = forms.RunForm(request.form)
     else:

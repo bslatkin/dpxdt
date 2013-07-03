@@ -24,7 +24,7 @@ import urllib2
 
 # Local libraries
 import flask
-from flask import abort, redirect, render_template, request, url_for
+from flask import abort, g, redirect, render_template, request, url_for
 from flask.ext.login import (
     confirm_login, current_user, fresh_login_required, login_fresh,
     login_required, login_user, logout_user)
@@ -237,8 +237,8 @@ def build_access_required(function_or_param_name):
     def get_wrapper(param_name, f):
         @functools.wraps(f)
         def wrapped(*args, **kwargs):
-            build = can_user_access_build(param_name)
-            return f(build, *args, **kwargs)
+            g.build = can_user_access_build(param_name)
+            return f(*args, **kwargs)
         return wrapped
 
     if isinstance(function_or_param_name, basestring):
@@ -285,7 +285,7 @@ def can_api_key_access_build(param_name):
             request. Will fetch from GET or POST requests.
 
     Returns:
-        The Build the API key has access to.
+        (api_key, build) The API Key and the Build it has access to.
     """
     api_key = current_api_key()
     build_id = (
@@ -300,7 +300,7 @@ def can_api_key_access_build(param_name):
         utils.jsonify_assert(api_key.build_id == build_id,
                              'API key must have access', 404)
 
-    return build
+    return api_key, build
 
 
 def build_api_access_required(f):
@@ -311,7 +311,7 @@ def build_api_access_required(f):
     """
     @functools.wraps(f)
     def wrapped(*args, **kwargs):
-        build = can_api_key_access_build('build_id')
+        g.api_key, g.build = can_api_key_access_build('build_id')
         return f(build, *args, **kwargs)
     return wrapped
 
@@ -321,6 +321,7 @@ def superuser_api_key_required(f):
     @functools.wraps(f)
     def wrapped(*args, **kwargs):
         api_key = current_api_key()
+        g.api_key = api_key
 
         utils.jsonify_assert(
             api_key.superuser,
@@ -335,8 +336,9 @@ def superuser_api_key_required(f):
 @app.route('/api_keys', methods=['GET', 'POST'])
 @fresh_login_required
 @build_access_required('build_id')
-def manage_api_keys(build):
+def manage_api_keys():
     """Page for viewing and creating API keys."""
+    build = g.build
     create_form = forms.CreateApiKeyForm()
     if create_form.validate_on_submit():
         api_key = models.ApiKey()
@@ -376,8 +378,9 @@ def manage_api_keys(build):
 @app.route('/api_keys.revoke', methods=['POST'])
 @fresh_login_required
 @build_access_required('build_id')
-def revoke_api_key(build):
+def revoke_api_key():
     """Form submission handler for revoking API keys."""
+    build = g.build
     form = forms.RevokeApiKeyForm()
     if form.validate_on_submit():
         api_key = models.ApiKey.query.get(form.id.data)
@@ -426,8 +429,9 @@ def claim_invitations(user):
 @app.route('/admins', methods=['GET', 'POST'])
 @fresh_login_required
 @build_access_required('build_id')
-def manage_admins(build):
+def manage_admins():
     """Page for viewing and managing build admins."""
+    build = g.build
     add_form = forms.AddAdminForm()
     if add_form.validate_on_submit():
         invitation_user_id = '%s:%s' % (
@@ -469,8 +473,9 @@ def manage_admins(build):
 @app.route('/admins.revoke', methods=['POST'])
 @fresh_login_required
 @build_access_required('build_id')
-def revoke_admin(build):
+def revoke_admin():
     """Form submission handler for revoking admin access to a build."""
+    build = g.build
     form = forms.RemoveAdminForm()
     if form.validate_on_submit():
         user = models.User.query.get(form.user_id.data)

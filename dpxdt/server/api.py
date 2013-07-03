@@ -82,7 +82,7 @@ import time
 
 # Local libraries
 import flask
-from flask import Flask, abort, request, url_for
+from flask import Flask, abort, g, request, url_for
 from flask.exceptions import HTTPException
 
 # Local modules
@@ -97,8 +97,9 @@ import utils
 
 @app.route('/api/create_release', methods=['POST'])
 @auth.build_api_access_required
-def create_release(build):
+def create_release():
     """Creates a new release candidate for a build."""
+    build = g.build
     release_name = request.form.get('release_name')
     utils.jsonify_assert(release_name, 'release_name required')
     url = request.form.get('url')
@@ -202,8 +203,9 @@ def _find_last_good_run(build):
 
 @app.route('/api/find_run', methods=['POST'])
 @auth.build_api_access_required
-def find_run(build):
+def find_run():
     """Finds the last good run of the given name for a release."""
+    build = g.build
     last_good_release, last_good_run = _find_last_good_run(build)
 
     if last_good_run:
@@ -302,8 +304,9 @@ def _enqueue_capture(build, release, run, url, config_data, baseline=False):
 
 @app.route('/api/request_run', methods=['POST'])
 @auth.build_api_access_required
-def request_run(build):
+def request_run():
     """Requests a new run for a release candidate."""
+    build = g.build
     current_release, current_run = _get_or_create_run(build)
 
     current_url = request.form.get('url', type=str)
@@ -349,8 +352,9 @@ def request_run(build):
 
 @app.route('/api/report_run', methods=['POST'])
 @auth.build_api_access_required
-def report_run(build):
+def report_run():
     """Reports data for a run for a release candidate."""
+    build = g.build
     release, run = _get_or_create_run(build)
 
     current_url = request.form.get('url', type=str)
@@ -457,8 +461,9 @@ def report_run(build):
 
 @app.route('/api/runs_done', methods=['POST'])
 @auth.build_api_access_required
-def runs_done(build):
+def runs_done():
     """Marks a release candidate as having all runs reported."""
+    build = g.build
     release_name, release_number = _get_release_params()
 
     release = (
@@ -519,8 +524,9 @@ def _save_artifact(build, data, content_type):
 
 @app.route('/api/upload', methods=['POST'])
 @auth.build_api_access_required
-def upload(build):
+def upload():
     """Uploads an artifact referenced by a run."""
+    build = g.build
     utils.jsonify_assert(len(request.files) == 1,
                          'Need exactly one uploaded file')
 
@@ -562,7 +568,7 @@ def download():
     # build_id. Falls back to standard user login for the frontend (which
     # may require redirecting the user to the login form).
     try:
-        build = auth.can_api_key_access_build('build_id')
+        _, build = auth.can_api_key_access_build('build_id')
     except HTTPException:
         build = auth.can_user_access_build('build_id')
 
