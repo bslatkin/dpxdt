@@ -26,7 +26,9 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
+from dpxdt.client import fetch_worker
 from dpxdt.client import workers
+from dpxdt.client import timer_worker
 
 
 class EchoThread(workers.WorkerThread):
@@ -119,14 +121,15 @@ class TimerThreadTest(unittest.TestCase):
         """Tests setting up the test harness."""
         self.timer_queue = Queue.Queue()
         self.output_queue = Queue.Queue()
-        self.worker = workers.TimerThread(self.timer_queue, self.output_queue)
+        self.worker = timer_worker.TimerThread(
+            self.timer_queue, self.output_queue)
 
     def testSimple(self):
         """Tests simple waiting."""
         self.worker.start()
-        one = workers.TimerItem(0.8)
-        two = workers.TimerItem(0.5)
-        three = workers.TimerItem(0.1)
+        one = timer_worker.TimerItem(0.8)
+        two = timer_worker.TimerItem(0.5)
+        three = timer_worker.TimerItem(0.1)
 
         # T = 0, one = 0
         begin = time.time()

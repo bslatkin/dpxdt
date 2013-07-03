@@ -32,7 +32,7 @@ class TimerItem(workers.WorkItem):
     """Work item for waiting some period of time before returning."""
 
     def __init__(self, delay_seconds):
-        WorkItem.__init__(self)
+        workers.WorkItem.__init__(self)
         self.delay_seconds = delay_seconds
         self.ready_time = time.time() + delay_seconds
 
