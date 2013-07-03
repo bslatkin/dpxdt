@@ -42,6 +42,10 @@ gflags.DEFINE_string(
     'phantomjs_script', None,
     'Path to the script that drives the phantomjs process')
 
+gflags.DEFINE_integer(
+    'phantomjs_timeout', 120,
+    'Seconds until giving up on a phantomjs sub-process and trying again.')
+
 
 class CaptureItem(workers.ProcessItem):
     """Work item for capturing a website screenshot using PhantomJs."""
@@ -55,7 +59,8 @@ class CaptureItem(workers.ProcessItem):
                 to PhantomJs.
             output_path: Where the output screenshot should be written.
         """
-        workers.ProcessItem.__init__(self, log_path)
+        workers.ProcessItem.__init__(
+            self, log_path, timeout=FLAGS.phantomjs_timeout)
         self.config_path = config_path
         self.output_path = output_path
 

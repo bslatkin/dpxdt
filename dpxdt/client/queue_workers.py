@@ -39,6 +39,14 @@ gflags.DEFINE_string(
     'possible, since API requests send credentials using HTTP basic auth.')
 
 gflags.DEFINE_integer(
+    'capture_task_max_attempts', 3,
+    'Maximum number of attempts for processing a capture task.')
+
+gflags.DEFINE_integer(
+    'pdiff_task_max_attempts', 3,
+    'Maximum number of attempts for processing a pdiff task.')
+
+gflags.DEFINE_integer(
     'queue_poll_seconds', 60,
     'How often to poll an empty work queue for new tasks.')
 
@@ -243,7 +251,7 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
                 log_path, ref_path, run_path, diff_path)
 
             diff_success = pdiff.returncode == 0
-            max_attempts = 2
+            max_attempts = FLAGS.pdiff_task_max_attempts
 
             # Check for a successful run or a known failure.
             if os.path.isfile(log_path):
@@ -251,6 +259,7 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
                 if 'all: 0 (0)' in log_data:
                     diff_path = None
                 elif 'image widths or heights differ' in log_data:
+                    # Give up immediately
                     max_attempts = 1
 
             yield heartbeat('Reporting diff status to server')
@@ -320,15 +329,15 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
                 image_path=image_path, log_path=log_path, baseline=baseline)
 
             if not capture_success:
-                raise CaptureFailedError(2, failure_reason)
+                raise CaptureFailedError(
+                    FLAGS.capture_task_max_attempts,
+                    failure_reason)
         finally:
             shutil.rmtree(output_path, True)
 
 
 def register(coordinator):
     """Registers this module as a worker with the given coordinator."""
-    # TODO: Add a flag to support up to N parallel queue workers.
-
     if FLAGS.queue_server_prefix:
         capture_queue_url = '%s/%s' % (
             FLAGS.queue_server_prefix, constants.CAPTURE_QUEUE_NAME)
