@@ -28,3 +28,4 @@
 [submodule "blinker"]
 	path = blinker
 	url = https://github.com/jek/blinker.git
+	ignore = dirty
