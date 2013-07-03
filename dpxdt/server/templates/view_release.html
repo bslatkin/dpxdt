@@ -49,36 +49,40 @@ Release '{{ release.name }}' attempt #{{ release.number }}
 
 <div class="row">
     <div class="span12">
-        <p class="inline-block">
-            {% if release.status in ('reviewing', 'receiving') %}
-                <form action="{{ url_for('view_release') }}" method="post" class="inline-block">
-                    {{ release_form.csrf_token }}
-                    {{ release_form.id }}
-                    {{ release_form.name }}
-                    {{ release_form.number }}
-                    {{ release_form.good }}
+        {% if release.status in ('reviewing', 'receiving') %}
+            <form action="{{ url_for('view_release') }}" method="post" class="inline-block">
+                {{ release_form.csrf_token }}
+                {{ release_form.id }}
+                {{ release_form.name }}
+                {{ release_form.number }}
+                {{ release_form.good }}
+                <p>
                     <button type="submit" class="btn btn-primary">Mark release as good</button>
-                </form>
-                <form action="{{ url_for('view_release') }}" method="post" class="inline-block">
-                    {{ release_form.csrf_token }}
-                    {{ release_form.id }}
-                    {{ release_form.name }}
-                    {{ release_form.number }}
-                    {{ release_form.bad }}
+                </p>
+            </form>
+            <form action="{{ url_for('view_release') }}" method="post" class="inline-block">
+                {{ release_form.csrf_token }}
+                {{ release_form.id }}
+                {{ release_form.name }}
+                {{ release_form.number }}
+                {{ release_form.bad }}
+                <p>
                     <button type="submit" class="btn btn-danger">Mark release as bad</button>
-                </form>
-            {% endif %}
-            {% if release.status == 'good' or  release.status == 'bad' %}
-                <form action="{{ url_for('view_release') }}" method="post" class="inline-block">
-                    {{ release_form.csrf_token }}
-                    {{ release_form.id }}
-                    {{ release_form.name }}
-                    {{ release_form.number }}
-                    {{ release_form.reviewing }}
+                </p>
+            </form>
+        {% endif %}
+        {% if release.status == 'good' or  release.status == 'bad' %}
+            <form action="{{ url_for('view_release') }}" method="post" class="inline-block">
+                {{ release_form.csrf_token }}
+                {{ release_form.id }}
+                {{ release_form.name }}
+                {{ release_form.number }}
+                {{ release_form.reviewing }}
+                <p>
                     <button type="submit" class="btn">Mark release as reviewing</button>
-                </form>
-            {% endif %}
-        </p>
+                </p>
+            </form>
+        {% endif %}
     </div>
 </div>
 

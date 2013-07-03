@@ -23,6 +23,7 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
+import fetch_worker
 import workers
 
 
@@ -105,7 +106,7 @@ class CreateReleaseWorkflow(workers.WorkflowItem):
     """
 
     def run(self, build_id, release_name, url):
-        call = yield workers.FetchItem(
+        call = yield fetch_worker.FetchItem(
             FLAGS.release_server_prefix + '/create_release',
             post={
                 'build_id': build_id,
@@ -142,7 +143,7 @@ class UploadFileWorkflow(workers.WorkflowItem):
     def run(self, build_id, file_path):
         try:
             handle = StreamingSha1File(file_path, 'rb')
-            upload = yield workers.FetchItem(
+            upload = yield fetch_worker.FetchItem(
                 FLAGS.release_server_prefix + '/upload',
                 post={'build_id': build_id, 'file': handle},
                 timeout_seconds=120,
@@ -179,7 +180,7 @@ class FindRunWorkflow(workers.WorkflowItem):
     """
 
     def run(self, build_id, run_name):
-        call = yield workers.FetchItem(
+        call = yield fetch_worker.FetchItem(
             FLAGS.release_server_prefix + '/find_run',
             post={
                 'build_id': build_id,
@@ -230,7 +231,7 @@ class RequestRunWorkflow(workers.WorkflowItem):
                 ref_url=ref_url,
                 ref_config=ref_config_data)
 
-        call = yield workers.FetchItem(
+        call = yield fetch_worker.FetchItem(
             FLAGS.release_server_prefix + '/request_run',
             post=post,
             username=FLAGS.release_client_id,
@@ -331,7 +332,7 @@ class ReportRunWorkflow(workers.WorkflowItem):
         if ref_config:
             post.update(ref_config=ref_config)
 
-        call = yield workers.FetchItem(
+        call = yield fetch_worker.FetchItem(
             FLAGS.release_server_prefix + '/report_run',
             post=post,
             username=FLAGS.release_client_id,
@@ -389,7 +390,7 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
         if diff_success:
             post.update(diff_success='yes')
 
-        call = yield workers.FetchItem(
+        call = yield fetch_worker.FetchItem(
             FLAGS.release_server_prefix + '/report_run',
             post=post,
             username=FLAGS.release_client_id,
@@ -419,7 +420,7 @@ class RunsDoneWorkflow(workers.WorkflowItem):
     """
 
     def run(self, build_id, release_name, release_number):
-        call = yield workers.FetchItem(
+        call = yield fetch_worker.FetchItem(
             FLAGS.release_server_prefix + '/runs_done',
             post={
                 'build_id': build_id,
@@ -454,7 +455,7 @@ class DownloadArtifactWorkflow(workers.WorkflowItem):
     def run(self, build_id, sha1sum, result_path):
         download_url = '%s/download?sha1sum=%s&build_id=%s' % (
             FLAGS.release_server_prefix, sha1sum, build_id)
-        call = yield workers.FetchItem(
+        call = yield fetch_worker.FetchItem(
             download_url,
             result_path=result_path,
             username=FLAGS.release_client_id,

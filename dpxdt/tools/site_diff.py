@@ -31,6 +31,7 @@ FLAGS = gflags.FLAGS
 
 # Local modules
 from dpxdt.client import release_worker
+from dpxdt.client import fetch_worker
 from dpxdt.client import workers
 import flags
 
@@ -213,7 +214,7 @@ class SiteDiff(workers.WorkflowItem):
             seen_urls.update(pending_urls)
             yield heartbeat(
                 'Scanning %d pages for good urls' % len(pending_urls))
-            output = yield [workers.FetchItem(u) for u in pending_urls]
+            output = yield [fetch_worker.FetchItem(u) for u in pending_urls]
             pending_urls.clear()
 
             for item in output:
@@ -291,11 +292,10 @@ class PrintWorkflow(workers.WorkflowItem):
 def real_main(start_url=None,
               ignore_prefixes=None,
               upload_build_id=None,
-              upload_release_name=None,
-              coordinator=None):
+              upload_release_name=None):
     """Runs the site_diff."""
-    if not coordinator:
-        coordinator = workers.get_coordinator()
+    coordinator = workers.get_coordinator()
+    fetch_worker.register(coordinator)
     coordinator.start()
 
     item = SiteDiff(
@@ -305,6 +305,7 @@ def real_main(start_url=None,
         upload_release_name=upload_release_name,
         heartbeat=PrintWorkflow)
     item.root = True
+
     coordinator.input_queue.put(item)
     coordinator.wait_until_interrupted()
 

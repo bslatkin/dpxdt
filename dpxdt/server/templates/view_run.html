@@ -49,7 +49,6 @@ Test run '{{ run.name }}'
     <div class="span12">
         <div class="row">
             <div class="span7">
-                <p>
                 {% if run.status == 'diff_found' %}
                     <form action="{{ url_for(request.endpoint) }}" method="post" class="inline-block">
                         {{ run_form.csrf_token }}
@@ -59,7 +58,9 @@ Test run '{{ run.name }}'
                         {{ run_form.type }}
                         {{ run_form.test }}
                         {{ run_form.approve }}
-                        <button type="submit" class="btn btn-primary">Approve difference</button>
+                        <p>
+                            <button type="submit" class="btn btn-primary">Approve difference</button>
+                        </p>
                     </form>
                 {% elif run.status == 'diff_approved' %}
                     <form action="{{ url_for(request.endpoint) }}" method="post" class="inline-block">
@@ -70,10 +71,11 @@ Test run '{{ run.name }}'
                         {{ run_form.type }}
                         {{ run_form.test }}
                         {{ run_form.disapprove }}
-                        <button type="submit" class="btn btn-danger">Reject difference</button>
+                        <p>
+                            <button type="submit" class="btn btn-danger">Reject difference</button>
+                        </p>
                     </form>
                 {% endif %}
-                </p>
             </div>
             <div class="span5 text-right">
                 <p>

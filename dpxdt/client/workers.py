@@ -16,45 +16,19 @@
 """Workers for driving screen captures, perceptual diffs, and related work."""
 
 import Queue
-import base64
-import heapq
-import json
 import logging
-import shutil
-import socket
-import subprocess
 import sys
 import threading
-import time
-import urllib
-import urllib2
 
 # Local Libraries
 import gflags
 FLAGS = gflags.FLAGS
-import poster.encode
-import poster.streaminghttp
-poster.streaminghttp.register_openers()
 
-
-gflags.DEFINE_float(
-    'fetch_frequency', 1.0,
-    'Maximum number of fetches to make per second per thread.')
-
-gflags.DEFINE_integer(
-    'fetch_threads', 1, 'Number of fetch threads to run')
 
 gflags.DEFINE_float(
     'polltime', 1.0,
-    'How long to sleep between polling for work or subprocesses')
-
-
-class Error(Exception):
-    """Base class for exceptions in this module."""
-
-class TimeoutError(Exception):
-    """Subprocess has taken too long to complete and was terminated."""
-
+    'How long to sleep between polling for work from an input queue, '
+    'a subprocess, or a waiting timer.')
 
 
 class WorkItem(object):
@@ -158,226 +132,6 @@ class WorkerThread(threading.Thread):
             additional work is needed.
         """
         raise NotImplemented
-
-
-class FetchItem(WorkItem):
-    """Work item that is handled by fetching a URL."""
-
-    def __init__(self, url, post=None, timeout_seconds=30, result_path=None,
-                 username=None, password=None):
-        """Initializer.
-
-        Args:
-            url: URL to fetch.
-            post: Optional. Dictionary of post parameters to include in the
-                request, with keys and values coerced to strings. If any
-                values are open file handles, the post data will be formatted
-                as multipart/form-data.
-            timeout_seconds: Optional. How long until the fetch should timeout.
-            result_path: When supplied, the output of the fetch should be
-                streamed to a file on disk with the given path. Use this
-                to prevent many fetches from causing memory problems.
-            username: Optional. Username to use for the request, for
-                HTTP basic authentication.
-            password: Optional. Password to use for the request, for
-                HTTP basic authentication.
-        """
-        WorkItem.__init__(self)
-        self.url = url
-        self.post = post
-        self.username = username
-        self.password = password
-        self.timeout_seconds = timeout_seconds
-        self.result_path = result_path
-        self.status_code = None
-        self.data = None
-        self.headers = None
-        self._data_json = None
-
-    def _get_dict_for_repr(self):
-        result = self.__dict__.copy()
-        if result.get('password'):
-            result['password'] = 'ELIDED'
-        return result
-
-    @property
-    def json(self):
-        """Returns de-JSONed data or None if it's a different content type."""
-        if self._data_json:
-            return self._data_json
-
-        if not self.data or self.headers.gettype() != 'application/json':
-            return None
-
-        self._data_json = json.loads(self.data)
-        return self._data_json
-
-
-class FetchThread(WorkerThread):
-    """Worker thread for fetching URLs."""
-
-    def handle_item(self, item):
-        start_time = time.time()
-
-        if item.post is not None:
-            adjusted_data = {}
-            use_form_data = False
-
-            for key, value in item.post.iteritems():
-                if value is None:
-                    continue
-                if isinstance(value, file):
-                    use_form_data = True
-                adjusted_data[key] = value
-
-            if use_form_data:
-                datagen, headers = poster.encode.multipart_encode(
-                    adjusted_data)
-                request = urllib2.Request(item.url, datagen, headers)
-            else:
-                request = urllib2.Request(
-                    item.url, urllib.urlencode(adjusted_data))
-        else:
-            request = urllib2.Request(item.url)
-
-        if item.username:
-            credentials = base64.b64encode(
-                '%s:%s' % (item.username, item.password))
-            request.add_header('Authorization', 'Basic %s' % credentials)
-
-        try:
-            try:
-                conn = urllib2.urlopen(request, timeout=item.timeout_seconds)
-            except urllib2.HTTPError, e:
-                conn = e
-            except urllib2.URLError, e:
-                # TODO: Make this status more clear
-                item.status_code = 400
-                return item
-
-            try:
-                item.status_code = conn.getcode()
-                item.headers = conn.info()
-                if item.result_path:
-                    with open(item.result_path, 'wb') as result_file:
-                        shutil.copyfileobj(conn, result_file)
-                else:
-                    item.data = conn.read()
-            except socket.timeout, e:
-                # TODO: Make this status more clear
-                item.status_code = 400
-                return item
-            finally:
-                conn.close()
-
-            return item
-        finally:
-            end_time = time.time()
-            wait_duration = (1.0 / FLAGS.fetch_frequency) - (
-                end_time - start_time)
-            if wait_duration > 0:
-                logging.debug('Rate limiting URL fetch for %f seconds',
-                              wait_duration)
-                time.sleep(wait_duration)
-
-
-class ProcessItem(WorkItem):
-    """Work item that is handled by running a subprocess."""
-
-    def __init__(self, log_path, timeout_seconds=30):
-        """Initializer.
-
-        Args:
-            log_path: Path to where output from this subprocess should be
-                written.
-            timeout_seconds: How long before the process should be force
-                killed.
-        """
-        WorkItem.__init__(self)
-        self.log_path = log_path
-        self.timeout_seconds = timeout_seconds
-        self.return_code = None
-
-
-class ProcessThread(WorkerThread):
-    """Worker thread that runs subprocesses."""
-
-    def get_args(self, item):
-        raise NotImplemented
-
-    def handle_item(self, item):
-        start_time = time.time()
-        with open(item.log_path, 'w') as output_file:
-            args = self.get_args(item)
-            logging.debug('%s item=%r Running subprocess: %r',
-                          self.worker_name, item, args)
-            try:
-                process = subprocess.Popen(
-                    args,
-                    stderr=subprocess.STDOUT,
-                    stdout=output_file,
-                    close_fds=True)
-            except:
-                logging.error('%s item=%r Failed to run subprocess: %r',
-                              self.worker_name, item, args)
-                raise
-
-            while True:
-                process.poll()
-                if process.returncode is None:
-                    now = time.time()
-                    run_time = now - start_time
-                    if run_time > item.timeout_seconds or self.interrupted:
-                        process.kill()
-                        raise TimeoutError(
-                            'Sent SIGKILL to item=%r, pid=%s, run_time=%s' %
-                            (item, process.pid, run_time))
-
-                    time.sleep(FLAGS.polltime)
-                    continue
-
-                item.returncode = process.returncode
-
-                return item
-
-
-class TimerItem(WorkItem):
-    """Work item for waiting some period of time before returning."""
-
-    def __init__(self, delay_seconds):
-        WorkItem.__init__(self)
-        self.delay_seconds = delay_seconds
-        self.ready_time = time.time() + delay_seconds
-
-
-class TimerThread(WorkerThread):
-    """"Worker thread that tracks many timers."""
-
-    def __init__(self, *args):
-        """Initializer."""
-        WorkerThread.__init__(self, *args)
-        self.timers = []
-
-    def handle_nothing(self):
-        now = time.time()
-        while self.timers:
-            ready_time, _ = self.timers[0]
-            wait_time = ready_time - now
-            if wait_time <= 0:
-                _, item = heapq.heappop(self.timers)
-                self.output_queue.put(item)
-            else:
-                # Wait for new work up to the point that the earliest
-                # timer is ready to fire.
-                self.polltime = wait_time
-                return
-
-        # Nothing to do, use the default poll time.
-        self.polltime = FLAGS.polltime
-
-    def handle_item(self, item):
-        heapq.heappush(self.timers, (item.ready_time, item))
-        self.handle_nothing()
 
 
 class WorkflowItem(WorkItem):
@@ -605,22 +359,7 @@ class WorkflowThread(WorkerThread):
 
 def get_coordinator():
     """Creates a coordinator and returns it."""
-    fetch_queue = Queue.Queue()
-    timer_queue = Queue.Queue()
     workflow_queue = Queue.Queue()
     complete_queue = Queue.Queue()
-
     coordinator = WorkflowThread(workflow_queue, complete_queue)
-    coordinator.register(FetchItem, fetch_queue)
-    coordinator.register(TimerItem, timer_queue)
-
-    # TODO: Enable multiple coodinator threads.
-    coordinator.worker_threads = [
-        TimerThread(timer_queue, workflow_queue),
-    ]
-
-    for i in xrange(FLAGS.fetch_threads):
-        coordinator.worker_threads.append(
-            FetchThread(fetch_queue, workflow_queue))
-
     return coordinator

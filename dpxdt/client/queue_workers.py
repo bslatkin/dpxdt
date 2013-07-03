@@ -27,8 +27,11 @@ FLAGS = gflags.FLAGS
 # Local modules
 from dpxdt import constants
 import capture_worker
+import fetch_worker
 import pdiff_worker
+import process_worker
 import release_worker
+import timer_worker
 import workers
 
 
@@ -95,7 +98,7 @@ class HeartbeatWorkflow(workers.WorkflowItem):
     """
 
     def run(self, queue_url, task_id, message, index):
-        call = yield workers.FetchItem(
+        call = yield fetch_worker.FetchItem(
             queue_url + '/heartbeat',
             post={
                 'task_id': task_id,
@@ -112,6 +115,7 @@ class HeartbeatWorkflow(workers.WorkflowItem):
             raise HeartbeatError('Bad response: %r' % call)
 
 
+
 class RemoteQueueWorkflow(workers.WorkflowItem):
     """Runs a local workflow based on work items in a remote queue.
 
@@ -126,7 +130,7 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
     def run(self, queue_url, local_queue_workflow, poll_period):
         while True:
             try:
-                next_item = yield workers.FetchItem(
+                next_item = yield fetch_worker.FetchItem(
                     queue_url + '/lease',
                     post={},
                     username=FLAGS.release_client_id,
@@ -145,7 +149,7 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
                     something_to_do = True
 
             if not something_to_do:
-                yield workers.TimerItem(poll_period)
+                yield timer_worker.TimerItem(poll_period)
                 continue
 
             task_list = next_item.json['tasks']
@@ -193,7 +197,7 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
                         continue
 
             try:
-                finish_item = yield workers.FetchItem(
+                finish_item = yield fetch_worker.FetchItem(
                     queue_url + '/finish',
                     post={'task_id': task_id},
                     username=FLAGS.release_client_id,
@@ -312,7 +316,7 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
             try:
                 capture = yield capture_worker.CaptureItem(
                     log_path, config_path, image_path)
-            except workers.TimeoutError, e:
+            except process_worker.TimeoutError, e:
                 failure_reason = str(e)
             else:
                 capture_success = capture.returncode == 0

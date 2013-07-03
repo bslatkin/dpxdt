@@ -27,6 +27,7 @@ from client import capture_worker
 from client import pdiff_worker
 from client import queue_workers
 from client import workers
+import runworker
 import server
 from server import models
 
@@ -46,14 +47,6 @@ gflags.DEFINE_bool('ignore_auth', False,
 gflags.DEFINE_integer('port', 5000, 'Port to run the HTTP server on.')
 
 
-def run_workers():
-    coordinator = workers.get_coordinator()
-    capture_worker.register(coordinator)
-    pdiff_worker.register(coordinator)
-    queue_workers.register(coordinator)
-    coordinator.start()
-    logging.debug('Workers started')
-
 
 def main(argv):
     try:
@@ -66,10 +59,12 @@ def main(argv):
         format='%(levelname)s %(filename)s:%(lineno)s] %(message)s')
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+
+    if FLAGS.verbose_queries:
         logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
 
     if FLAGS.local_queue_workers:
-        run_workers()
+        coordinator = runworker.run_workers()
 
     if FLAGS.ignore_auth:
         server.app.config['IGNORE_AUTH'] = True

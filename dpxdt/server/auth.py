@@ -312,7 +312,7 @@ def build_api_access_required(f):
     @functools.wraps(f)
     def wrapped(*args, **kwargs):
         g.api_key, g.build = can_api_key_access_build('build_id')
-        return f(build, *args, **kwargs)
+        return f(*args, **kwargs)
     return wrapped
 
 

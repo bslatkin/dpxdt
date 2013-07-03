@@ -29,7 +29,7 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-import workers
+import process_worker
 
 
 gflags.DEFINE_integer(
@@ -41,7 +41,7 @@ gflags.DEFINE_integer(
 
 
 
-class PdiffItem(workers.ProcessItem):
+class PdiffItem(process_worker.ProcessItem):
     """Work item for doing perceptual diffs using pdiff."""
 
     def __init__(self, log_path, ref_path, run_path, output_path):
@@ -53,14 +53,14 @@ class PdiffItem(workers.ProcessItem):
             run_path: Path to the most recent run screenshot to diff.
             output_path: Where the diff image should be written, if any.
         """
-        workers.ProcessItem.__init__(
+        process_worker.ProcessItem.__init__(
             self, log_path, timeout_seconds=FLAGS.pdiff_timeout)
         self.ref_path = ref_path
         self.run_path = run_path
         self.output_path = output_path
 
 
-class PdiffThread(workers.ProcessThread):
+class PdiffThread(process_worker.ProcessThread):
     """Worker thread that runs pdiff."""
 
     def get_args(self, item):

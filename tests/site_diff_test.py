@@ -28,8 +28,8 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-from dpxdt.client import site_diff
 from dpxdt.client import workers
+from dpxdt.tools import site_diff
 
 
 # For convenience

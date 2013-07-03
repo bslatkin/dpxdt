@@ -26,19 +26,23 @@ FLAGS = gflags.FLAGS
 
 # Local modules
 from client import capture_worker
+from client import fetch_worker
 from client import pdiff_worker
 from client import queue_workers
+from client import timer_worker
 from client import workers
 
 
 def run_workers():
     coordinator = workers.get_coordinator()
     capture_worker.register(coordinator)
+    fetch_worker.register(coordinator)
     pdiff_worker.register(coordinator)
     queue_workers.register(coordinator)
+    timer_worker.register(coordinator)
     coordinator.start()
+    return coordinator
     logging.info('Workers started')
-    coordinator.wait_until_interrupted()
 
 
 def main(argv):
@@ -50,10 +54,15 @@ def main(argv):
 
     logging.basicConfig(
         format='%(levelname)s %(filename)s:%(lineno)s] %(message)s')
+
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    run_workers()
+    if FLAGS.verbose_queries:
+        logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
+
+    coordinator = run_workers()
+    coordinator.wait_until_interrupted()
 
 
 if __name__ == '__main__':

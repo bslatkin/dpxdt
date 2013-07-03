@@ -23,3 +23,8 @@ FLAGS = gflags.FLAGS
 gflags.DEFINE_bool(
     'verbose', False,
     'When set, do verbose logging output.')
+
+
+gflags.DEFINE_bool(
+    'verbose_queries', False,
+    'When set, do verbose logging of SQL queries.')

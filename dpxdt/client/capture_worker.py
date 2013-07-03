@@ -29,7 +29,7 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-import workers
+import process_worker
 
 
 gflags.DEFINE_integer(
@@ -47,7 +47,7 @@ gflags.DEFINE_integer(
     'Seconds until giving up on a phantomjs sub-process and trying again.')
 
 
-class CaptureItem(workers.ProcessItem):
+class CaptureItem(process_worker.ProcessItem):
     """Work item for capturing a website screenshot using PhantomJs."""
 
     def __init__(self, log_path, config_path, output_path):
@@ -59,13 +59,13 @@ class CaptureItem(workers.ProcessItem):
                 to PhantomJs.
             output_path: Where the output screenshot should be written.
         """
-        workers.ProcessItem.__init__(
-            self, log_path, timeout=FLAGS.phantomjs_timeout)
+        process_worker.ProcessItem.__init__(
+            self, log_path, timeout_seconds=FLAGS.phantomjs_timeout)
         self.config_path = config_path
         self.output_path = output_path
 
 
-class CaptureThread(workers.ProcessThread):
+class CaptureThread(process_worker.ProcessThread):
     """Worker thread that runs PhantomJs."""
 
     def get_args(self, item):

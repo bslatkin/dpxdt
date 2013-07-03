@@ -32,6 +32,7 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
+from dpxdt.client import fetch_worker
 from dpxdt.client import release_worker
 from dpxdt.client import workers
 import flags
@@ -109,11 +110,10 @@ class PrintWorkflow(workers.WorkflowItem):
 def real_main(new_url=None,
               baseline_url=None,
               upload_build_id=None,
-              upload_release_name=None,
-              coordinator=None):
+              upload_release_name=None):
     """Runs the ur_pair_diff."""
-    if not coordinator:
-        coordinator = workers.get_coordinator()
+    coordinator = workers.get_coordinator()
+    fetch_worker.register(coordinator)
     coordinator.start()
 
     item = UrlPairDiff(
@@ -123,6 +123,7 @@ def real_main(new_url=None,
         upload_release_name=upload_release_name,
         heartbeat=PrintWorkflow)
     item.root = True
+
     coordinator.input_queue.put(item)
     coordinator.wait_until_interrupted()
 
