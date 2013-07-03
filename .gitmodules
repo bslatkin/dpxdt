@@ -25,3 +25,6 @@
 [submodule "flask-cache"]
 	path = flask-cache
 	url = https://github.com/thadeusb/flask-cache.git
+[submodule "blinker"]
+	path = blinker
+	url = https://github.com/jek/blinker.git
