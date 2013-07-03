@@ -16,8 +16,8 @@
 """Common utility functions."""
 
 import base64
-import hashlib
 import datetime
+import hashlib
 import logging
 import traceback
 import uuid
@@ -118,8 +118,12 @@ def after_this_request(func):
     return func
 
 
-@app.after_request
-def per_request_callbacks(response):
+def per_request_callbacks(sender, response):
     for func in getattr(g, 'call_after_request', ()):
         response = func(response)
     return response
+
+
+# Do this with signals instead of @app.after_request because the session
+# cookie is added to the response *after* "after_request" callbacks run.
+flask.request_finished.connect(per_request_callbacks, app)

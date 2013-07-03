@@ -549,7 +549,7 @@ def _get_artifact_response(artifact):
     response = flask.Response(
         artifact.data,
         mimetype=artifact.content_type)
-    response.cache_control.private = True
+    response.cache_control.public = True
     response.cache_control.max_age = 8640000
     response.set_etag(artifact.id)
     return response
@@ -583,11 +583,12 @@ def download():
                       build_id, sha1sum)
         abort(403)
 
-    # Make sure the session cookie is not re-set on this response.
+    # Make sure there are no Set-Cookie headers on the response so this
+    # request is cachable by all HTTP frontends.
     @utils.after_this_request
     def no_session(response):
-        flask._request_ctx_stack.top.session = app.make_null_session()
-        return response
+        if 'Set-Cookie' in response.headers:
+            del response.headers['Set-Cookie']
 
     if request.if_none_match and request.if_none_match.contains(sha1sum):
         response = flask.Response(status=304)
