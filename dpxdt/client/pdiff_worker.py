@@ -22,6 +22,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import urllib2
@@ -31,6 +32,7 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
+from dpxdt import constants
 import process_worker
 import queue_worker
 import release_worker
@@ -127,8 +129,7 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
             ]
 
             yield heartbeat('Running perceptual diff process')
-            pdiff = yield pdiff_worker.PdiffItem(
-                log_path, ref_path, run_path, diff_path)
+            pdiff = yield PdiffItem(log_path, ref_path, run_path, diff_path)
 
             diff_success = pdiff.returncode == 0
             max_attempts = FLAGS.pdiff_task_max_attempts
@@ -158,6 +159,7 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
 def register(coordinator):
     """Registers this module as a worker with the given coordinator."""
     assert FLAGS.pdiff_threads > 0
+    assert FLAGS.queue_server_prefix
 
     pdiff_queue = Queue.Queue()
     coordinator.register(PdiffItem, pdiff_queue)

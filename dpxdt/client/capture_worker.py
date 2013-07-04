@@ -18,9 +18,12 @@
 import Queue
 import json
 import logging
+import os
+import shutil
 import subprocess
 import sys
 import threading
+import tempfile
 import time
 import urllib2
 
@@ -127,8 +130,7 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
 
             yield heartbeat('Running webpage capture process')
             try:
-                capture = yield capture_worker.CaptureItem(
-                    log_path, config_path, image_path)
+                capture = yield CaptureItem(log_path, config_path, image_path)
             except process_worker.TimeoutError, e:
                 failure_reason = str(e)
             else:
@@ -158,6 +160,7 @@ def register(coordinator):
     assert FLAGS.phantomjs_binary
     assert FLAGS.phantomjs_script
     assert FLAGS.capture_threads > 0
+    assert FLAGS.queue_server_prefix
 
     capture_queue = Queue.Queue()
     coordinator.register(CaptureItem, capture_queue)

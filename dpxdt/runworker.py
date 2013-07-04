@@ -28,7 +28,6 @@ FLAGS = gflags.FLAGS
 from client import capture_worker
 from client import fetch_worker
 from client import pdiff_worker
-from client import queue_workers
 from client import timer_worker
 from client import workers
 
@@ -38,7 +37,6 @@ def run_workers():
     capture_worker.register(coordinator)
     fetch_worker.register(coordinator)
     pdiff_worker.register(coordinator)
-    queue_workers.register(coordinator)
     timer_worker.register(coordinator)
     coordinator.start()
     return coordinator
@@ -62,7 +60,7 @@ def main(argv):
         logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
 
     coordinator = run_workers()
-    coordinator.wait_until_interrupted()
+    coordinator.wait_one()
 
 
 if __name__ == '__main__':

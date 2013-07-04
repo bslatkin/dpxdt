@@ -328,8 +328,8 @@ class WorkflowThread(WorkerThread):
             thread.join()
         WorkerThread.join(self)
 
-    def wait_until_interrupted(self):
-        """Waits until this worker is interrupted by a terminating signal."""
+    def wait_one(self):
+        """Waits until this worker has finished one work item or died."""
         while True:
             try:
                 item = self.output_queue.get(True, 1)

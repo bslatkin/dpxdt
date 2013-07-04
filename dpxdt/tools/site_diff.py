@@ -307,7 +307,7 @@ def real_main(start_url=None,
     item.root = True
 
     coordinator.input_queue.put(item)
-    coordinator.wait_until_interrupted()
+    coordinator.wait_one()
 
 
 def main(argv):

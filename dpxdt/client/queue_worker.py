@@ -16,21 +16,13 @@
 """Workers that consumer a release server's work queue."""
 
 import logging
-import os
-import shutil
-import tempfile
 
 # Local Libraries
 import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-from dpxdt import constants
-import capture_worker
 import fetch_worker
-import pdiff_worker
-import process_worker
-import release_worker
 import timer_worker
 import workers
 
@@ -104,7 +96,14 @@ class HeartbeatWorkflow(workers.WorkflowItem):
 
 
 class DoTaskWorkflow(workers.WorkflowItem):
-    """TODO"""
+    """Runs a local workflow for a task and marks it done in the remote queue.
+
+    Args:
+        queue_url: Base URL of the work queue.
+        local_queue_workflow: WorkflowItem sub-class to create using parameters
+            from the remote work payload that will execute the task.
+        task: JSON payload of the task.
+    """
 
     fire_and_forget = True
 
@@ -117,6 +116,7 @@ class DoTaskWorkflow(workers.WorkflowItem):
         # reporting status. This will auto-increment the index on each
         # call, so only the latest update will be saved.
         index = [0]
+        task_id = task['task_id']
         def heartbeat(message):
             next_index = index[0]
             index[0] = next_index + 1
@@ -165,10 +165,17 @@ class DoTaskWorkflow(workers.WorkflowItem):
 
 
 class RemoteQueueWorkflow(workers.WorkflowItem):
-    """TODO"""
+    """Fetches tasks from a remote queue periodically, runs them locally.
+
+    Args:
+        queue_name: Name of the queue to fetch from.
+        local_queue_workflow: WorkflowItem sub-class to create using parameters
+            from the remote work payload that will execute the task.
+        max_tasks: Maximum number of tasks to have in flight at any time.
+    """
 
     def run(self, queue_name, local_queue_workflow, max_tasks):
-        queue_url = '%s/%s' % (FLAGS.queue_server_prefix, queue_url)
+        queue_url = '%s/%s' % (FLAGS.queue_server_prefix, queue_name)
         outstanding = []
 
         while True:
@@ -203,5 +210,5 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
                     queue_url, local_queue_workflow, task)
                 outstanding.append(item)
 
-            yield timer_worker.TimerItem(FLAGS.poll_period)
+            yield timer_worker.TimerItem(FLAGS.queue_poll_seconds)
             outstanding[:] = [x for x in outstanding if not x.done]

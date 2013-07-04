@@ -17,16 +17,13 @@
 
 import logging
 import sys
+import threading
 
 # Local Libraries
 import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-from client import capture_worker
-from client import pdiff_worker
-from client import queue_workers
-from client import workers
 import runworker
 import server
 from server import models
@@ -68,6 +65,11 @@ def main(argv):
 
     if FLAGS.ignore_auth:
         server.app.config['IGNORE_AUTH'] = True
+
+    # TODO: Have it so the babysitter thread dying kills the whole process.
+    worker_babysitter = threading.Thread(target=coordinator.wait_one)
+    worker_babysitter.setDaemon(True)
+    worker_babysitter.start()
 
     server.app.run(debug=FLAGS.reload_code, port=FLAGS.port)
 
