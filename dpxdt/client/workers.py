@@ -36,13 +36,14 @@ class WorkItem(object):
 
     def __init__(self):
         self.error = None
+        self.done = False
 
     @staticmethod
     def _print_tree(obj):
         if isinstance(obj, dict):
             result = []
             for key, value in obj.iteritems():
-                result.append("%s=%s" % (key, WorkItem._print_tree(value)))
+                result.append("%s: %s" % (key, WorkItem._print_tree(value)))
             return '{%s}' % ', '.join(result)
         else:
             value_str = repr(obj)
@@ -103,7 +104,7 @@ class WorkerThread(threading.Thread):
                 next_item = self.handle_item(item)
             except Exception, e:
                 item.error = sys.exc_info()
-                logging.debug('%s error item=%r', self.worker_name, item)
+                logging.exception('%s error item=%r', self.worker_name, item)
                 self.output_queue.put(item)
             else:
                 logging.debug('%s processed item=%r', self.worker_name, item)
@@ -150,11 +151,18 @@ class WorkflowItem(WorkItem):
         self.args = args
         self.kwargs = kwargs
         self.result = None
-        self.done = False
         self.root = False
 
     def run(self, *args, **kwargs):
         yield 'Yo dawg'
+
+
+class WaitAny(object):
+    """TODO"""
+
+    def __init__(self, items):
+        """TODO"""
+        self.items = items
 
 
 class Barrier(list):
@@ -173,14 +181,39 @@ class Barrier(list):
         list.__init__(self)
         self.workflow = workflow
         self.generator = generator
+
         if isinstance(work, (list, tuple)):
             self[:] = list(work)
             self.was_list = True
+            self.wait_any = False
+        elif isinstance(work, WaitAny):
+            self[:] = list(work.items)
+            self.was_list = True
+            self.wait_any = True
         else:
             self[:] = [work]
             self.was_list = False
-        self.remaining = len(self)
+            self.wait_any = False
+
+        for item in self:
+            assert isinstance(item, WorkItem)
+
         self.error = None
+
+    @property
+    def outstanding(self):
+        """TODO"""
+        # Allow the same WorkItem to be yielded multiple times but not
+        # count towards blocking the barrier.
+        done_count = len([w for w in self if w.done])
+
+        if self.wait_any and done_count > 0:
+            return False
+
+        if done_count == len(self):
+            return False
+
+        return True
 
     def get_item(self):
         """Returns the item to send back into the workflow generator."""
@@ -188,7 +221,7 @@ class Barrier(list):
             blocking_items = self[:]
             self[:] = []
             for item in blocking_items:
-                if isinstance(item, WorkflowItem):
+                if isinstance(item, WorkflowItem) and item.done:
                     self.append(item.result)
                 else:
                     self.append(item)
@@ -198,9 +231,13 @@ class Barrier(list):
 
     def finish(self, item):
         """Marks the given item that is part of the barrier as done."""
-        self.remaining -= 1
+        print '\n!!!!!!! Finish:', id(item), item, '\n'
+        # Copy the error from any failed item to be the error for the whole
+        # barrier. The last error seen "wins"
         if item.error and not self.error:
             self.error = item.error
+
+
 
 
 # TODO: Add FireAndForget class that can wrap a WorkItem. Instructs the
@@ -292,6 +329,43 @@ class WorkflowThread(WorkerThread):
         """
         self.work_map[work_type] = queue
 
+    def enqueue_barrier(self, barrier):
+        for item in barrier:
+            if item.done:
+                print 'not enqueuing', item
+                # Don't reenqueue items that are already done.
+                continue
+            if isinstance(item, WorkflowItem):
+                target_queue = self.input_queue
+            else:
+                target_queue = self.work_map[type(item)]
+            # xxx make this a weakref?
+            self.pending[item] = barrier
+            target_queue.put(item)
+
+    def dequeue_barrier(self, item):
+        # This is a WorkItem from a worker thread that has finished and
+        # needs to be reinjected into a WorkflowItem generator.
+        item.done = True
+        barrier = self.pending.pop(item, None)
+        if not barrier:
+            # was already finished
+            return None
+
+        barrier.finish(item)
+        print 'result error', barrier.outstanding, barrier.error
+        if barrier.outstanding and not barrier.error:
+            # xxx still more pending; what about the error?
+            return None
+
+        for work in barrier:
+            # clear out any other pending parts of the barrier
+            self.pending.pop(work, None)
+
+        # barrier.get_item(), barrier.workflow, barrier.generator
+
+        return barrier
+
     def handle_item(self, item):
         if isinstance(item, WorkflowItem) and not item.done:
             workflow = item
@@ -301,10 +375,10 @@ class WorkflowThread(WorkerThread):
                 raise TypeError('%s: item=%r', e, item)
             item = None
         else:
-            barrier = self.pending.pop(item)
-            barrier.finish(item)
-            if barrier.remaining and not barrier.error:
+            barrier = self.dequeue_barrier(item)
+            if not barrier:
                 return
+
             item = barrier.get_item()
             workflow = barrier.workflow
             generator = barrier.generator
@@ -340,21 +414,16 @@ class WorkflowThread(WorkerThread):
                         self.input_queue.put(workflow)
                         return
 
-            # If a returned barrier is empty, immediately progress the
-            # workflow.
             barrier = Barrier(workflow, generator, next_item)
-            if barrier:
-                break
-            else:
-                item = None
 
-        for item in barrier:
-            if isinstance(item, WorkflowItem):
-                target_queue = self.input_queue
-            else:
-                target_queue = self.work_map[type(item)]
-            self.pending[item] = barrier
-            target_queue.put(item)
+            if barrier.outstanding:
+                break
+
+            # If a returned barrier has no oustanding parts, immediately
+            # progress the workflow.
+            item = barrier.get_item()
+
+        self.enqueue_barrier(barrier)
 
 
 def get_coordinator():

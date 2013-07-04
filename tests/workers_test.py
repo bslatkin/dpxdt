@@ -63,6 +63,32 @@ class RootWorkflow(workers.WorkflowItem):
         self.result = total  # Don't raise to test StopIteration
 
 
+class RootWaitAnyWorkflow(workers.WorkflowItem):
+    def run(self):
+        print 'before!'
+        output = yield workers.WaitAny([
+            EchoItem(10),
+            EchoChild(42),
+            EchoItem(2),
+            EchoItem(25),
+        ])
+        assert len([x for x in output if x.done]) == 1
+        assert output[0].done and output[0].output_number == 10
+        assert not output[1].done
+        assert not output[2].done
+        assert not output[3].done
+
+        yield timer_worker.TimerItem(2)
+
+        results = yield output
+        assert results[0].done and results[0].output_number == 10
+        assert results[1] == 42
+        assert results[2].done and results[2].output_number == 2
+        assert results[3].done and results[3].output_number == 25
+
+        raise workers.Return('Donezo')
+
+
 class WorkflowThreadTest(unittest.TestCase):
     """Tests for the WorkflowThread worker."""
 
@@ -72,6 +98,19 @@ class WorkflowThreadTest(unittest.TestCase):
         FLAGS.polltime = 0.01
         self.coordinator = workers.get_coordinator()
 
+        self.echo_queue = Queue.Queue()
+        self.coordinator.register(EchoItem, self.echo_queue)
+        self.coordinator.worker_threads.append(
+            EchoThread(self.echo_queue, self.coordinator.input_queue))
+
+        self.timer_queue = Queue.Queue()
+        self.coordinator.register(timer_worker.TimerItem, self.timer_queue)
+        self.coordinator.worker_threads.append(
+            timer_worker.TimerThread(
+                self.timer_queue, self.coordinator.input_queue))
+
+        self.coordinator.start()
+
     def tearDown(self):
         """Cleans up the test harness."""
         self.coordinator.stop()
@@ -79,12 +118,6 @@ class WorkflowThreadTest(unittest.TestCase):
 
     def testMultiLevelWorkflow(self):
         """Tests a multi-level workflow."""
-        echo_queue = Queue.Queue()
-        self.coordinator.register(EchoItem, echo_queue)
-        self.coordinator.worker_threads.append(
-            EchoThread(echo_queue, self.coordinator.input_queue))
-        self.coordinator.start()
-
         work = RootWorkflow(5)
         work.root = True
         self.coordinator.input_queue.put(work)
@@ -96,12 +129,6 @@ class WorkflowThreadTest(unittest.TestCase):
 
     def testMultiLevelWorkflowException(self):
         """Tests when a child of a child raises an exception."""
-        echo_queue = Queue.Queue()
-        self.coordinator.register(EchoItem, echo_queue)
-        self.coordinator.worker_threads.append(
-            EchoThread(echo_queue, self.coordinator.input_queue))
-        self.coordinator.start()
-
         work = RootWorkflow(5, die_on=3)
         work.root = True
         self.coordinator.input_queue.put(work)
@@ -112,6 +139,15 @@ class WorkflowThreadTest(unittest.TestCase):
             finished.check_result()
         except Exception, e:
             self.assertEquals('Dying on 3', str(e))
+
+    def testWaitAny(self):
+        """Tests using the WaitAny class."""
+        work = RootWaitAnyWorkflow()
+        work.root = True
+        self.coordinator.input_queue.put(work)
+        finished = self.coordinator.output_queue.get()
+        self.assertTrue(work is finished)
+        finished.check_result()
 
 
 class TimerThreadTest(unittest.TestCase):
