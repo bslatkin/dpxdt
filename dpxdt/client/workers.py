@@ -400,7 +400,7 @@ class WorkflowThread(WorkerThread):
                     error = item is not None and item.error
                     if error:
                         next_item = generator.throw(*error)
-                    elif isinstance(item, WorkflowItem):
+                    elif isinstance(item, WorkflowItem) and item.done:
                         next_item = generator.send(item.result)
                     else:
                         next_item = generator.send(item)

@@ -139,13 +139,19 @@ class RootFireAndForgetWorkflow(workers.WorkflowItem):
         assert result.done
         assert result.output_number == 66
 
-        # TODO: Use a fire-and-forget workflow
+        job4 = EchoChild(22)
+        job4.fire_and_forget = True
+        result = yield job4
+        assert result is job4
+        assert not result.done
 
         yield timer_worker.TimerItem(2)
         assert job1.done
         assert job1.output_number == 10
         assert job2.done
         assert job2.output_number == 30
+        assert job4.done
+        assert job4.result == 22
 
         raise workers.Return('Okay')
 
