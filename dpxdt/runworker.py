@@ -28,7 +28,6 @@ FLAGS = gflags.FLAGS
 from dpxdt.client import capture_worker
 from dpxdt.client import fetch_worker
 from dpxdt.client import pdiff_worker
-from dpxdt.client import process_worker
 from dpxdt.client import timer_worker
 from dpxdt.client import workers
 
@@ -38,7 +37,6 @@ def run_workers():
     capture_worker.register(coordinator)
     fetch_worker.register(coordinator)
     pdiff_worker.register(coordinator)
-    process_worker.register(coordinator)
     timer_worker.register(coordinator)
     coordinator.start()
     return coordinator

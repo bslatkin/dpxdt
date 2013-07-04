@@ -82,17 +82,3 @@ class ProcessWorkflow(workers.WorkflowItem):
                     continue
 
                 raise workers.Return(process.returncode)
-
-
-class ProcessThread(workers.WorkflowThread):
-    """Worker thread that runs ProcessWorkflows."""
-    # Unique class so WorkflowThread can determine where to route
-    # WorkflowItem sub-classes.
-
-
-def register(coordinator):
-    """Registers this module as a worker with the given coordinator."""
-    process_queue = Queue.Queue()
-    coordinator.register(ProcessWorkflow, process_queue)
-    coordinator.worker_threads.append(
-        ProcessThread(process_queue, coordinator.input_queue))

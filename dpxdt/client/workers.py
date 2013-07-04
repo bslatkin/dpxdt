@@ -288,20 +288,6 @@ class Return(Exception):
 class WorkflowThread(WorkerThread):
     """Worker thread for running workflows."""
 
-    work_map = {}
-
-    @classmethod
-    def register(cls, work_type, queue):
-        """Registers where work for a specific type can be executed.
-
-        Args:
-            work_type: Sub-class of WorkItem to register.
-            queue: Queue instance where WorkItems of the work_type should be
-                enqueued when they are yielded by WorkflowItems being run by
-                this worker.
-        """
-        cls.work_map[work_type] = queue
-
     def __init__(self, input_queue, output_queue):
         """Initializer.
 
@@ -314,6 +300,7 @@ class WorkflowThread(WorkerThread):
         """
         WorkerThread.__init__(self, input_queue, output_queue)
         self.pending = {}
+        self.work_map = {}
         self.worker_threads = []
         self.register(WorkflowItem, input_queue)
 
@@ -354,6 +341,17 @@ class WorkflowThread(WorkerThread):
             else:
                 item.check_result()
                 return
+
+    def register(self, work_type, queue):
+        """Registers where work for a specific type can be executed.
+
+        Args:
+            work_type: Sub-class of WorkItem to register.
+            queue: Queue instance where WorkItems of the work_type should be
+                enqueued when they are yielded by WorkflowItems being run by
+                this worker.
+        """
+        self.work_map[work_type] = queue
 
     def enqueue_barrier(self, barrier):
         for item in barrier:
