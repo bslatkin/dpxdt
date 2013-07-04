@@ -65,7 +65,6 @@ class RootWorkflow(workers.WorkflowItem):
 
 class RootWaitAnyWorkflow(workers.WorkflowItem):
     def run(self):
-        print 'before!'
         output = yield workers.WaitAny([
             EchoItem(10),
             EchoChild(42),
@@ -89,6 +88,44 @@ class RootWaitAnyWorkflow(workers.WorkflowItem):
         raise workers.Return('Donezo')
 
 
+class FireAndForgetEchoItem(EchoItem):
+    fire_and_forget = True
+
+
+class RootFireAndForgetWorkflow(workers.WorkflowItem):
+    def run(self):
+        job1 = FireAndForgetEchoItem(10)
+        result = yield job1
+        print result
+        assert result is job1
+        assert not result.done
+
+        result = yield EchoItem(25)
+        assert result.done
+        assert result.output_number == 25
+
+        job2 = EchoItem(30)
+        job2.fire_and_forget = True
+        result = yield job2
+        assert result is job2
+        assert not result.done
+
+        job3 = FireAndForgetEchoItem(66)
+        job3.fire_and_forget = False
+        result = yield job3
+        assert result is job3
+        assert result.done
+        assert result.output_number == 66
+
+        yield timer_worker.TimerItem(2)
+        assert job1.done
+        assert job1.output_number == 10
+        assert job2.done
+        assert job2.output_number == 30
+
+        raise workers.Return('Okay')
+
+
 class WorkflowThreadTest(unittest.TestCase):
     """Tests for the WorkflowThread worker."""
 
@@ -100,6 +137,7 @@ class WorkflowThreadTest(unittest.TestCase):
 
         self.echo_queue = Queue.Queue()
         self.coordinator.register(EchoItem, self.echo_queue)
+        self.coordinator.register(FireAndForgetEchoItem, self.echo_queue)
         self.coordinator.worker_threads.append(
             EchoThread(self.echo_queue, self.coordinator.input_queue))
 
@@ -148,6 +186,21 @@ class WorkflowThreadTest(unittest.TestCase):
         finished = self.coordinator.output_queue.get()
         self.assertTrue(work is finished)
         finished.check_result()
+        self.assertEquals('Donezo', work.result)
+
+    # TODO: Wait any exception
+
+    def testFireAndForget(self):
+        """Tests running fire-and-forget WorkItems."""
+        work = RootFireAndForgetWorkflow()
+        work.root = True
+        self.coordinator.input_queue.put(work)
+        finished = self.coordinator.output_queue.get()
+        self.assertTrue(work is finished)
+        finished.check_result()
+        self.assertEquals('Okay', work.result)
+
+    # TODO: Fire and forget exception
 
 
 class TimerThreadTest(unittest.TestCase):

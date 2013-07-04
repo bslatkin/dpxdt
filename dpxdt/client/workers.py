@@ -34,6 +34,10 @@ gflags.DEFINE_float(
 class WorkItem(object):
     """Base work item that can be handled by a worker thread."""
 
+    # Set this to True for WorkItems that should never wait for their
+    # return values.
+    fire_and_forget = False
+
     def __init__(self):
         self.error = None
         self.done = False
@@ -108,6 +112,8 @@ class WorkerThread(threading.Thread):
                 self.output_queue.put(item)
             else:
                 logging.debug('%s processed item=%r', self.worker_name, item)
+                if not isinstance(item, WorkflowItem):
+                    item.done = True
                 if next_item:
                     self.output_queue.put(next_item)
             finally:
@@ -158,10 +164,21 @@ class WorkflowItem(WorkItem):
 
 
 class WaitAny(object):
-    """TODO"""
+    """Return control to a workflow after any one of these items finishes.
+
+    As soon as a single work item completes, the combined barrier will be
+    fulfilled and control will return to the WorkflowItem. The return values
+    will be WorkItem instances, the same ones passed into WaitAny. For
+    WorkflowItems the return values will be WorkflowItems if the work is not
+    finished yet, and the final return value once work is finished.
+    """
 
     def __init__(self, items):
-        """TODO"""
+        """Initializer.
+
+        Args:
+            items: List of WorkItems to wait for.
+        """
         self.items = items
 
 
@@ -202,10 +219,10 @@ class Barrier(list):
 
     @property
     def outstanding(self):
-        """TODO"""
+        """Returns whether or not this barrier has pending work."""
         # Allow the same WorkItem to be yielded multiple times but not
         # count towards blocking the barrier.
-        done_count = len([w for w in self if w.done])
+        done_count = len([w for w in self if w.done or w.fire_and_forget])
 
         if self.wait_any and done_count > 0:
             return False
@@ -231,22 +248,10 @@ class Barrier(list):
 
     def finish(self, item):
         """Marks the given item that is part of the barrier as done."""
-        print '\n!!!!!!! Finish:', id(item), item, '\n'
         # Copy the error from any failed item to be the error for the whole
         # barrier. The last error seen "wins"
         if item.error and not self.error:
             self.error = item.error
-
-
-
-
-# TODO: Add FireAndForget class that can wrap a WorkItem. Instructs the
-# WorkflowThread to run the given WorkItem on its target queue, but to
-# ignore all exceptions it raises and not wait until it completes to let
-# the current worker to continue processing. The result of the yield will
-# be None. Use this to add heart-beat work items to background queues.
-# Include a locally incrementing number so the server side can ignore
-# heartbeat updates that are old, in the case the queue gets out of order.
 
 
 class Return(Exception):
@@ -332,37 +337,35 @@ class WorkflowThread(WorkerThread):
     def enqueue_barrier(self, barrier):
         for item in barrier:
             if item.done:
-                print 'not enqueuing', item
                 # Don't reenqueue items that are already done.
                 continue
             if isinstance(item, WorkflowItem):
                 target_queue = self.input_queue
             else:
                 target_queue = self.work_map[type(item)]
-            # xxx make this a weakref?
-            self.pending[item] = barrier
+
+            if not item.fire_and_forget:
+                self.pending[item] = barrier
             target_queue.put(item)
 
     def dequeue_barrier(self, item):
         # This is a WorkItem from a worker thread that has finished and
         # needs to be reinjected into a WorkflowItem generator.
-        item.done = True
         barrier = self.pending.pop(item, None)
         if not barrier:
-            # was already finished
+            # Item was already finished in another barrier, or was
+            # fire-and-forget and never part of a barrier; ignore it.
             return None
 
         barrier.finish(item)
-        print 'result error', barrier.outstanding, barrier.error
         if barrier.outstanding and not barrier.error:
-            # xxx still more pending; what about the error?
+            # More work to do and no error seen. Keep waiting.
             return None
 
         for work in barrier:
-            # clear out any other pending parts of the barrier
+            # The barrier has been fulfilled one way or another. Clear out any
+            # other pending parts of the barrier so they don't trigger again.
             self.pending.pop(work, None)
-
-        # barrier.get_item(), barrier.workflow, barrier.generator
 
         return barrier
 
@@ -378,7 +381,6 @@ class WorkflowThread(WorkerThread):
             barrier = self.dequeue_barrier(item)
             if not barrier:
                 return
-
             item = barrier.get_item()
             workflow = barrier.workflow
             generator = barrier.generator
@@ -415,15 +417,13 @@ class WorkflowThread(WorkerThread):
                         return
 
             barrier = Barrier(workflow, generator, next_item)
-
+            self.enqueue_barrier(barrier)
             if barrier.outstanding:
                 break
 
             # If a returned barrier has no oustanding parts, immediately
             # progress the workflow.
             item = barrier.get_item()
-
-        self.enqueue_barrier(barrier)
 
 
 def get_coordinator():
