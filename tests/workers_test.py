@@ -71,11 +71,11 @@ class RootWaitAnyWorkflow(workers.WorkflowItem):
             EchoItem(2),
             EchoItem(25),
         ])
-        assert len([x for x in output if x.done]) == 1
+        assert len([x for x in output if x.done]) == 3
         assert output[0].done and output[0].output_number == 10
         assert not output[1].done
-        assert not output[2].done
-        assert not output[3].done
+        assert output[2].done and output[2].output_number == 2
+        assert output[3].done and output[3].output_number == 25
 
         yield timer_worker.TimerItem(2)
 
@@ -86,6 +86,28 @@ class RootWaitAnyWorkflow(workers.WorkflowItem):
         assert results[3].done and results[3].output_number == 25
 
         raise workers.Return('Donezo')
+
+
+class RootWaitAnyExceptionWorkflow(workers.WorkflowItem):
+    def run(self):
+        output = yield workers.WaitAny([
+            EchoChild(42, should_die=True),
+            EchoItem(10),
+            EchoItem(33),
+        ])
+        assert len([x for x in output if x.done]) == 2
+        assert not output[0].done
+        assert output[1].done and output[1].output_number == 10
+        assert output[2].done and output[2].output_number == 33
+
+        yield timer_worker.TimerItem(2)
+
+        try:
+            yield output
+        except Exception, e:
+            raise workers.Return(str(e))
+        else:
+            assert False, 'Should have raised'
 
 
 class FireAndForgetEchoItem(EchoItem):
@@ -116,6 +138,8 @@ class RootFireAndForgetWorkflow(workers.WorkflowItem):
         assert result is job3
         assert result.done
         assert result.output_number == 66
+
+        # TODO: Use a fire-and-forget workflow
 
         yield timer_worker.TimerItem(2)
         assert job1.done
@@ -188,7 +212,15 @@ class WorkflowThreadTest(unittest.TestCase):
         finished.check_result()
         self.assertEquals('Donezo', work.result)
 
-    # TODO: Wait any exception
+    def testWaitAnyException(self):
+        """Tests using the WaitAny class when an exception is raised."""
+        work = RootWaitAnyExceptionWorkflow()
+        work.root = True
+        self.coordinator.input_queue.put(work)
+        finished = self.coordinator.output_queue.get()
+        self.assertTrue(work is finished)
+        finished.check_result()
+        self.assertEquals('Dying on 42', work.result)
 
     def testFireAndForget(self):
         """Tests running fire-and-forget WorkItems."""

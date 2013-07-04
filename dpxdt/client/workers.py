@@ -34,13 +34,16 @@ gflags.DEFINE_float(
 class WorkItem(object):
     """Base work item that can be handled by a worker thread."""
 
+    # Instance variables. May be overridden by a sub-class @property.
+    error = None
+    done = False
+
     # Set this to True for WorkItems that should never wait for their
     # return values.
     fire_and_forget = False
 
     def __init__(self):
-        self.error = None
-        self.done = False
+        pass
 
     @staticmethod
     def _print_tree(obj):
@@ -215,8 +218,6 @@ class Barrier(list):
         for item in self:
             assert isinstance(item, WorkItem)
 
-        self.error = None
-
     @property
     def outstanding(self):
         """Returns whether or not this barrier has pending work."""
@@ -232,26 +233,33 @@ class Barrier(list):
 
         return True
 
+    @property
+    def error(self):
+        """Returns the error for this barrier and all work items, if any."""
+        # Copy the error from any failed item to be the error for the whole
+        # barrier. The first error seen "wins". Also handles the case where
+        # the WorkItems passed into the barrier have already completed and
+        # been marked with errors.
+        for item in self:
+            if isinstance(item, WorkItem) and item.error:
+                return item.error
+        return None
+
     def get_item(self):
         """Returns the item to send back into the workflow generator."""
         if self.was_list:
             blocking_items = self[:]
             self[:] = []
             for item in blocking_items:
-                if isinstance(item, WorkflowItem) and item.done:
+                if (isinstance(item, WorkflowItem) and
+                        item.done and
+                        not item.error):
                     self.append(item.result)
                 else:
                     self.append(item)
             return self
         else:
             return self[0]
-
-    def finish(self, item):
-        """Marks the given item that is part of the barrier as done."""
-        # Copy the error from any failed item to be the error for the whole
-        # barrier. The last error seen "wins"
-        if item.error and not self.error:
-            self.error = item.error
 
 
 class Return(Exception):
@@ -357,7 +365,6 @@ class WorkflowThread(WorkerThread):
             # fire-and-forget and never part of a barrier; ignore it.
             return None
 
-        barrier.finish(item)
         if barrier.outstanding and not barrier.error:
             # More work to do and no error seen. Keep waiting.
             return None
@@ -390,8 +397,9 @@ class WorkflowThread(WorkerThread):
                           workflow, generator, item)
             try:
                 try:
-                    if item is not None and item.error:
-                        next_item = generator.throw(*item.error)
+                    error = item is not None and item.error
+                    if error:
+                        next_item = generator.throw(*error)
                     elif isinstance(item, WorkflowItem):
                         next_item = generator.send(item.result)
                     else:
