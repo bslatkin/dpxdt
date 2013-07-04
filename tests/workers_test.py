@@ -204,7 +204,7 @@ class RootWaitAnyFireAndForget(workers.WorkflowItem):
 
 class RootWaitAllFireAndForget(workers.WorkflowItem):
     def run(self):
-        output = [
+        output = yield [
             FireAndForgetEchoItem(22),
             EchoItem(14),
             EchoChild(98),
