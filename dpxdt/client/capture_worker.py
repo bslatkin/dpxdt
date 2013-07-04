@@ -29,11 +29,19 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
+from dpxdt import constants
 import process_worker
+import queue_worker
+import release_worker
+import workers
 
 
 gflags.DEFINE_integer(
     'capture_threads', 1, 'Number of website screenshot threads to run')
+
+gflags.DEFINE_integer(
+    'capture_task_max_attempts', 3,
+    'Maximum number of attempts for processing a capture task.')
 
 gflags.DEFINE_string(
     'phantomjs_binary', None, 'Path to the phantomjs binary')
@@ -45,6 +53,11 @@ gflags.DEFINE_string(
 gflags.DEFINE_integer(
     'phantomjs_timeout', 120,
     'Seconds until giving up on a phantomjs sub-process and trying again.')
+
+
+
+class CaptureFailedError(queue_worker.GiveUpAfterAttemptsError):
+    """Capturing a webpage screenshot failed for some reason."""
 
 
 class CaptureItem(process_worker.ProcessItem):
@@ -79,13 +92,82 @@ class CaptureThread(process_worker.ProcessThread):
         ]
 
 
+class DoCaptureQueueWorkflow(workers.WorkflowItem):
+    """Runs a webpage screenshot process from queue parameters.
+
+    Args:
+        build_id: ID of the build.
+        release_name: Name of the release.
+        release_number: Number of the release candidate.
+        run_name: Run to run perceptual diff for.
+        url: URL of the content to screenshot.
+        config_sha1sum: Content hash of the config for the new screenshot.
+        baseline: Optional. When specified and True, this capture is for
+            the reference baseline of the specified run, not the new capture.
+        heartbeat: Function to call with progress status.
+
+    Raises:
+        CaptureFailedError if the screenshot process failed.
+    """
+
+    def run(self, build_id=None, release_name=None, release_number=None,
+            run_name=None, url=None, config_sha1sum=None, baseline=None,
+            heartbeat=None):
+        output_path = tempfile.mkdtemp()
+        try:
+            image_path = os.path.join(output_path, 'capture.png')
+            log_path = os.path.join(output_path, 'log.txt')
+            config_path = os.path.join(output_path, 'config.json')
+            capture_success = False
+            failure_reason = None
+
+            yield heartbeat('Fetching webpage capture config')
+            yield release_worker.DownloadArtifactWorkflow(
+                build_id, config_sha1sum, result_path=config_path)
+
+            yield heartbeat('Running webpage capture process')
+            try:
+                capture = yield capture_worker.CaptureItem(
+                    log_path, config_path, image_path)
+            except process_worker.TimeoutError, e:
+                failure_reason = str(e)
+            else:
+                capture_success = capture.returncode == 0
+                failure_reason = 'returncode=%s' % capture.returncode
+
+            # Don't upload bad captures, but always upload the error log.
+            if not capture_success:
+                image_path = None
+
+            yield heartbeat('Reporting capture status to server')
+
+            yield release_worker.ReportRunWorkflow(
+                build_id, release_name, release_number, run_name,
+                image_path=image_path, log_path=log_path, baseline=baseline)
+
+            if not capture_success:
+                raise CaptureFailedError(
+                    FLAGS.capture_task_max_attempts,
+                    failure_reason)
+        finally:
+            shutil.rmtree(output_path, True)
+
+
 def register(coordinator):
     """Registers this module as a worker with the given coordinator."""
     assert FLAGS.phantomjs_binary
     assert FLAGS.phantomjs_script
     assert FLAGS.capture_threads > 0
+
     capture_queue = Queue.Queue()
     coordinator.register(CaptureItem, capture_queue)
     for i in xrange(FLAGS.capture_threads):
         coordinator.worker_threads.append(
             CaptureThread(capture_queue, coordinator.input_queue))
+
+    item = queue_worker.RemoteQueueWorkflow(
+        constants.CAPTURE_QUEUE_NAME,
+        DoCaptureQueueWorkflow,
+        max_tasks=FLAGS.capture_threads)
+    item.root = True
+    coordinator.input_queue.put(item)
