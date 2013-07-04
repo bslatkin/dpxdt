@@ -28,6 +28,7 @@ FLAGS = gflags.FLAGS
 from client import capture_worker
 from client import fetch_worker
 from client import pdiff_worker
+from client import process_worker
 from client import timer_worker
 from client import workers
 
@@ -37,6 +38,7 @@ def run_workers():
     capture_worker.register(coordinator)
     fetch_worker.register(coordinator)
     pdiff_worker.register(coordinator)
+    process_worker.register(coordinator)
     timer_worker.register(coordinator)
     coordinator.start()
     return coordinator

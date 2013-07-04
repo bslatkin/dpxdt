@@ -25,6 +25,7 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
+import timer_worker
 import workers
 
 
@@ -35,36 +36,26 @@ class TimeoutError(Exception):
     """Subprocess has taken too long to complete and was terminated."""
 
 
-class ProcessItem(workers.WorkItem):
-    """Work item that is handled by running a subprocess."""
+class ProcessWorkflow(workers.WorkflowItem):
+    """Workflow that runs a subprocess.
 
-    def __init__(self, log_path, timeout_seconds=30):
-        """Initializer.
+    Args:
+        log_path: Path to where output from this subprocess should be written.
+        timeout_seconds: How long before the process should be force killed.
 
-        Args:
-            log_path: Path to where output from this subprocess should be
-                written.
-            timeout_seconds: How long before the process should be force
-                killed.
-        """
-        workers.WorkItem.__init__(self)
-        self.log_path = log_path
-        self.timeout_seconds = timeout_seconds
-        self.return_code = None
+    Returns:
+        The return code of the subprocess.
+    """
 
-
-class ProcessThread(workers.WorkerThread):
-    """Worker thread that runs subprocesses."""
-
-    def get_args(self, item):
+    def get_args(self):
+        """Return the arguments for running the subprocess."""
         raise NotImplemented
 
-    def handle_item(self, item):
+    def run(self, log_path, timeout_seconds=30):
         start_time = time.time()
-        with open(item.log_path, 'w') as output_file:
-            args = self.get_args(item)
-            logging.debug('%s item=%r Running subprocess: %r',
-                          self.worker_name, item, args)
+        with open(log_path, 'w') as output_file:
+            args = self.get_args()
+            logging.debug('item=%r Running subprocess: %r', self, args)
             try:
                 process = subprocess.Popen(
                     args,
@@ -72,8 +63,8 @@ class ProcessThread(workers.WorkerThread):
                     stdout=output_file,
                     close_fds=True)
             except:
-                logging.error('%s item=%r Failed to run subprocess: %r',
-                              self.worker_name, item, args)
+                logging.error('item=%r Failed to run subprocess: %r',
+                              self, args)
                 raise
 
             while True:
@@ -81,15 +72,27 @@ class ProcessThread(workers.WorkerThread):
                 if process.returncode is None:
                     now = time.time()
                     run_time = now - start_time
-                    if run_time > item.timeout_seconds or self.interrupted:
+                    if run_time > timeout_seconds:
                         process.kill()
                         raise TimeoutError(
                             'Sent SIGKILL to item=%r, pid=%s, run_time=%s' %
-                            (item, process.pid, run_time))
+                            (self, process.pid, run_time))
 
-                    time.sleep(FLAGS.polltime)
+                    yield timer_worker.TimerItem(FLAGS.polltime)
                     continue
 
-                item.returncode = process.returncode
+                raise workers.Return(process.returncode)
 
-                return item
+
+class ProcessThread(workers.WorkflowThread):
+    """Worker thread that runs ProcessWorkflows."""
+    # Unique class so WorkflowThread can determine where to route
+    # WorkflowItem sub-classes.
+
+
+def register(coordinator):
+    """Registers this module as a worker with the given coordinator."""
+    process_queue = Queue.Queue()
+    coordinator.register(ProcessWorkflow, process_queue)
+    coordinator.worker_threads.append(
+        ProcessThread(process_queue, coordinator.input_queue))

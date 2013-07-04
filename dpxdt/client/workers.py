@@ -358,10 +358,21 @@ class WorkflowThread(WorkerThread):
             if item.done:
                 # Don't reenqueue items that are already done.
                 continue
-            if isinstance(item, WorkflowItem):
-                target_queue = self.input_queue
-            else:
-                target_queue = self.work_map[type(item)]
+
+            # Try to find a queue by the work item's class, then by its
+            # super class, and so on.
+            next_types = [type(item)]
+            while next_types:
+                try_types = next_types[:]
+                next_types[:] = []
+                for current_type in try_types:
+                    target_queue = self.work_map.get(current_type)
+                    if target_queue:
+                        next_types = []
+                        break
+                    next_types.extend(current_type.__bases__)
+
+            assert target_queue, 'Could not find queue to handle %r' % item
 
             if not item.fire_and_forget:
                 self.pending[item] = barrier
@@ -421,6 +432,8 @@ class WorkflowThread(WorkerThread):
                     workflow.done = True
                     workflow.result = e.result
                 except Exception, e:
+                    logging.exception('%s error item=%r',
+                                      self.worker_name, item)
                     workflow.done = True
                     workflow.error = sys.exc_info()
             finally:
@@ -450,4 +463,5 @@ def get_coordinator():
     workflow_queue = Queue.Queue()
     complete_queue = Queue.Queue()
     coordinator = WorkflowThread(workflow_queue, complete_queue)
+    coordinator.register(WorkflowItem, workflow_queue)
     return coordinator

@@ -55,8 +55,8 @@ class PdiffFailedError(queue_worker.GiveUpAfterAttemptsError):
     """Running a perceptual diff failed for some reason."""
 
 
-class PdiffItem(process_worker.ProcessItem):
-    """Work item for doing perceptual diffs using pdiff."""
+class PdiffWorkflow(process_worker.ProcessWorkflow):
+    """Workflow for doing perceptual diffs using pdiff."""
 
     def __init__(self, log_path, ref_path, run_path, output_path):
         """Initializer.
@@ -67,17 +67,13 @@ class PdiffItem(process_worker.ProcessItem):
             run_path: Path to the most recent run screenshot to diff.
             output_path: Where the diff image should be written, if any.
         """
-        process_worker.ProcessItem.__init__(
+        process_worker.ProcessWorkflow.__init__(
             self, log_path, timeout_seconds=FLAGS.pdiff_timeout)
         self.ref_path = ref_path
         self.run_path = run_path
         self.output_path = output_path
 
-
-class PdiffThread(process_worker.ProcessThread):
-    """Worker thread that runs pdiff."""
-
-    def get_args(self, item):
+    def get_args(self):
         # Method from http://www.imagemagick.org/Usage/compare/
         return [
             'compare',
@@ -88,9 +84,9 @@ class PdiffThread(process_worker.ProcessThread):
             'Red',
             '-compose',
             'Src',
-            item.ref_path,
-            item.run_path,
-            item.output_path,
+            self.ref_path,
+            self.run_path,
+            self.output_path,
         ]
 
 
@@ -129,9 +125,10 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
             ]
 
             yield heartbeat('Running perceptual diff process')
-            pdiff = yield PdiffItem(log_path, ref_path, run_path, diff_path)
+            returncode = yield PdiffWorkflow(
+                log_path, ref_path, run_path, diff_path)
 
-            diff_success = pdiff.returncode == 0
+            diff_success = returncode == 0
             max_attempts = FLAGS.pdiff_task_max_attempts
 
             # Check for a successful run or a known failure.
@@ -151,7 +148,7 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
             if not diff_success:
                 raise PdiffFailedError(
                     max_attempts,
-                    'Comparison failed. returncode=%r' % pdiff.returncode)
+                    'Comparison failed. returncode=%r' % returncode)
         finally:
             shutil.rmtree(output_path, True)
 
@@ -160,12 +157,6 @@ def register(coordinator):
     """Registers this module as a worker with the given coordinator."""
     assert FLAGS.pdiff_threads > 0
     assert FLAGS.queue_server_prefix
-
-    pdiff_queue = Queue.Queue()
-    coordinator.register(PdiffItem, pdiff_queue)
-    for i in xrange(FLAGS.pdiff_threads):
-        coordinator.worker_threads.append(
-            PdiffThread(pdiff_queue, coordinator.input_queue))
 
     item = queue_worker.RemoteQueueWorkflow(
         constants.PDIFF_QUEUE_NAME,

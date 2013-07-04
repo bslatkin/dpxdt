@@ -63,8 +63,8 @@ class CaptureFailedError(queue_worker.GiveUpAfterAttemptsError):
     """Capturing a webpage screenshot failed for some reason."""
 
 
-class CaptureItem(process_worker.ProcessItem):
-    """Work item for capturing a website screenshot using PhantomJs."""
+class CaptureWorkflow(process_worker.ProcessWorkflow):
+    """Workflow for capturing a website screenshot using PhantomJs."""
 
     def __init__(self, log_path, config_path, output_path):
         """Initializer.
@@ -75,23 +75,19 @@ class CaptureItem(process_worker.ProcessItem):
                 to PhantomJs.
             output_path: Where the output screenshot should be written.
         """
-        process_worker.ProcessItem.__init__(
+        process_worker.ProcessWorkflow.__init__(
             self, log_path, timeout_seconds=FLAGS.phantomjs_timeout)
         self.config_path = config_path
         self.output_path = output_path
 
-
-class CaptureThread(process_worker.ProcessThread):
-    """Worker thread that runs PhantomJs."""
-
-    def get_args(self, item):
+    def get_args(self):
         return [
             FLAGS.phantomjs_binary,
             '--disk-cache=false',
             '--debug=true',
             FLAGS.phantomjs_script,
-            item.config_path,
-            item.output_path,
+            self.config_path,
+            self.output_path,
         ]
 
 
@@ -130,12 +126,13 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
 
             yield heartbeat('Running webpage capture process')
             try:
-                capture = yield CaptureItem(log_path, config_path, image_path)
+                returncode = yield CaptureWorkflow(
+                    log_path, config_path, image_path)
             except process_worker.TimeoutError, e:
                 failure_reason = str(e)
             else:
-                capture_success = capture.returncode == 0
-                failure_reason = 'returncode=%s' % capture.returncode
+                capture_success = returncode == 0
+                failure_reason = 'returncode=%s' % returncode
 
             # Don't upload bad captures, but always upload the error log.
             if not capture_success:
@@ -161,12 +158,6 @@ def register(coordinator):
     assert FLAGS.phantomjs_script
     assert FLAGS.capture_threads > 0
     assert FLAGS.queue_server_prefix
-
-    capture_queue = Queue.Queue()
-    coordinator.register(CaptureItem, capture_queue)
-    for i in xrange(FLAGS.capture_threads):
-        coordinator.worker_threads.append(
-            CaptureThread(capture_queue, coordinator.input_queue))
 
     item = queue_worker.RemoteQueueWorkflow(
         constants.CAPTURE_QUEUE_NAME,
