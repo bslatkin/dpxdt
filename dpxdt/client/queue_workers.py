@@ -97,6 +97,8 @@ class HeartbeatWorkflow(workers.WorkflowItem):
             higher than the last heartbeat message.
     """
 
+    fire_and_forget = True
+
     def run(self, queue_url, task_id, message, index):
         call = yield fetch_worker.FetchItem(
             queue_url + '/heartbeat',
@@ -163,13 +165,10 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
             # Define a heartbeat closure that will return a workflow for
             # reporting status. This will auto-increment the index on each
             # call, so only the latest update will be saved.
-            # TODO: Make this fire-and-forget.
             index = [0]
             def heartbeat(message):
                 next_index = index[0]
                 index[0] = next_index + 1
-                logging.debug('queue_url=%r, task_id=%r, message: %s',
-                              queue_url, task_id, message)
                 return HeartbeatWorkflow(
                     queue_url, task_id, message, next_index)
 
