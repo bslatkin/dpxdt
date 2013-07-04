@@ -25,12 +25,12 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-from client import capture_worker
-from client import fetch_worker
-from client import pdiff_worker
-from client import process_worker
-from client import timer_worker
-from client import workers
+from dpxdt.client import capture_worker
+from dpxdt.client import fetch_worker
+from dpxdt.client import pdiff_worker
+from dpxdt.client import process_worker
+from dpxdt.client import timer_worker
+from dpxdt.client import workers
 
 
 def run_workers():

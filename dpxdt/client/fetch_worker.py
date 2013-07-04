@@ -33,7 +33,7 @@ import poster.streaminghttp
 poster.streaminghttp.register_openers()
 
 # Local modules
-import workers
+from dpxdt.client import workers
 
 
 gflags.DEFINE_float(

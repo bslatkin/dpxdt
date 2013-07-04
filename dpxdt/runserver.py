@@ -24,9 +24,8 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-import runworker
-import server
-from server import models
+from dpxdt import runworker
+from dpxdt import server
 
 
 gflags.DEFINE_bool(

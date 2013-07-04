@@ -25,8 +25,8 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-import timer_worker
-import workers
+from dpxdt.client import timer_worker
+from dpxdt.client import workers
 
 
 class Error(Exception):

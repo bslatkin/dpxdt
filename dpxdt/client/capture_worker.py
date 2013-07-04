@@ -33,10 +33,10 @@ FLAGS = gflags.FLAGS
 
 # Local modules
 from dpxdt import constants
-import process_worker
-import queue_worker
-import release_worker
-import workers
+from dpxdt.client import process_worker
+from dpxdt.client import queue_worker
+from dpxdt.client import release_worker
+from dpxdt.client import workers
 
 
 gflags.DEFINE_integer(

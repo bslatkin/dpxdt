@@ -23,8 +23,8 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-import fetch_worker
-import workers
+from dpxdt.client import fetch_worker
+from dpxdt.client import workers
 
 
 gflags.DEFINE_string(

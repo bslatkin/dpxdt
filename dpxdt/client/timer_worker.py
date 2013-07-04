@@ -25,7 +25,7 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-import workers
+from dpxdt.client import workers
 
 
 class TimerItem(workers.WorkItem):
