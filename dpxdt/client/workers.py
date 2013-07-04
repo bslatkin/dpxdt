@@ -155,15 +155,17 @@ class WorkflowItem(WorkItem):
     will be raised if there's an exception.
     """
 
+    # Allow these value to be assigned or overridden by a sub-class @property.
+    result = None
+    root = False
+
     def __init__(self, *args, **kwargs):
         WorkItem.__init__(self)
         self.args = args
         self.kwargs = kwargs
-        self.result = None
-        self.root = False
 
     def run(self, *args, **kwargs):
-        yield 'Yo dawg'
+        raise NotImplemented
 
 
 class WaitAny(object):
@@ -223,7 +225,16 @@ class Barrier(list):
         """Returns whether or not this barrier has pending work."""
         # Allow the same WorkItem to be yielded multiple times but not
         # count towards blocking the barrier.
-        done_count = len([w for w in self if w.done or w.fire_and_forget])
+        done_count = 0
+        for item in self:
+            if not self.wait_any and item.fire_and_forget:
+                # Only count fire_and_forget items as done if this is
+                # *not* a WaitAny barrier. We only want to return control
+                # to the caller when at least one of the blocking items
+                # has completed.
+                done_count += 1
+            elif item.done:
+                done_count += 1
 
         if self.wait_any and done_count > 0:
             return False

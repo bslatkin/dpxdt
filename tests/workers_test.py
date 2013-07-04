@@ -63,6 +63,13 @@ class RootWorkflow(workers.WorkflowItem):
         self.result = total  # Don't raise to test StopIteration
 
 
+class RootWaitAllWorkflow(workers.WorkflowItem):
+    def run(self, child_count):
+        wait_all = [EchoItem(i) for i in xrange(child_count)]
+        output = yield wait_all
+        raise workers.Return(sum(x.output_number for x in output))
+
+
 class RootWaitAnyWorkflow(workers.WorkflowItem):
     def run(self):
         output = yield workers.WaitAny([
@@ -156,6 +163,59 @@ class RootFireAndForgetWorkflow(workers.WorkflowItem):
         raise workers.Return('Okay')
 
 
+class RootFireAndForgetExceptionWorkflow(workers.WorkflowItem):
+    def run(self):
+        job = EchoChild(99, should_die=True)
+        job.fire_and_forget = True
+        result = yield job
+        assert result is job
+        assert not result.done
+        assert not result.error
+
+        result = yield EchoItem(25)
+        assert result.done
+        assert result.output_number == 25
+
+        yield timer_worker.TimerItem(2)
+        assert job.done
+        assert str(job.error[1]) == 'Dying on 99'
+
+        raise workers.Return('No fire and forget error')
+
+
+class RootWaitAnyFireAndForget(workers.WorkflowItem):
+    def run(self):
+        output = yield workers.WaitAny([
+            FireAndForgetEchoItem(22),
+            EchoItem(14),
+            EchoChild(98),
+        ])
+        assert output[0].done
+        assert output[1].done
+        assert not output[2].done
+
+        # Yielding here will let the next pending WorkflowItem to run,
+        # causing output #3 to finish.
+        result = yield output
+        assert result[2] == 98
+
+        raise workers.Return('All done')
+
+
+class RootWaitAllFireAndForget(workers.WorkflowItem):
+    def run(self):
+        output = [
+            FireAndForgetEchoItem(22),
+            EchoItem(14),
+            EchoChild(98),
+        ]
+        assert output[0].done
+        assert output[1].done
+        assert output[2] == 98
+
+        raise workers.Return('Waited for all of them')
+
+
 class WorkflowThreadTest(unittest.TestCase):
     """Tests for the WorkflowThread worker."""
 
@@ -183,6 +243,8 @@ class WorkflowThreadTest(unittest.TestCase):
         """Cleans up the test harness."""
         self.coordinator.stop()
         self.coordinator.join()
+        # Nothing should be pending in the coordinator
+        self.assertEquals(0, len(self.coordinator.pending))
 
     def testMultiLevelWorkflow(self):
         """Tests a multi-level workflow."""
@@ -207,6 +269,16 @@ class WorkflowThreadTest(unittest.TestCase):
             finished.check_result()
         except Exception, e:
             self.assertEquals('Dying on 3', str(e))
+
+    def testWaitAll(self):
+        """Tests waiting on all items in a list of work."""
+        work = RootWaitAllWorkflow(4)
+        work.root = True
+        self.coordinator.input_queue.put(work)
+        finished = self.coordinator.output_queue.get()
+        self.assertTrue(work is finished)
+        finished.check_result()
+        self.assertEquals(6, work.result)
 
     def testWaitAny(self):
         """Tests using the WaitAny class."""
@@ -238,7 +310,35 @@ class WorkflowThreadTest(unittest.TestCase):
         finished.check_result()
         self.assertEquals('Okay', work.result)
 
-    # TODO: Fire and forget exception
+    def testFireAndForgetException(self):
+        """Tests that exceptions from fire-and-forget WorkItems are ignored."""
+        work = RootFireAndForgetExceptionWorkflow()
+        work.root = True
+        self.coordinator.input_queue.put(work)
+        finished = self.coordinator.output_queue.get()
+        self.assertTrue(work is finished)
+        finished.check_result()
+        self.assertEquals('No fire and forget error', work.result)
+
+    def testWaitAnyFireAndForget(self):
+        """Tests wait any with a mix of blocking and non-blocking items."""
+        work = RootWaitAnyFireAndForget()
+        work.root = True
+        self.coordinator.input_queue.put(work)
+        finished = self.coordinator.output_queue.get()
+        self.assertTrue(work is finished)
+        finished.check_result()
+        self.assertEquals('All done', work.result)
+
+    def testWaitAllFireAndForget(self):
+        """Tests wait all with a mix of blocking and non-blocking items."""
+        work = RootWaitAllFireAndForget()
+        work.root = True
+        self.coordinator.input_queue.put(work)
+        finished = self.coordinator.output_queue.get()
+        self.assertTrue(work is finished)
+        finished.check_result()
+        self.assertEquals('Waited for all of them', work.result)
 
 
 class TimerThreadTest(unittest.TestCase):
