@@ -29,3 +29,6 @@
 	path = blinker
 	url = https://github.com/jek/blinker.git
 	ignore = dirty
+[submodule "gae_mini_profiler"]
+	path = gae_mini_profiler
+	url = https://github.com/kamens/gae_mini_profiler
