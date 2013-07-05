@@ -86,13 +86,13 @@ from flask import Flask, abort, g, request, url_for
 from flask.exceptions import HTTPException
 
 # Local modules
-from dpxdt import constants
 from . import app
 from . import db
-import auth
-import models
-import work_queue
-import utils
+from dpxdt import constants
+from dpxdt.server import auth
+from dpxdt.server import models
+from dpxdt.server import work_queue
+from dpxdt.server import utils
 
 
 @app.route('/api/create_release', methods=['POST'])

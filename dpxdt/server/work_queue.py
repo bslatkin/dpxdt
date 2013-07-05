@@ -28,9 +28,9 @@ from flask import Flask, redirect, render_template, request, url_for
 # Local modules
 from . import app
 from . import db
-import auth
-import forms
-import utils
+from dpxdt.server import auth
+from dpxdt.server import forms
+from dpxdt.server import utils
 
 
 class Error(Exception):

@@ -34,9 +34,9 @@ from . import app
 from . import db
 from . import login
 import config
-import forms
-import models
-import utils
+from dpxdt.server import forms
+from dpxdt.server import models
+from dpxdt.server import utils
 
 
 GOOGLE_OAUTH2_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth'

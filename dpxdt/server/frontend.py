@@ -30,9 +30,9 @@ import sqlalchemy
 from . import app
 from . import db
 from . import login
-import auth
-import forms
-import models
+from dpxdt.server import auth
+from dpxdt.server import forms
+from dpxdt.server import models
 
 
 def _render_template_with_defaults(template_path, **context):
