@@ -29,6 +29,9 @@ from dpxdt.server import app
 # import logging
 # logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
 
+# Don't log when appstats is active.
+appstats_DUMP_LEVEL = -1
+
 
 def gae_mini_profiler_should_profile_production():
     from google.appengine.api import users
