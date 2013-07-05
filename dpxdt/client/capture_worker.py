@@ -17,7 +17,6 @@
 
 import Queue
 import json
-import logging
 import os
 import shutil
 import subprocess

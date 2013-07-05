@@ -55,7 +55,7 @@ class ProcessWorkflow(workers.WorkflowItem):
         start_time = time.time()
         with open(log_path, 'w') as output_file:
             args = self.get_args()
-            logging.debug('item=%r Running subprocess: %r', self, args)
+            logging.info('item=%r Running subprocess: %r', self, args)
             try:
                 process = subprocess.Popen(
                     args,

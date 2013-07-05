@@ -108,9 +108,9 @@ class DoTaskWorkflow(workers.WorkflowItem):
     fire_and_forget = True
 
     def run(self, queue_url, local_queue_workflow, task):
-        logging.debug('Starting work item from queue_url=%r, '
-                      'task=%r, workflow=%r',
-                      queue_url, task, local_queue_workflow)
+        logging.info('Starting work item from queue_url=%r, '
+                     'task=%r, workflow=%r',
+                     queue_url, task, local_queue_workflow)
 
         # Define a heartbeat closure that will return a workflow for
         # reporting status. This will auto-increment the index on each
@@ -160,8 +160,8 @@ class DoTaskWorkflow(workers.WorkflowItem):
                               'queue_url=%r, task=%r. %s',
                               queue_url, finish_item.json['error'], task)
             else:
-                logging.debug('Finished work item with queue_url=%r, '
-                              'task_id=%r', queue_url, task_id)
+                logging.info('Finished work item with queue_url=%r, '
+                             'task_id=%r', queue_url, task_id)
 
 
 class RemoteQueueWorkflow(workers.WorkflowItem):
@@ -183,7 +183,7 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
             next_tasks = []
 
             if next_count > 0:
-                logging.debug(
+                logging.info(
                     'Fetching %d tasks from queue_url=%r for workflow=%r',
                     next_count, queue_url, local_queue_workflow)
                 try:

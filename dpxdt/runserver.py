@@ -55,6 +55,8 @@ def main(argv):
         format='%(levelname)s %(filename)s:%(lineno)s] %(message)s')
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
 
     if FLAGS.verbose_queries:
         logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
