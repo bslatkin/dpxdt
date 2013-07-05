@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ../../common.sh
+source common.sh
 
 ARCHIVE_NAME=dpxdt_deployment
 TEMP_DIR=/tmp/$ARCHIVE_NAME
@@ -8,7 +8,7 @@ OUTPUT_ARCHIVE=/tmp/$ARCHIVE_NAME.tar.gz
 INSTALL_PATH=/usr/local/share
 
 rm -Rf $TEMP_DIR
-cp -R -L . $TEMP_DIR
+cp -R -L deployment/worker $TEMP_DIR
 find $TEMP_DIR -name '*.pyc' -or -name '.*' | xargs rm
 cp $PHANTOMJS_DEPLOY_BINARY $TEMP_DIR
 tar zcf $OUTPUT_ARCHIVE -C /tmp $ARCHIVE_NAME
