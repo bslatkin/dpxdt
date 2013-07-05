@@ -1,34 +1,34 @@
-[submodule "flask"]
-	path = flask
+[submodule "dependencies/flask"]
+	path = dependencies/flask
 	url = https://github.com/mitsuhiko/flask
-[submodule "werkzeug"]
-	path = werkzeug
+[submodule "dependencies/werkzeug"]
+	path = dependencies/werkzeug
 	url = https://github.com/mitsuhiko/werkzeug.git
-[submodule "jinja2"]
-	path = jinja2
+[submodule "dependencies/jinja2"]
+	path = dependencies/jinja2
 	url = https://github.com/mitsuhiko/jinja2.git
-[submodule "itsdangerous"]
-	path = itsdangerous
+[submodule "dependencies/itsdangerous"]
+	path = dependencies/itsdangerous
 	url = https://github.com/mitsuhiko/itsdangerous
-[submodule "flask-wtf"]
-	path = flask-wtf
+[submodule "dependencies/flask-wtf"]
+	path = dependencies/flask-wtf
 	url = https://github.com/ajford/flask-wtf.git
-[submodule "flask-sqlalchemy"]
-	path = flask-sqlalchemy
+[submodule "dependencies/flask-sqlalchemy"]
+	path = dependencies/flask-sqlalchemy
 	url = https://github.com/mitsuhiko/flask-sqlalchemy
-[submodule "sqlalchemy"]
-	path = sqlalchemy
+[submodule "dependencies/sqlalchemy"]
+	path = dependencies/sqlalchemy
 	url = https://github.com/zzzeek/sqlalchemy
-[submodule "flask-login"]
-	path = flask-login
+[submodule "dependencies/flask-login"]
+	path = dependencies/flask-login
 	url = https://github.com/maxcountryman/flask-login
-[submodule "flask-cache"]
-	path = flask-cache
+[submodule "dependencies/flask-cache"]
+	path = dependencies/flask-cache
 	url = https://github.com/thadeusb/flask-cache.git
-[submodule "blinker"]
-	path = blinker
+[submodule "dependencies/blinker"]
+	path = dependencies/blinker
 	url = https://github.com/jek/blinker.git
 	ignore = dirty
-[submodule "gae_mini_profiler"]
-	path = gae_mini_profiler
+[submodule "dependencies/gae_mini_profiler"]
+	path = dependencies/gae_mini_profiler
 	url = https://github.com/kamens/gae_mini_profiler

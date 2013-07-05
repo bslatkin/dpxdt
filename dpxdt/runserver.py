@@ -64,20 +64,19 @@ def main(argv):
 
     if FLAGS.local_queue_workers:
         coordinator = runworker.run_workers()
+        # If the babysitter thread dies, the whole process goes down.
+        def worker_babysitter():
+            try:
+                coordinator.wait_one()
+            finally:
+                os._exit(1)
+
+        babysitter_thread = threading.Thread(target=worker_babysitter)
+        babysitter_thread.setDaemon(True)
+        babysitter_thread.start()
 
     if FLAGS.ignore_auth:
         server.app.config['IGNORE_AUTH'] = True
-
-    # If the babysitter thread dies, the whole process goes down.
-    def worker_babysitter():
-        try:
-            coordinator.wait_one()
-        finally:
-            os._exit(1)
-
-    babysitter_thread = threading.Thread(target=worker_babysitter)
-    babysitter_thread.setDaemon(True)
-    babysitter_thread.start()
 
     server.app.run(debug=FLAGS.reload_code, port=FLAGS.port)
 
