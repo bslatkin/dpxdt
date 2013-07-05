@@ -18,6 +18,8 @@ inbound_services:
 - warmup
 
 handlers:
+
+# Various admin handlers
 - url: /admin(/.*)?
   script: google.appengine.ext.admin.application
   login: admin
@@ -26,9 +28,18 @@ handlers:
   script: google.appengine.ext.appstats.ui.app
   login: admin
 
+- url: /gae_mini_profiler/static
+  static_dir: lib/gae_mini_profiler/static
+  login: admin
+
+- url: /gae_mini_profiler/.*
+  script: gae_mini_profiler.main.application
+  login: admin
+
+# General app handlers
 - url: /static
   static_dir: dpxdt/server/static
   expiration: 1h
 
 - url: .*
-  script: dpxdt.server.app
+  script: main.application

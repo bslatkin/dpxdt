@@ -13,13 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""App Engine configuration file.
+
+See:
+    https://developers.google.com/appengine/docs/python/tools/appengineconfig
+"""
+
+# Load up our app and all its dependencies. Make the environment sane.
 import sys
 sys.path.insert(0, './lib/')
-
-# Local modules
-from dpxdt.server import api
 from dpxdt.server import app
-import hooks
 
 
 # For debugging SQL queries.
@@ -34,11 +37,10 @@ import hooks
 #     return app
 
 
-@app.route('/_ah/warmup')
-def appengine_warmup():
-    return 'OK'
+def gae_mini_profiler_should_profile_production():
+    from google.appengine.api import users
+    return users.is_current_user_admin()
 
 
-# Install override hooks.
-api._artifact_created = hooks._artifact_created
-api._get_artifact_response = hooks._get_artifact_response
+def gae_mini_profiler_should_profile_development():
+    return True

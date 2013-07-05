@@ -122,5 +122,9 @@
 </div>
 {% endblock footer_container %}
 
+        {# gae mini profiler #}
+        {% if profiler_includes %}
+            {{ profiler_includes()|safe }}
+        {% endif %}
     </body>
 </html>
