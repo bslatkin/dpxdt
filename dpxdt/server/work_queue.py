@@ -143,6 +143,10 @@ def _datetime_to_epoch_seconds(dt):
 
 def _task_to_dict(task):
     """Converts a WorkQueue to a JSON-able dictionary."""
+    payload = task.payload
+    if payload and task.content_type == 'application/json':
+        payload = json.loads(payload)
+
     return dict(
         task_id=task.task_id,
         queue_name=task.queue_name,
@@ -151,7 +155,7 @@ def _task_to_dict(task):
         created=_datetime_to_epoch_seconds(task.created),
         lease_attempts=task.lease_attempts,
         last_lease=_datetime_to_epoch_seconds(task.last_lease),
-        payload=task.payload,
+        payload=payload,
         content_type=task.content_type)
 
 
@@ -159,18 +163,20 @@ def _task_to_dict(task):
 # would let users run their own workers for server-side capture queues.
 
 
-def lease(queue_name, owner, timeout):
+def lease(queue_name, owner, count=1, timeout_seconds=60):
     """Leases a work item from a queue, usually the oldest task available.
 
     Args:
         queue_name: Name of the queue to lease work from.
         owner: Who or what is leasing the task.
-        timeout: Number of seconds to lock the task for before allowing
-            another owner to lease it.
+        count: Lease up to this many tasks. Return value will never have more
+            than this many items present.
+        timeout_seconds: Number of seconds to lock the task for before
+            allowing another owner to lease it.
 
     Returns:
-        Dictionary representing the task that was leased, or None if no
-        task is available to be leased.
+        List of dictionaries representing the task that was leased, or
+        an empty list if no tasks are available to be leased.
     """
     now = datetime.datetime.utcnow()
     query = (
@@ -178,20 +184,25 @@ def lease(queue_name, owner, timeout):
         .filter_by(queue_name=queue_name, live=True)
         .filter(WorkQueue.eta <= now)
         .order_by(WorkQueue.eta)
-        .with_lockmode('update'))
-    task = query.first()
-    if not task:
+        .with_lockmode('update')
+        .limit(count))
+
+    task_list = query.all()
+    if not task_list:
         return None
 
-    task.eta = now + datetime.timedelta(seconds=timeout)
-    task.lease_attempts += 1
-    task.last_owner = owner
-    task.last_lease = now
-    task.heartbeat = None
-    task.heartbeat_number = 0
-    db.session.add(task)
+    next_eta = now + datetime.timedelta(seconds=timeout_seconds)
 
-    return _task_to_dict(task)
+    for task in task_list:
+        task.eta = next_eta
+        task.lease_attempts += 1
+        task.last_owner = owner
+        task.last_lease = now
+        task.heartbeat = None
+        task.heartbeat_number = 0
+        db.session.add(task)
+
+    return [_task_to_dict(task) for task in task_list]
 
 
 def _get_task_with_policy(queue_name, task_id, owner):
@@ -215,9 +226,11 @@ def _get_task_with_policy(queue_name, task_id, owner):
         NotOwnerError if the specified owner no longer owns the task.
     """
     now = datetime.datetime.utcnow()
-    task = WorkQueue.query.filter_by(
-        queue_name=queue_name,
-        task_id=task_id).first()
+    task = (
+        WorkQueue.query
+        .filter_by(queue_name=queue_name, task_id=task_id)
+        .with_lockmode('update')
+        .first())
     if not task:
         raise TaskDoesNotExistError('task_id=%r' % task_id)
 
@@ -324,23 +337,22 @@ def handle_lease(queue_name):
     """Leases a task from a queue."""
     owner = request.form.get('owner', request.remote_addr, type=str)
     try:
-        task = lease(
+        task_list = lease(
             queue_name,
             owner,
+            request.form.get('count', 1, type=int),
             request.form.get('timeout', 60, type=int))
     except Error, e:
         return utils.jsonify_error(e)
 
-    if not task:
+    if not task_list:
         return flask.jsonify(tasks=[])
 
-    if task['payload'] and task['content_type'] == 'application/json':
-        task['payload'] = json.loads(task['payload'])
-
     db.session.commit()
-    logging.debug('Task leased: queue=%r, task_id=%r, owner=%r',
-                  queue_name, task['task_id'], owner)
-    return flask.jsonify(tasks=[task])
+    task_ids = [t['task_id'] for t in task_list]
+    logging.debug('Task leased: queue=%r, task_ids=%r, owner=%r',
+                  queue_name, task_ids, owner)
+    return flask.jsonify(tasks=task_list)
 
 
 @app.route('/api/work_queue/<string:queue_name>/heartbeat', methods=['POST'])

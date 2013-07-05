@@ -205,6 +205,8 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
                         elif next_item.json['tasks']:
                             next_tasks = next_item.json['tasks']
 
+            # TODO: Add rate-limiting to local task starts, so we space out
+            # when we start subprocesses on the server.
             for task in next_tasks:
                 item = yield DoTaskWorkflow(
                     queue_url, local_queue_workflow, task)
