@@ -55,7 +55,7 @@ app.jinja_env.bytecode_cache = jinja2.MemcachedBytecodeCache(cache)
 
 
 # Modules with handlers to register with the app
-import api
-import auth
-import frontend
-import work_queue
+from dpxdt.server import api
+from dpxdt.server import auth
+from dpxdt.server import frontend
+from dpxdt.server import work_queue
