@@ -30,3 +30,5 @@ GOOGLE_CLOUD_STORAGE_BUCKET = 'fake-bucket-name-here/artifacts'
 
 CACHE_TYPE = 'memcached'
 CACHE_DEFAULT_TIMEOUT = 600
+
+REMEMBER_COOKIE_DOMAIN = None
