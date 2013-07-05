@@ -103,14 +103,19 @@ class DoTaskWorkflow(workers.WorkflowItem):
         local_queue_workflow: WorkflowItem sub-class to create using parameters
             from the remote work payload that will execute the task.
         task: JSON payload of the task.
+        wait_seconds: Wait this many seconds before starting work.
+            Defaults to zero.
     """
 
     fire_and_forget = True
 
-    def run(self, queue_url, local_queue_workflow, task):
+    def run(self, queue_url, local_queue_workflow, task, wait_seconds=0):
         logging.info('Starting work item from queue_url=%r, '
-                     'task=%r, workflow=%r',
-                     queue_url, task, local_queue_workflow)
+                     'task=%r, workflow=%r, wait_seconds=%r',
+                     queue_url, task, local_queue_workflow, wait_seconds)
+
+        if wait_seconds > 0:
+            yield timer_worker.TimerItem(wait_seconds)
 
         # Define a heartbeat closure that will return a workflow for
         # reporting status. This will auto-increment the index on each
@@ -172,9 +177,14 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
         local_queue_workflow: WorkflowItem sub-class to create using parameters
             from the remote work payload that will execute the task.
         max_tasks: Maximum number of tasks to have in flight at any time.
+            Defaults to 1.
+        wait_seconds: How many seconds should be between tasks starting to
+            process locally. Defaults to 0. Can be used to spread out
+            the load a new set of tasks has on the server.
     """
 
-    def run(self, queue_name, local_queue_workflow, max_tasks):
+    def run(self, queue_name, local_queue_workflow,
+            max_tasks=1, wait_seconds=0):
         queue_url = '%s/%s' % (FLAGS.queue_server_prefix, queue_name)
         outstanding = []
 
@@ -205,11 +215,10 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
                         elif next_item.json['tasks']:
                             next_tasks = next_item.json['tasks']
 
-            # TODO: Add rate-limiting to local task starts, so we space out
-            # when we start subprocesses on the server.
-            for task in next_tasks:
+            for index, task in enumerate(next_tasks):
                 item = yield DoTaskWorkflow(
-                    queue_url, local_queue_workflow, task)
+                    queue_url, local_queue_workflow, task,
+                    wait_seconds=index * wait_seconds)
                 outstanding.append(item)
 
             yield timer_worker.TimerItem(FLAGS.queue_poll_seconds)

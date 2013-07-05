@@ -45,6 +45,11 @@ gflags.DEFINE_integer(
     'capture_task_max_attempts', 3,
     'Maximum number of attempts for processing a capture task.')
 
+gflags.DEFINE_integer(
+    'capture_wait_seconds', 3,
+    'Wait this many seconds between repeated invocations of capture '
+    'subprocesses. Can be used to spread out load on the server.')
+
 gflags.DEFINE_string(
     'phantomjs_binary', None, 'Path to the phantomjs binary')
 
@@ -161,6 +166,7 @@ def register(coordinator):
     item = queue_worker.RemoteQueueWorkflow(
         constants.CAPTURE_QUEUE_NAME,
         DoCaptureQueueWorkflow,
-        max_tasks=FLAGS.capture_threads)
+        max_tasks=FLAGS.capture_threads,
+        wait_seconds=FLAGS.capture_wait_seconds)
     item.root = True
     coordinator.input_queue.put(item)

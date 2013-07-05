@@ -43,6 +43,11 @@ gflags.DEFINE_integer(
     'Maximum number of attempts for processing a pdiff task.')
 
 gflags.DEFINE_integer(
+    'pdiff_wait_seconds', 3,
+    'Wait this many seconds between repeated invocations of pdiff '
+    'subprocesses. Can be used to spread out load on the server.')
+
+gflags.DEFINE_integer(
     'pdiff_threads', 1, 'Number of perceptual diff threads to run')
 
 gflags.DEFINE_integer(
@@ -160,6 +165,7 @@ def register(coordinator):
     item = queue_worker.RemoteQueueWorkflow(
         constants.PDIFF_QUEUE_NAME,
         DoPdiffQueueWorkflow,
-        max_tasks=FLAGS.pdiff_threads)
+        max_tasks=FLAGS.pdiff_threads,
+        wait_seconds=FLAGS.pdiff_wait_seconds)
     item.root = True
     coordinator.input_queue.put(item)
