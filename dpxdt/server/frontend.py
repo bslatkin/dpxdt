@@ -44,11 +44,12 @@ def _render_template_with_defaults(template_path, **context):
 @app.route('/')
 def homepage():
     """Renders the homepage."""
-    build_list = list(
+    build_list = (
         models.Build.query
         .filter_by(public=True)
         .order_by(models.Build.created.desc())
-        .limit(1000))
+        .limit(1000)
+        .all())
 
     if current_user.is_authenticated():
         if not login_fresh():
@@ -60,10 +61,11 @@ def homepage():
         # List builds you own first, followed by public ones.
         # TODO: Cache this list
         db.session.add(current_user)
-        build_list = list(
+        build_list = (
             current_user.builds
             .order_by(models.Build.created.desc())
-            .limit(1000)) + build_list
+            .limit(1000)
+            .all()) + build_list
 
     return _render_template_with_defaults(
         'home.html',
@@ -98,12 +100,13 @@ def view_build():
     build = g.build
     page_size = 20
     offset = request.args.get('offset', 0, type=int)
-    candidate_list = list(
+    candidate_list = (
         models.Release.query
         .filter_by(build_id=build.id)
         .order_by(models.Release.created.desc())
         .offset(offset)
-        .limit(page_size + 1))
+        .limit(page_size + 1)
+        .all())
 
     has_next_page = len(candidate_list) > page_size
     if has_next_page:
@@ -138,14 +141,15 @@ def view_build():
     release_name_list = [key for _, key in release_age_list]
 
     # Extract run metadata about each release
-    stats_counts = list(
+    stats_counts = (
         db.session.query(
             models.Run.release_id,
             models.Run.status,
             sqlalchemy.func.count(models.Run.id))
         .join(models.Release)
         .filter(models.Release.id.in_(run_stats_dict.keys()))
-        .group_by(models.Run.status, models.Run.release_id))
+        .group_by(models.Run.status, models.Run.release_id)
+        .all())
 
     for candidate_id, status, count in stats_counts:
         stats_dict = run_stats_dict[candidate_id]

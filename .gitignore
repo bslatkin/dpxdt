@@ -1,13 +1,12 @@
+.hg
 .svn
 *.o*
 *.dylib
 *.dylib-*
 *.a
 *.a-*
-FreeImage/Dist/*
 CVS
 .DS_Store
 *.pyc
 secrets.py
-*/secrets.py
-pdiff/build
+templates_compiled.zip

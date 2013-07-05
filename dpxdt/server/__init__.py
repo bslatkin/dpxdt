@@ -16,6 +16,8 @@
 """Main module for the API server."""
 
 import datetime
+import logging
+import os
 
 # Local libraries
 from flask import Flask, url_for
@@ -49,9 +51,6 @@ login.refresh_view = 'login_view'
 
 cache = Cache()
 cache.init_app(app)
-
-
-app.jinja_env.bytecode_cache = jinja2.MemcachedBytecodeCache(cache)
 
 
 # Modules with handlers to register with the app

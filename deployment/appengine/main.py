@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Entrypoint for the App Engine environment."""
+"""Entry point for the App Engine environment."""
 
 # Local Libraries
 import gae_mini_profiler.profiler
@@ -21,13 +21,6 @@ import gae_mini_profiler.templatetags
 
 # Local modules
 from dpxdt.server import app
-from dpxdt.server import api
-import hooks
-
-
-# Install override hooks.
-api._artifact_created = hooks._artifact_created
-api._get_artifact_response = hooks._get_artifact_response
 
 
 @app.route('/_ah/warmup')

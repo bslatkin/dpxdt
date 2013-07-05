@@ -564,13 +564,12 @@ def _get_artifact_response(artifact):
 @app.route('/api/download')
 def download():
     """Downloads an artifact by it's content hash."""
-    # Allow access to a resource hash for API keys with access to the given
-    # build_id. Falls back to standard user login for the frontend (which
-    # may require redirecting the user to the login form).
+    # Allow users with access to the build to download the file. Falls back
+    # to API keys with access to the build. Prefer user first for speed.
     try:
-        _, build = auth.can_api_key_access_build('build_id')
-    except HTTPException:
         build = auth.can_user_access_build('build_id')
+    except HTTPException:
+        _, build = auth.can_api_key_access_build('build_id')
 
     sha1sum = request.args.get('sha1sum', type=str)
     artifact = models.Artifact.query.get(sha1sum)
