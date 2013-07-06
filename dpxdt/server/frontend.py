@@ -128,7 +128,8 @@ def view_build():
             runs_total=0,
             runs_complete=0,
             runs_successful=0,
-            runs_failed=0)
+            runs_failed=0,
+            runs_baseline=0)
 
     # Sort each release by candidate number descending
     for release_list in release_dict.itervalues():
@@ -153,14 +154,17 @@ def view_build():
 
     for candidate_id, status, count in stats_counts:
         stats_dict = run_stats_dict[candidate_id]
-        stats_dict['runs_total'] += count
 
         if status in (models.Run.DIFF_APPROVED, models.Run.DIFF_NOT_FOUND):
             stats_dict['runs_successful'] += count
             stats_dict['runs_complete'] += count
+            stats_dict['runs_total'] += count
         elif status == models.Run.DIFF_FOUND:
             stats_dict['runs_failed'] += count
             stats_dict['runs_complete'] += count
+            stats_dict['runs_total'] += count
+        elif status == models.Run.NO_DIFF_NEEDED:
+            stats_dict['runs_baseline'] += count
 
     return _render_template_with_defaults(
         'view_build.html',
@@ -176,7 +180,7 @@ def view_build():
 
 def classify_runs(run_list):
     """Returns (total, complete, succesful, failed) for the given Runs."""
-    total, successful, failed = 0, 0, 0
+    total, successful, failed, baseline = 0, 0, 0, 0
     for run in run_list:
         if run.status in (models.Run.DIFF_APPROVED, models.Run.DIFF_NOT_FOUND):
             successful += 1
@@ -186,9 +190,11 @@ def classify_runs(run_list):
             total += 1
         elif run.status in (models.Run.NEEDS_DIFF, models.Run.DATA_PENDING):
             total += 1
+        elif run.status == models.Run.NO_DIFF_NEEDED:
+            baseline += 1
 
     complete = successful + failed
-    return total, complete, successful, failed
+    return total, complete, successful, failed, baseline
 
 
 @app.route('/release', methods=['GET', 'POST'])
@@ -255,7 +261,7 @@ def view_release():
 
     run_list.sort(key=sort)
 
-    total, complete, successful, failed = classify_runs(run_list)
+    total, complete, successful, failed, baseline = classify_runs(run_list)
 
     newest_run_time = None
     if run_list:
@@ -275,6 +281,7 @@ def view_release():
         runs_complete=complete,
         runs_successful=successful,
         runs_failed=failed,
+        runs_baseline=baseline,
         newest_run_time=newest_run_time,
         release_form=form)
 
