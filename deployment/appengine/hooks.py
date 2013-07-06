@@ -62,7 +62,7 @@ def _get_artifact_response(artifact):
         #     headers={blobstore.BLOB_KEY_HEADER: str(blob_key)},
         #     mimetype=artifact.content_type)
         blob_key = blobstore.create_gs_key(artifact.alternate)
-        fast_url = images.get_serving_url(blob_key, secure_url=True)
+        fast_url = images.get_serving_url(blob_key, size=1600, secure_url=True)
         return redirect(fast_url)
     else:
         response = flask.Response(
