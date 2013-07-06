@@ -17,9 +17,9 @@
                 {# Do not show a config link for diffs #}
             {% else %}
                 {% if file_type == type %}
-                    <span class="artifact-type-selected">{{ type|title }}</span>
+                    <span class="flip-link flip-link-selected" class="artifact-type-selected">{{ type|title }}</span>
                 {% else %}
-                    <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=run.name, type=type) }}">{{ type|title }}</a>
+                    <a class="flip-link" href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=run.name, type=type) }}">{{ type|title }}</a>
                 {% endif %}
                 {% if not loop.last %}
                     &ndash;

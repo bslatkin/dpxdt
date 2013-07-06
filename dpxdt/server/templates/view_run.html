@@ -9,6 +9,12 @@ Test run '{{ run.name }}'
 {%- endblock description %}
 
 
+{% block head_extra %}
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/run_page.js') }}"></script>
+{% endblock head_extra %}
+
+
 {% block body %}
 
 <div class="row">
@@ -47,7 +53,7 @@ Test run '{{ run.name }}'
                         {{ run_form.test }}
                         {{ run_form.approve }}
                         <p>
-                            <button type="submit" class="btn btn-primary">Approve difference</button>
+                            <button type="submit" class="btn btn-primary" id="approve_button">Approve difference</button>
                         </p>
                     </form>
                 {% elif run.status == 'diff_approved' %}
@@ -60,7 +66,7 @@ Test run '{{ run.name }}'
                         {{ run_form.test }}
                         {{ run_form.disapprove }}
                         <p>
-                            <button type="submit" class="btn btn-danger">Reject difference</button>
+                            <button type="submit" class="btn btn-danger" id="reject_button">Reject difference</button>
                         </p>
                     </form>
                 {% endif %}
@@ -68,10 +74,10 @@ Test run '{{ run.name }}'
             <div class="span5 text-right">
                 <p>
                 {% if previous_run %}
-                    <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=previous_run.name, type=file_type) }}" class="btn">&larr; Prev test</a>
+                    <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=previous_run.name, type=file_type) }}" class="btn"  id="previous_button">&larr; Prev test</a>
                 {% endif %}
                 {% if next_run %}
-                    <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=next_run.name, type=file_type) }}" class="btn">&thinsp;Next test &rarr;</a>
+                    <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=next_run.name, type=file_type) }}" class="btn" id="next_button">&thinsp;Next test &rarr;</a>
                 {% endif %}
                 </p>
             </div>
@@ -185,4 +191,7 @@ Test run '{{ run.name }}'
     </div>
 
 </div>
+
+{% include 'keyboard_shortcuts_dialog.html' %}
+
 {% endblock belowbody%}

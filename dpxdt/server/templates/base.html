@@ -11,7 +11,6 @@
         <link rel="icon shortcut" href="{{ url_for('static', filename='img/favicon.ico') }}">
         <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo_big.png') }}">
         <meta property="og:image" content="{{ url_for('static', filename='img/logo_big.png', _external=True) }}">
-        <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
         {% block head_extra %}{% endblock head_extra %}
     </head>
     <body class="endpoint-{{ request.endpoint }}">
@@ -54,7 +53,7 @@
     <div class="row">
         <div class="span7">
             {% if run %}
-                <h4 class="ellipsis-overflow"><a href="{{ url_for('view_release', id=build.id, name=release.name, number=release.number) }}">Release: {{ release.name }} #{{ release.number }}</a></h4>
+                <h4 class="ellipsis-overflow"><a id="release_link" href="{{ url_for('view_release', id=build.id, name=release.name, number=release.number) }}">Release: {{ release.name }} #{{ release.number }}</a></h4>
             {% else %}
                 <h4>Release: {{ release.name }} #{{ release.number }}</h4>
             {% endif %}
@@ -76,7 +75,7 @@
     <div class="row">
         <div class="span7">
             {% if sha1sum %}
-                <h4 class="ellipsis-overflow"><a href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=run.name) }}">Test: {{ run.name }}</a></h4>
+                <h4 class="ellipsis-overflow"><a id="test_link" href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=run.name) }}">Test: {{ run.name }}</a></h4>
             {% else %}
                 <h4 class="ellipsis-overflow">Test: {{ run.name }}</h4>
             {% endif %}
