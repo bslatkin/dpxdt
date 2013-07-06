@@ -165,6 +165,8 @@ def view_build():
             stats_dict['runs_total'] += count
         elif status == models.Run.NO_DIFF_NEEDED:
             stats_dict['runs_baseline'] += count
+        elif status == models.Run.NEEDS_DIFF:
+            stats_dict['runs_total'] += count
 
     return _render_template_with_defaults(
         'view_build.html',
