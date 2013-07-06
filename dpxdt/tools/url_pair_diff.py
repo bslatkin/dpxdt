@@ -86,7 +86,7 @@ class UrlPairDiff(workers.WorkflowItem):
                 upload_build_id,
                 upload_release_name,
                 release_number,
-                url_parts.path,
+                url_parts.path or '/',
                 new_url,
                 config_data,
                 ref_url=baseline_url,
