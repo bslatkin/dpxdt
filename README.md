@@ -47,6 +47,86 @@ Final release states:
 - Bad: The build admin has marked the release and all its test runs as bad. It will never be used as a baseline.
 - Good: The build admin has marked the release and all of its test runs as passing. The next release created for this build will use this just-approved release as the new baseline.
 
+## Getting started
+
+Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it easy to run in your environment. It works with SQLite out of the box. The API server runs on App Engine. The workers run [ImageMagick](http://www.imagemagick.org/Usage/compare/) and [PhantomJS](http://phantomjs.org/) as subprocesses. I like to run the worker on a cloud VM, but you could run it on your laptop behind a firewall if that's important to you. See [deployment](#deployment) below for details.
+
+### Running the server locally
+
+1. Have a version of [Python 2.7](http://www.python.org/download/releases/2.7/) installed.
+1. Download [PhantomJS](http://phantomjs.org/) for your machine.
+1. Download [ImageMagick](http://www.imagemagick.org/script/binary-releases.php) for your machine.
+1. Clone this git repo in your terminal:
+
+        git clone https://github.com/bslatkin/dpxdt.git
+
+1. ```cd``` to the repo directory
+1. Update all git submodules in the repo:
+
+        git submodule update --init --recursive
+
+1. Modify ```common.sh``` to match your enviornment:
+        
+        # Edit variables such as ...
+        export PHANTOMJS_BINARY=/Users/yourname/Downloads/phantomjs-1.9.0-macosx/bin/phantomjs
+
+1. Write a ```secrets.py``` file to the root directory:
+
+        SECRET_KEY = 'insert random string of characters here'
+
+1. Execute ```./run_shell.sh``` and run these commands to initialize your DB:
+
+        server.db.drop_all()
+        server.db.create_all()
+
+1. Run the combined server/worker with ```./run_combined.sh```.
+1. Navigate to [http://localhost:5000](http://localhost:5000).
+1. Login and create a new build.
+1. Execute the ```./run_url_pair_diff.sh``` tool to verify everything is working:
+
+        ./run_url_pair_diff.sh \
+            --upload_build_id=1 \
+            http://www.google.com \
+            http://www.yahoo.com
+
+1. Follow the URL the tool writes to the terminal and verify screenshots are present. Any errors will be printed to the log in the terminal where you are running the server process.
+
+
+### Other scripts
+
+To run the "site diff" script, use:
+
+```
+./run_site_diff.sh \
+    --upload_build_id=1 \
+    --crawl_depth=1 \
+    http://www.example.com
+```
+
+To run the tests to make sure you haven't broken the world:
+
+```
+./run_tests.sh
+```
+
+To run the API server locally, without any worker threads:
+
+```
+./run_server.sh
+```
+
+To run the background workers independently against the local API server:
+
+```
+./run_worker.sh
+```
+
+To run in the App Engine development environment (you will need to setup the ```deployment/appengine/secrets.py``` file first):
+
+```
+./appengine_run.sh
+```
+
 ## API
 
 You can try out the API on the test instance of Depicted located at https://dpxdt-test.appspot.com. This instance's database will be dropped from time to time, so please don't rely on it.
@@ -283,71 +363,25 @@ Marks a release candidate as having all runs reported.
     <dd>URL where a release candidates run status can be viewed in a web browser by a build admin.</dd>
 </dl>
 
-## Development
-
-Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it easy to run in your environment. It works with SQLite out of the box. The API server runs on App Engine. The workers run [ImageMagick](http://www.imagemagick.org/Usage/compare/) and [PhantomJS](http://phantomjs.org/) as subprocesses. I like to run the worker on a cloud VM, but you could run it on your laptop behind a firewall if that's important to you.
-
-Update the common.sh file to match your environment.
-
-To use the server locally for the first time, or when the schema changes during development:
-
-```
-# git submodule update --init --recursive
-# ./run_shell.sh
->>> from dpxdt.server import db
->>> db.drop_all()
->>> db.create_all()
-```
-
-Create a secrets.py file in the root of the project with these keys:
-
-```
-# Please generate a reasonable key. Used by Flask for CSRF, Login cookie, etc.
-SECRET_KEY = 'my-key-here'
-```
-
-To run the API server locally, without any worker threads:
-
-```
-./run_server.sh
-```
-
-To run the background workers independently against the local API server:
-
-```
-./run_worker.sh
-```
-
-To run the API server locally with all background workers:
-
-```
-./run_combined.sh
-```
-
-To run in the App Engine development environment:
-
-```
-./run_appengine.sh
-```
-
 ## Deployment
 
 This is rough. Primarily explains how to deploy to App Engine / CloudSQL / Google Compute Engine.
 
 Provision a CloudSQL DB for your project and initialize it:
+
 ```
 ./google_sql.sh dpxdt-cloud:test
 sql> create database test;
 ```
 
-Go to the Google API console and provision a new project and "API Access". This will give you the OAuth client ID and secret you need to make auth work properly. Update config.py with your values.
+Go to the Google API console and provision a new project and "API Access". This will give you the OAuth client ID and secret you need to make auth work properly. Update ```config.py``` with your values.
 
-Go to the deployment/test-appengine directory. Update app.yaml with your parameters. Create the secrets.py file as explained for development.
+Go to the ```deployment/appengine``` directory. Update ```app.yaml``` with your parameters. Create the ```secrets.py``` file as explained for development.
 
 Deploy the app:
 
 ```
-./deploy.sh
+./appengine_deploy.sh
 ```
 
 Navigate to /admin on your app and run in the interactive console:
@@ -369,11 +403,7 @@ update api_key set superuser = 1 where id = 'foo';
 Now create the background workers package to deploy from the deployment/test-worker directory:
 
 ```
-./package.sh
+./worker_deploy.sh
 ```
 
 Follow the commands it prints out to deploy the worker to a VM.
-
-## FAQ
-
-Nothing yet!
