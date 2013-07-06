@@ -53,17 +53,23 @@
         </div>
     </div>
 {% elif log_file or config_file %}
-    <div id="artifact-iframe-container" class="body-section">
+    <div id="artifact-iframe-container">
         <iframe src="{{ url_for('download', sha1sum=sha1sum, build_id=build.id) }}" class="artifact-iframe"></iframe>
     </div>
     <script>
-        var body = $('#body-container');
-        var bodyOffset = body.offset();
-        var iframe = $('#artifact-iframe-container');
-        iframe.css('top', bodyOffset.top + body.outerHeight(true));
+        function handleResize() {
+            var body = $('#body-container');
+            var bodyOffset = body.offset();
+            var iframe = $('#artifact-iframe-container');
+            iframe.css('top', bodyOffset.top + body.outerHeight(true));
+        }
+        $(window).resize(handleResize);
+        $(document).ready(handleResize);
     </script>
 {% endif %}
 
 {% endblock belowbody %}
 
 
+{# Don't show the footer for artifacts; they take up the whole screen. #}
+{% block footer_container %}{% endblock footer_container %}
