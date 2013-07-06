@@ -561,22 +561,6 @@ def _get_artifact_response(artifact):
     return response
 
 
-def _get_artifact_thumbnail_url(sha1sum, build_id):
-    """Gets the thumbnail URL for the given artifact.
-
-    This method may be overridden in environments that have a different way of
-    storing artifact files, such as on-disk or S3.
-    """
-    return url_for('download', sha1sum=sha1sum, build_id=build_id)
-
-
-@app.context_processor
-def api_template_context():
-    """Context processor puts keys in the default template dictionary."""
-    return dict(get_artifact_thumbnail_url=_get_artifact_thumbnail_url)
-
-
-
 @app.route('/api/download')
 def download():
     """Downloads an artifact by it's content hash."""

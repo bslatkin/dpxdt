@@ -24,7 +24,7 @@ from google.appengine.ext import blobstore
 
 # Local libraries
 import flask
-from flask import url_for
+from flask import redirect
 
 # Local modules
 from dpxdt.server import app
@@ -57,9 +57,13 @@ def _get_artifact_response(artifact):
     if artifact.alternate:
         blob_key = blobstore.create_gs_key(artifact.alternate)
         logging.debug('Serving file=%r, key=%r', artifact.alternate, blob_key)
-        response = flask.Response(
-            headers={blobstore.BLOB_KEY_HEADER: str(blob_key)},
-            mimetype=artifact.content_type)
+        # Alternative way without the thumbnailer:
+        # response = flask.Response(
+        #     headers={blobstore.BLOB_KEY_HEADER: str(blob_key)},
+        #     mimetype=artifact.content_type)
+        blob_key = blobstore.create_gs_key(artifact.alternate)
+        fast_url = images.get_serving_url(blob_key, size=0, secure_url=True)
+        return redirect(fast_url)
     else:
         response = flask.Response(
             artifact.data,
@@ -69,16 +73,3 @@ def _get_artifact_response(artifact):
     response.cache_control.max_age = 8640000
     response.set_etag(artifact.id)
     return response
-
-
-def _get_artifact_thumbnail_url(sha1sum, build_id):
-    """Override for serving an artifact's thumbnail via the images API."""
-    artifact = models.Artifact.query.get(sha1sum)
-    if not artifact:
-        return None
-
-    if not artifact.alternate:
-        return url_for('download', sha1sum=sha1sum, build_id=build_id)
-
-    blob_key = blobstore.create_gs_key(artifact.alternate)
-    return images.get_serving_url(blob_key, size=0, secure_url=True)
