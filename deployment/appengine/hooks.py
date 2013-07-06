@@ -58,7 +58,6 @@ def _get_artifact_response(artifact):
         response = flask.Response(
             headers={blobstore.BLOB_KEY_HEADER: str(blob_key)},
             mimetype=artifact.content_type)
-        return response
     else:
         response = flask.Response(
             artifact.data,
