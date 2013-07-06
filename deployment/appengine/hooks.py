@@ -19,7 +19,6 @@ import datetime
 import logging
 
 from google.appengine.api import files
-from google.appengine.api import images
 from google.appengine.ext import blobstore
 
 # Local libraries
@@ -57,12 +56,9 @@ def _get_artifact_response(artifact):
     if artifact.alternate:
         blob_key = blobstore.create_gs_key(artifact.alternate)
         logging.debug('Serving file=%r, key=%r', artifact.alternate, blob_key)
-        # Alternative way without the thumbnailer:
-        # response = flask.Response(
-        #     headers={blobstore.BLOB_KEY_HEADER: str(blob_key)},
-        #     mimetype=artifact.content_type)
-        blob_key = blobstore.create_gs_key(artifact.alternate)
-        fast_url = images.get_serving_url(blob_key, size=1600, secure_url=True)
+        response = flask.Response(
+            headers={blobstore.BLOB_KEY_HEADER: str(blob_key)},
+            mimetype=artifact.content_type)
         return redirect(fast_url)
     else:
         response = flask.Response(
