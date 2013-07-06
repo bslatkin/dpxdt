@@ -595,6 +595,10 @@ def download():
         if 'Set-Cookie' in response.headers:
             del response.headers['Set-Cookie']
 
+    if not utils.is_production():
+        # Insert a sleep to emulate how the page loading looks in production.
+        time.sleep(1.5)
+
     if request.if_none_match and request.if_none_match.contains(sha1sum):
         response = flask.Response(status=304)
         return response

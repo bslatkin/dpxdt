@@ -117,6 +117,10 @@ a.big-link {
 .run-status-section {
     margin-left: 30px;
 }
+.run-image-link {
+    min-height: 200px;
+    display: block;
+}
 .run-image {
     border: 1px solid #ccc;
 }

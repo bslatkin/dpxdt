@@ -19,6 +19,7 @@ import base64
 import datetime
 import hashlib
 import logging
+import os
 import traceback
 import uuid
 
@@ -108,6 +109,13 @@ def password_uuid():
     """Returns a good UUID for using as a password."""
     return base64.b64encode(
         hashlib.sha1(uuid.uuid4().bytes).digest()).strip('=')
+
+
+def is_production():
+    """Returns True if this is the production environment."""
+    # TODO: Support other deployment situations.
+    return (
+        os.environ.get('SERVER_SOFTWARE', '').startswith('Google App Engine'))
 
 
 # From http://flask.pocoo.org/snippets/53/

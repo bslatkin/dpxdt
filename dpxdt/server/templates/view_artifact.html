@@ -46,7 +46,9 @@
     <div class="container-fluid">
         <div class="row-fluid">
             <div class="span12 text-center">
-                <img src="{{ url_for('download', sha1sum=sha1sum, build_id=build.id) }}" class="run-image">
+                <div class="run-image-link">
+                    <img src="{{ url_for('download', sha1sum=sha1sum, build_id=build.id) }}" class="run-image">
+                </div>
             </div>
         </div>
     </div>
@@ -65,4 +67,3 @@
 {% endblock belowbody %}
 
 
-{% block footer_container %}{% endblock footer_container %}
