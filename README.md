@@ -121,7 +121,7 @@ To run the background workers independently against the local API server:
 ./run_worker.sh
 ```
 
-To run in the App Engine development environment (you will need to setup the ```deployment/appengine/secrets.py``` file first):
+To run in the App Engine development environment (see the [section on deployment](#deployment) for config details):
 
 ```
 ./appengine_run.sh
@@ -380,45 +380,34 @@ Marks a release candidate as having all runs reported.
 
 ## Deployment
 
-This is rough. Primarily explains how to deploy to App Engine / CloudSQL / Google Compute Engine.
+This is still kinda rough. It primarily explains how to deploy to App Engine / CloudSQL / Google Compute Engine.
 
-Provision a CloudSQL DB for your project and initialize it:
+1. Provision a CloudSQL DB for your project and initialize it:
 
-```
-./google_sql.sh dpxdt-cloud:test
-sql> create database test;
-```
+        ./google_sql.sh dpxdt-cloud:test
+        sql> create database test;
 
-Go to the Google API console and provision a new project and "API Access". This will give you the OAuth client ID and secret you need to make auth work properly. Update ```config.py``` with your values.
+1. Go to the [Google API console](https://code.google.com/apis/console/) and provision a new project and "API Access". This will give you the OAuth client ID and secret you need to make auth work properly. Update ```config.py``` with your values.
+1. Go to the [Google Cloud Console](cloud.google.com/console) and find the Google Cloud Storage bucket you've created for your deployment. In the App Engine admin console, go to "Application Settings" and find your "Service Account Name". Copy that name and in the Cloud Console add it as a team member (this gives your app access to the bucket). Update ```config.py``` with your bucket.
+1. Go to the ```deployment/appengine``` directory. Update ```app.yaml``` with your parameters. Create the ```secrets.py``` file as explained for development.
+1. Deploy the app:
 
-Go to the ```deployment/appengine``` directory. Update ```app.yaml``` with your parameters. Create the ```secrets.py``` file as explained for development.
+        ./appengine_deploy.sh
 
-Deploy the app:
+1. Navigate to ```/admin``` on your app and run in the interactive console:
 
-```
-./appengine_deploy.sh
-```
+        from dpxdt import server
+        server.db.create_all()
 
-Navigate to /admin on your app and run in the interactive console:
+1. Navigate to ```/``` on your app and see the homepage. Create a new build. Provision an API key. Then set your user and API key as superusers using the SQL tool:
 
-```
-from dpxdt import server
-server.db.create_all()
-```
+        select * from user;
+        update user set superuser = 1 where user.id = 'foo';
+        select * from api_key;
+        update api_key set superuser = 1 where id = 'foo';
 
-Navigate to / on your app and see the homepage. Create a new build. Provision an API key. Then set your user and API key as superusers using the SQL tool:
+1. Now create the background workers package to deploy:
 
-```
-select * from user;
-update user set superuser = 1 where user.id = 'foo';
-select * from api_key;
-update api_key set superuser = 1 where id = 'foo';
-```
+        ./worker_deploy.sh
 
-Now create the background workers package to deploy from the deployment/test-worker directory:
-
-```
-./worker_deploy.sh
-```
-
-Follow the commands it prints out to deploy the worker to a VM.
+1. Follow the commands it prints out to deploy the worker to a VM.
