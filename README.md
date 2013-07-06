@@ -60,7 +60,7 @@ Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it 
 
         git clone https://github.com/bslatkin/dpxdt.git
 
-1. ```cd``` to the repo directory
+1. ```cd``` to the repo directory:
 1. Update all git submodules in the repo:
 
         git submodule update --init --recursive
