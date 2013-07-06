@@ -129,11 +129,11 @@ To run in the App Engine development environment (you will need to setup the ```
 
 ## API
 
-You can try out the API on the test instance of Depicted located at https://dpxdt-test.appspot.com. This instance's database will be dropped from time to time, so please don't rely on it.
+You can try out the API on the test instance of Depicted located at [https://dpxdt-test.appspot.com](https://dpxdt-test.appspot.com). This instance's database will be dropped from time to time, so please don't rely on it.
 
-The API is really simple. All requests are POSTs with parameters that are URL encoded. All responses are JSON. All requests should be over HTTPS. The API server uses HTTP Basic Authentication to verify your client has access to your builds. You can provision API keys for a build on its homepage.
+The API is really simple. All requests are POSTs with parameters that are URL encoded. All responses are JSON. All requests should be over HTTPS. The API server uses HTTP Basic Authentication to verify your client has access to your builds. You can provision API keys for a build on its homepage (at the bottom).
 
-Here's an example request to the API server using curl. Pretty simple.
+Here's an example request to the API server using curl. Pretty easy.
 
 ```
 curl -v \
@@ -146,19 +146,34 @@ curl -v \
     'http://localhost:5000/api/report_run'
 ```
 
-### Example tool that uses the API
+### Example tools that use the API
 
-An example client tool that exercises the whole workflow is [available in the client repository here](./dpxdt/client/site_diff.py). It's called "Site Diff". It will crawl a webpage, follow all links with the same prefix path, then create a new release that screenshots all the URLs. Running the tool multiple times lets you diff your entire site with little effort. Site Diff is very helpful, for example, when you have a blog with a lot of content and want to make a change to your base template and be sure you haven't broken any pages.
+An example client tool that exercises the whole workflow is [available in the repo](./dpxdt/tools/site_diff.py). It's called "Site Diff". It will crawl a webpage, follow all links with the same prefix path, then create a new release that screenshots all the URLs. Running the tool multiple times lets you diff your entire site with little effort. Site Diff is very helpful, for example, when you have a blog with a lot of content and want to make a change to your base template and be sure you haven't broken any pages.
 
-Here's an example invocation of site_diff:
+Here's an example invocation of Site Diff:
 
 ```
-./site_diff.py \
-    --phantomjs_binary=path/to/phantomjs-1.8.1-macosx/bin/phantomjs \
-    --phantomjs_script=path/to/client/capture.js \
+./dpxdt/tools/site_diff.py \
     --upload_build_id=1234 \
     --release_server_prefix=https://my-dpxdt-apiserver.example.com/api \
+    --release_client_id=<your api key> \
+    --release_client_secret=<your api secret> \
+    --crawl_depth=1 \
     http://www.example.com/my/website/here
+```
+
+Another example tool is [available in the repo](./dpxdt/tools/url_pair_diff.py) called Pair Diff. Unlike Site Diff, which establishes a baseline on each subsequent run, Pair Diff takes two live URLs and compares them. This is useful when you have a live version and staging version of your site both available at the same time and can do screenshots of both independently.
+
+Here's an example run of Pair Diff:
+
+```
+./dpxdt/tools/url_pair_diff.py \
+    --upload_build_id=1234 \
+    --release_server_prefix=https://my-dpxdt-apiserver.example.com/api \
+    --release_client_id=<your api key> \
+    --release_client_secret=<your api secret> \
+    http://www.example.com/my/before/page \
+    http://www.example.com/my/after/page
 ```
 
 ### API Reference
