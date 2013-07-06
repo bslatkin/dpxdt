@@ -20,7 +20,7 @@
         1 failure
     {%- elif runs_failed > 0 -%}
         {{ runs_failed }} failures
-    {%- elif runs_successful == runs_total -%}
+    {%- elif runs_total > 0 and runs_successful == runs_total -%}
         All passing
     {%- elif runs_total > 0 -%}
         Pending
