@@ -4,8 +4,6 @@
     {%- else -%}
         {{ runs_complete }} / {{ runs_total }} tested
     {%- endif -%}
-{%- elif not runs_baseline -%}
-    No tests run
 {%- endif -%}
 {%- if runs_total and runs_baseline -%}
     ,

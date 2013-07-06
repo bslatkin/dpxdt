@@ -49,6 +49,7 @@ import hooks
 
 api._artifact_created = hooks._artifact_created
 api._get_artifact_response = hooks._get_artifact_response
+api._get_artifact_thumbnail_url = hooks._get_artifact_thumbnail_url
 
 
 # Don't log when appstats is active.

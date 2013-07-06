@@ -1,6 +1,6 @@
 {% if runs_failed %}
     {% set run_status='error' %}
-{% elif runs_successful == runs_total %}
+{% elif runs_total > 0 and runs_successful == runs_total %}
     {% set run_status='info' %}
 {% elif runs_total %}
     {% set run_status='warning' %}
@@ -24,6 +24,8 @@
         All passing
     {% elif runs_total > 0 %}
         Pending
+    {% else %}
+        Nothing to test
     {% endif %}
 
     {% if alert_wrapper %}

@@ -33,18 +33,10 @@ Release '{{ release.name }}' attempt #{{ release.number }}
     TODO: Build URL associated with the release
  #}
 <div class="row body-section">
-    {% if run_list %}
-        <div class="span12">
-            {% set alert_wrapper=True %}
-            {% include 'fragment_runs_failed.html' with context %}
-        </div>
-    {% else %}
-        <div class="span12">
-            <div class="alert alert-info">
-                There are no tests for this release candidate.
-            </div>
-        </div>
-    {% endif %}
+    <div class="span12">
+        {% set alert_wrapper=True %}
+        {% include 'fragment_runs_failed.html' with context %}
+    </div>
 </div>
 
 <div class="row">

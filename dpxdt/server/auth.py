@@ -49,7 +49,7 @@ FETCH_TIMEOUT_SECONDS = 60
 @login.user_loader
 def load_user(user_id):
     user = models.User.query.get(user_id)
-    if user.is_authenticated():
+    if user and user.is_authenticated():
         logging.debug('Authenticated as user=%r', user.get_id())
     return user
 

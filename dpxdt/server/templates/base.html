@@ -95,7 +95,30 @@
 {% endblock belowbody%}
 
 {% block footer_container %}
-{% include 'footer.html' with context %}
+<div class="container">
+    <div class="row">
+        <div class="span12">
+            <div class="footer-section">
+                <div class="row">
+                    <div class="span6">
+                        {% block footer_left %}{% endblock footer_left %}
+                    </div>
+                    <div class="span6 text-right">
+                        {% block footer_right %}
+                            {% if current_user.is_authenticated() %}
+                                {{ current_user.email_address }}
+                                &ndash;
+                                <a href="{{ url_for('logout') }}">Sign out</a>
+                            {% else %}
+                                <a href="{{ url_for('login_view', next=url_for('homepage')) }}">Sign in</a>
+                            {% endif %}
+                        {% endblock footer_right %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock footer_container %}
 
 {# gae mini profiler #}

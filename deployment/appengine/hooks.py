@@ -19,13 +19,16 @@ import datetime
 import logging
 
 from google.appengine.api import files
+from google.appengine.api import images
 from google.appengine.ext import blobstore
 
 # Local libraries
 import flask
+from flask import url_for
 
 # Local modules
 from dpxdt.server import app
+from dpxdt.server import models
 import config
 
 
@@ -66,3 +69,16 @@ def _get_artifact_response(artifact):
     response.cache_control.max_age = 8640000
     response.set_etag(artifact.id)
     return response
+
+
+def _get_artifact_thumbnail_url(sha1sum, build_id):
+    """Override for serving an artifact's thumbnail via the images API."""
+    artifact = models.Artifact.query.get(sha1sum)
+    if not artifact:
+        return None
+
+    if not artifact.alternate:
+        return url_for('download', sha1sum=sha1sum, build_id=build_id)
+
+    blob_key = blobstore.create_gs_key(artifact.alternate)
+    return images.get_serving_url(blob_key, size=0, secure_url=True)

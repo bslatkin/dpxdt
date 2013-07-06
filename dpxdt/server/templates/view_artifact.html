@@ -47,7 +47,7 @@
         <div class="row-fluid">
             <div class="span12 text-center">
                 <div class="run-image-link">
-                    <img src="{{ url_for('download', sha1sum=sha1sum, build_id=build.id) }}" class="run-image">
+                    <img src="{{ get_artifact_thumbnail_url(sha1sum=sha1sum, build_id=build.id) }}" class="run-image">
                 </div>
             </div>
         </div>
