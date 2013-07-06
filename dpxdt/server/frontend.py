@@ -142,15 +142,18 @@ def view_build():
     release_name_list = [key for _, key in release_age_list]
 
     # Extract run metadata about each release
-    stats_counts = (
-        db.session.query(
-            models.Run.release_id,
-            models.Run.status,
-            sqlalchemy.func.count(models.Run.id))
-        .join(models.Release)
-        .filter(models.Release.id.in_(run_stats_dict.keys()))
-        .group_by(models.Run.status, models.Run.release_id)
-        .all())
+    if run_stats_dict:
+        stats_counts = (
+            db.session.query(
+                models.Run.release_id,
+                models.Run.status,
+                sqlalchemy.func.count(models.Run.id))
+            .join(models.Release)
+            .filter(models.Release.id.in_(run_stats_dict.keys()))
+            .group_by(models.Run.status, models.Run.release_id)
+            .all())
+    else:
+        stats_counts = []
 
     for candidate_id, status, count in stats_counts:
         stats_dict = run_stats_dict[candidate_id]

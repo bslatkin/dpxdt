@@ -32,15 +32,11 @@ from dpxdt.server import app
 # logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
 
 
-# When in production, templates are immutable. Try to use precompiled
-# templates if present.
+# When in production use precompiled templates.
 if os.environ.get('SERVER_SOFTWARE', '').startswith('Google App Engine'):
     import jinja2
     app.jinja_env.auto_reload = False
-    app.jinja_env.loader = jinja2.ChoiceLoader([
-        jinja2.ModuleLoader('templates_compiled.zip'),
-        jinja2.FileSystemLoader('dpxdt/server/templates'),
-    ])
+    app.jinja_env.loader = jinja2.ModuleLoader('templates_compiled.zip')
 
 
 # Install dpxdt.server override hooks.
