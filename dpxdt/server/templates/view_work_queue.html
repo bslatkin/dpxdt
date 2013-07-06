@@ -48,7 +48,7 @@ Work queue: {{ queue_name }}
                             </div>
                         {% else %}
                             <div class="span6">
-                                Finished
+                                Finished #{{task.lease_attempts}}
                             </div>
                             <div class="span6">
                                 {{ task.finished|timesince }}

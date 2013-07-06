@@ -245,9 +245,11 @@ def view_release():
         .order_by(models.Run.name)
         .all())
 
-    # Sort errors first, then by name
+    # Sort errors first, then by name. Also show errors that were manually
+    # approved, so the paging sort order stays the same even after users
+    # approve a diff on the run page.
     def sort(run):
-        if run.status == models.Run.DIFF_FOUND:
+        if run.status in models.Run.DIFF_NEEDED_STATES:
             return (0, run.name)
         return (1, run.name)
 
@@ -375,18 +377,18 @@ def view_run():
     # that behavior here with multiple queries.
     previous_run = None
     next_run = None
-    if run.status == models.Run.DIFF_FOUND:
+    if run.status in models.Run.DIFF_NEEDED_STATES:
         previous_run = (
             models.Run.query
             .filter_by(release_id=release.id)
-            .filter(models.Run.status == models.Run.DIFF_FOUND)
+            .filter(models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
             .filter(models.Run.name < run.name)
             .order_by(models.Run.name.desc())
             .first())
         next_run = (
             models.Run.query
             .filter_by(release_id=release.id)
-            .filter(models.Run.status == models.Run.DIFF_FOUND)
+            .filter(models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
             .filter(models.Run.name > run.name)
             .order_by(models.Run.name)
             .first())
@@ -395,21 +397,21 @@ def view_run():
             next_run = (
                 models.Run.query
                 .filter_by(release_id=release.id)
-                .filter(models.Run.status != models.Run.DIFF_FOUND)
+                .filter(~models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
                 .order_by(models.Run.name)
                 .first())
     else:
         previous_run = (
             models.Run.query
             .filter_by(release_id=release.id)
-            .filter(models.Run.status != models.Run.DIFF_FOUND)
+            .filter(~models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
             .filter(models.Run.name < run.name)
             .order_by(models.Run.name.desc())
             .first())
         next_run = (
             models.Run.query
             .filter_by(release_id=release.id)
-            .filter(models.Run.status != models.Run.DIFF_FOUND)
+            .filter(~models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
             .filter(models.Run.name > run.name)
             .order_by(models.Run.name)
             .first())
@@ -418,7 +420,7 @@ def view_run():
             previous_run = (
                 models.Run.query
                 .filter_by(release_id=release.id)
-                .filter(models.Run.status == models.Run.DIFF_FOUND)
+                .filter(models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
                 .order_by(models.Run.name.desc())
                 .first())
 
