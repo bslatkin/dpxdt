@@ -1,9 +1,17 @@
-{% if runs_total %}
-    {% if runs_complete == runs_total %}
+{%- if runs_total -%}
+    {%- if runs_complete == runs_total -%}
         {{ runs_complete }} tested
-    {% else %}
+    {%- else -%}
         {{ runs_complete }} / {{ runs_total }} tested
-    {% endif %}
-{% else %}
+    {%- endif -%}
+{%- elif not runs_baseline -%}
     No tests run
+{%- endif -%}
+{%- if runs_total and runs_baseline -%}
+    ,
+{%- endif -%}
+{% if runs_baseline == 1 %}
+    1 baseline
+{% elif runs_baseline > 1 %}
+    {{ runs_baseline }} baselines
 {% endif %}
