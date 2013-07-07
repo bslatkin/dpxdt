@@ -114,8 +114,12 @@ a.big-link {
     text-align: left;
     display: inline-block;
 }
-.run-status-section {
-    margin-left: 30px;
+.left-of-approval {
+    margin-right: 10px;
+}
+.approval-message {
+    margin-bottom: 10px;
+    display: inline-block;
 }
 .run-image-link {
     min-height: 200px;

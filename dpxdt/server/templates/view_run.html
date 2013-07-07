@@ -65,10 +65,15 @@ Test run '{{ run.name }}'
                         {{ run_form.type }}
                         {{ run_form.test }}
                         {{ run_form.disapprove }}
-                        <p>
+                        <p class="left-of-approval">
                             <button type="submit" class="btn btn-danger" id="reject_button">Reject difference</button>
                         </p>
                     </form>
+                    {% if approval_log %}
+                        <span class="approval-message">
+                            <small>Approved by {{ approval_log.user.email_address }}</small>
+                        </span>
+                    {% endif %}
                 {% endif %}
             </div>
             <div class="span5 text-right">

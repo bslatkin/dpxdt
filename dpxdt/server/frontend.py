@@ -338,19 +338,12 @@ def view_run():
 
     form.validate()
 
-    release = (
-        models.Release.query
-        .filter_by(
-            build_id=build.id,
-            name=form.name.data,
-            number=form.number.data)
-        .first())
-    if not release:
-        abort(404)
-
     run = (
         models.Run.query
-        .filter_by(release_id=release.id, name=form.test.data)
+        .join(models.Release)
+        .filter(models.Release.name == form.name.data)
+        .filter(models.Release.number == form.number.data)
+        .filter(models.Run.name == form.test.data)
         .first())
     if not run:
         abort(404)
@@ -375,8 +368,8 @@ def view_run():
         return redirect(url_for(
             request.endpoint,
             id=build.id,
-            name=release.name,
-            number=release.number,
+            name=run.release.name,
+            number=run.release.number,
             test=run.name,
             type=file_type))
 
@@ -387,14 +380,14 @@ def view_run():
     if run.status in models.Run.DIFF_NEEDED_STATES:
         previous_run = (
             models.Run.query
-            .filter_by(release_id=release.id)
+            .filter_by(release_id=run.release_id)
             .filter(models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
             .filter(models.Run.name < run.name)
             .order_by(models.Run.name.desc())
             .first())
         next_run = (
             models.Run.query
-            .filter_by(release_id=release.id)
+            .filter_by(release_id=run.release_id)
             .filter(models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
             .filter(models.Run.name > run.name)
             .order_by(models.Run.name)
@@ -403,21 +396,21 @@ def view_run():
         if not next_run:
             next_run = (
                 models.Run.query
-                .filter_by(release_id=release.id)
+                .filter_by(release_id=run.release_id)
                 .filter(~models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
                 .order_by(models.Run.name)
                 .first())
     else:
         previous_run = (
             models.Run.query
-            .filter_by(release_id=release.id)
+            .filter_by(release_id=run.release_id)
             .filter(~models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
             .filter(models.Run.name < run.name)
             .order_by(models.Run.name.desc())
             .first())
         next_run = (
             models.Run.query
-            .filter_by(release_id=release.id)
+            .filter_by(release_id=run.release_id)
             .filter(~models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
             .filter(models.Run.name > run.name)
             .order_by(models.Run.name)
@@ -426,7 +419,7 @@ def view_run():
         if not previous_run:
             previous_run = (
                 models.Run.query
-                .filter_by(release_id=release.id)
+                .filter_by(release_id=run.release_id)
                 .filter(models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
                 .order_by(models.Run.name.desc())
                 .first())
@@ -435,9 +428,17 @@ def view_run():
     form.approve.data = True
     form.disapprove.data = True
 
+    # Figure out who approved it
+    approval_log = None
+    if run.status == models.Run.DIFF_APPROVED:
+        approval_log = (
+            models.AdminLog.query
+            .filter_by(run_id=run.id, log_type=models.AdminLog.RUN_APPROVED)
+            .first())
+
     context = dict(
         build=build,
-        release=release,
+        release=run.release,
         run=run,
         run_form=form,
         previous_run=previous_run,
@@ -446,7 +447,8 @@ def view_run():
         image_file=image_file,
         log_file=log_file,
         config_file=config_file,
-        sha1sum=sha1sum)
+        sha1sum=sha1sum,
+        approval_log=approval_log)
 
     if file_type:
         template_name = 'view_artifact.html'

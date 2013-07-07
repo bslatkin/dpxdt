@@ -161,7 +161,8 @@ class Run(db.Model):
     release_id = db.Column(db.Integer, db.ForeignKey('release.id'))
     release = db.relationship('Release',
                               backref=db.backref('runs', lazy='select'),
-                              lazy='select')
+                              lazy='joined',
+                              join_depth=1)
 
     name = db.Column(db.String(255), nullable=False)
     # TODO: Put rigid DB constraint on uniqueness of (release_id, name)
