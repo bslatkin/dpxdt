@@ -28,7 +28,7 @@ h4 a:hover {
     margin: 0;
 }
 .body-section {
-    margin-top: 40px;
+    margin-top: 10px;
 }
 .body-subsection {
     margin-top: 20px;
@@ -45,6 +45,10 @@ h4 a:hover {
 }
 a.big-link {
     display: block;
+}
+.h4sized {
+    line-height: 20px;
+    margin: 10px 0;
 }
 @media (max-width: 767px) {
     .text-right, .text-center {
@@ -112,13 +116,6 @@ a.big-link {
     font-weight: bold;
     width: 20px;
     text-align: left;
-    display: inline-block;
-}
-.left-of-approval {
-    margin-right: 10px;
-}
-.approval-message {
-    margin-bottom: 10px;
     display: inline-block;
 }
 .run-image-link {

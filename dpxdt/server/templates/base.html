@@ -71,14 +71,15 @@
 {% endif %}
 
 
-{% if run %}
+{% if release or run %}
     <div class="row">
         <div class="span7">
-            {% if sha1sum %}
-                <h4 class="ellipsis-overflow"><a id="test_link" href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=run.name) }}">Test: {{ run.name }}</a></h4>
-            {% else %}
-                <h4 class="ellipsis-overflow">Test: {{ run.name }}</h4>
-            {% endif %}
+            <h4 class="ellipsis-overflow">{% block run_row_left %}{% endblock run_row_left %}</h4>
+        </div>
+        <div class="span5 text-right ">
+            <div class="h4sized">
+                {% block run_row_right %}{% endblock run_row_right %}
+            </div>
         </div>
     </div>
 {% endif %}

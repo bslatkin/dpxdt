@@ -261,9 +261,16 @@ def view_release():
 
     total, complete, successful, failed, baseline = classify_runs(run_list)
 
-    newest_run_time = None
-    if run_list:
-        newest_run_time = max(run.modified for run in run_list)
+    # Figure out who marked is as good it
+    approval_log = None
+    if release.status in (models.Release.GOOD, models.Release.BAD):
+        approval_log = (
+            models.AdminLog.query
+            .filter_by(release_id=release.id)
+            .filter(models.AdminLog.log_type.in_(
+                (models.AdminLog.RELEASE_BAD, models.AdminLog.RELEASE_GOOD)))
+            .order_by(models.AdminLog.created.desc())
+            .first())
 
     # Update form values for rendering
     form.good.data = True
@@ -280,8 +287,8 @@ def view_release():
         runs_successful=successful,
         runs_failed=failed,
         runs_baseline=baseline,
-        newest_run_time=newest_run_time,
-        release_form=form)
+        release_form=form,
+        approval_log=approval_log)
 
 
 def _get_artifact_context(run, file_type):
@@ -434,6 +441,7 @@ def view_run():
         approval_log = (
             models.AdminLog.query
             .filter_by(run_id=run.id, log_type=models.AdminLog.RUN_APPROVED)
+            .order_by(models.AdminLog.created.desc())
             .first())
 
     context = dict(

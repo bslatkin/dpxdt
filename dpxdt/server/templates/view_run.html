@@ -15,22 +15,29 @@ Test run '{{ run.name }}'
 {% endblock head_extra %}
 
 
-{% block body %}
+{% block run_row_left %}
+    {% if sha1sum %}
+        <a id="test_link" href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=run.name) }}">Test: {{ run.name }}</a>
+    {% else %}
+        Test: {{ run.name }}
+    {% endif %}
+{% endblock run_row_left %}
 
-<div class="row">
-    <div class="span6">
-        {# TODO: Put something useful here. #}
-        {#
-            TODO: Who approved the diff
-            TODO: Heartbeat associated with the diff process
-         #}
-    </div>
-    <div class="span6 text-right">
-        <abbr title="Complete {{ run.created.strftime('%Y-%m-%dT%H:%MZ') }}">
-            {{ run.created|timesince }}
-        </abbr>
-    </div>
-</div>
+
+{% block run_row_right %}
+    {% if approval_log %}
+        Approved
+    {% else %}
+        Updated
+    {% endif %}
+    <abbr title="{{ run.modified.strftime('%Y-%m-%dT%H:%MZ') }}">{{ run.modified|timesince }}</abbr>
+    {% if approval_log %}
+        by {{ approval_log.user.email_address }}
+    {% endif %}
+{% endblock run_row_right %}
+
+
+{% block body %}
 
 <div class="row body-section">
     <div class="span12">
@@ -65,15 +72,10 @@ Test run '{{ run.name }}'
                         {{ run_form.type }}
                         {{ run_form.test }}
                         {{ run_form.disapprove }}
-                        <p class="left-of-approval">
+                        <p>
                             <button type="submit" class="btn btn-danger" id="reject_button">Reject difference</button>
                         </p>
                     </form>
-                    {% if approval_log %}
-                        <span class="approval-message">
-                            <small>Approved by {{ approval_log.user.email_address }}</small>
-                        </span>
-                    {% endif %}
                 {% endif %}
             </div>
             <div class="span5 text-right">
