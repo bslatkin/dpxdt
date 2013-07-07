@@ -159,6 +159,10 @@ class Run(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     release_id = db.Column(db.Integer, db.ForeignKey('release.id'))
+    release = db.relationship('Release',
+                              backref=db.backref('runs', lazy='select'),
+                              lazy='select')
+
     name = db.Column(db.String(255), nullable=False)
     # TODO: Put rigid DB constraint on uniqueness of (release_id, name)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)

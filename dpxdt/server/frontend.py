@@ -249,12 +249,6 @@ def view_release():
             name=release.name,
             number=release.number))
 
-    run_list = (
-        models.Run.query
-        .filter_by(release_id=release.id)
-        .order_by(models.Run.name)
-        .all())
-
     # Sort errors first, then by name. Also show errors that were manually
     # approved, so the paging sort order stays the same even after users
     # approve a diff on the run page.
@@ -263,7 +257,7 @@ def view_release():
             return (0, run.name)
         return (1, run.name)
 
-    run_list.sort(key=sort)
+    run_list = sorted(release.runs, key=sort)
 
     total, complete, successful, failed, baseline = classify_runs(run_list)
 
