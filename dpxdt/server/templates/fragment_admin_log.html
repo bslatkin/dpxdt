@@ -1,0 +1,16 @@
+{% macro line(description, detail=None, build_id=None, release=None, run=None) %}
+    <div class="span3">
+        <strong>{{ description }}</strong>
+    </div>
+    {% if detail or release or run %}
+        <div class="span5">
+            {% if run %}
+                <a href="{{ url_for('view_run', id=release.build_id, name=release.name, number=release.number, test=run.name) }}" title="Release: {{ release.name }} #{{ release.number }}" class="big-link">{{ run.name }}</a>
+            {% elif release %}
+                <a href="{{ url_for('view_release', id=release.build_id, name=release.name, number=release.number) }}" class="big-link">{{ release.name }} #{{ release.number }}</a>
+            {% else %}
+                {{ detail }}
+            {% endif %}
+        </div>
+    {% endif %}
+{% endmacro %}

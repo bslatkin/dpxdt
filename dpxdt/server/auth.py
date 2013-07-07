@@ -54,6 +54,12 @@ def load_user(user_id):
     return user
 
 
+@app.context_processor
+def auth_context():
+    """Adds extra default context for rendered templates."""
+    return dict(current_user=current_user)
+
+
 @app.route('/login')
 def login_view():
     next_url = request.args.get('next', default='/', type=str)
@@ -199,6 +205,10 @@ def can_user_access_build(param_name):
     user_is_owner = False
     if current_user.is_authenticated():
         user_is_owner = build.is_owned_by(current_user.id)
+
+        if not user_is_owner:
+            claim_invitations(current_user)
+            user_is_owner = build.is_owned_by(current_user.id)
 
     if not user_is_owner:
         if request.method != 'GET':
@@ -348,6 +358,9 @@ def manage_api_keys():
         create_form.populate_obj(api_key)
         api_key.id = utils.human_uuid()
         api_key.secret = utils.password_uuid()
+
+        save_admin_log(build, created_api_key=True, message=api_key.id)
+
         db.session.add(api_key)
         db.session.commit()
 
@@ -393,6 +406,8 @@ def revoke_api_key():
             abort(403)
 
         api_key.active = False
+        save_admin_log(build, revoked_api_key=True, message=api_key.id)
+
         db.session.add(api_key)
         db.session.commit()
 
@@ -420,6 +435,7 @@ def claim_invitations(user):
             if not build.is_owned_by(user.id):
                 build.owners.append(user)
                 logging.debug('Claiming invitation for build_id=%r', build.id)
+                save_admin_log(build, invite_accepted=True)
             else:
                 logging.debug('User already owner of build. '
                               'id=%r, build_id=%r', user.id, build.id)
@@ -427,6 +443,8 @@ def claim_invitations(user):
 
         db.session.delete(invitation_user)
         db.session.commit()
+        # Re-add the user to the current session so we can query with it.
+        db.session.add(current_user)
 
 
 @app.route('/admins', methods=['GET', 'POST'])
@@ -448,6 +466,9 @@ def manage_admins():
             db.session.add(invitation_user)
 
         build.owners.append(invitation_user)
+        save_admin_log(build, invited_new_admin=True,
+                       message=invitation_user.email_address)
+
         db.session.add(build)
         db.session.commit()
 
@@ -469,8 +490,7 @@ def manage_admins():
         'view_admins.html',
         build=build,
         add_form=add_form,
-        revoke_form_list=revoke_form_list,
-        current_user=current_user)
+        revoke_form_list=revoke_form_list)
 
 
 @app.route('/admins.revoke', methods=['POST'])
@@ -499,7 +519,60 @@ def revoke_admin():
             abort(400)
 
         build.owners.remove(user)
+        save_admin_log(build, revoked_admin=True, message=user.email_address)
+
         db.session.add(build)
         db.session.commit()
 
     return redirect(url_for('manage_admins', build_id=build.id))
+
+
+def save_admin_log(build, **kwargs):
+    """Saves an action to the admin log."""
+    message = kwargs.pop('message', None)
+    release = kwargs.pop('release', None)
+    run = kwargs.pop('run', None)
+
+    if not len(kwargs) == 1:
+        raise TypeError('Must specify a LOG_TYPE argument')
+
+    log_enum = kwargs.keys()[0]
+    log_type = getattr(models.AdminLog, log_enum.upper(), None)
+    if not log_type:
+        raise TypeError('Bad log_type argument: %s' % log_enum)
+
+    log = models.AdminLog(
+        build_id=build.id,
+        log_type=log_type,
+        message=message,
+        user_id=current_user.get_id())
+
+    if release:
+        log.release_id = release.id
+
+    if run:
+        log.run_id = run.id
+        log.release_id = run.release_id
+
+    db.session.add(log)
+
+
+@app.route('/activity')
+@fresh_login_required
+@build_access_required('id')
+def view_admin_log():
+    """Page for viewing the log of admin activity."""
+    build = g.build
+
+    # TODO: Add paging
+
+    log_list = (
+        models.AdminLog.query
+        .filter_by(build_id=build.id)
+        .order_by(models.AdminLog.created.desc())
+        .all())
+
+    return render_template(
+        'view_admin_log.html',
+        build=build,
+        log_list=log_list)

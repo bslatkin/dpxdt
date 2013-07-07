@@ -86,17 +86,27 @@ Build '{{ build.name }}'
 
     {% if has_next_page or current_offset %}
         <div class="row body-section">
-            <div class="span1">
+            <div class="span12">
                 {% if has_next_page %}
-                    <a href="{{ url_for('view_build', id=build.id, offset=next_offset) }}">&laquo; Older</a>
+                    <div class="row">
+                        <div class="span2">
+                            <a href="{{ url_for('view_build', id=build.id, offset=next_offset) }}">&laquo; Older</a>
+                        </div>
+                    </div>
                 {% endif %}
-            </div>
-            <div class="span1">
                 {% if last_offset < current_offset %}
                     {% if last_offset == 0 %}
-                        <a href="{{ url_for('view_build', id=build.id) }}">Newer &raquo;</a>
+                        <div class="row">
+                            <div class="span2">
+                                <a href="{{ url_for('view_build', id=build.id) }}">Newer &raquo;</a>
+                            </div>
+                        </div>
                     {% else %}
-                        <a href="{{ url_for('view_build', id=build.id, offset=last_offset) }}">Newer &raquo;</a>
+                        <div class="row">
+                            <div class="span2">
+                                <a href="{{ url_for('view_build', id=build.id, offset=last_offset) }}">Newer &raquo;</a>
+                            </div>
+                        </div>
                     {% endif %}
                 {% endif %}
             </div>
@@ -121,5 +131,7 @@ Build '{{ build.name }}'
 <a href="{{ url_for('manage_admins', build_id=build.id) }}">Manage admins</a>
 &ndash;
 <a href="{{ url_for('manage_api_keys', build_id=build.id) }}">Set up API keys</a>
+&ndash;
+<a href="{{ url_for('view_admin_log', id=build.id) }}">Activity log</a>
 
 {% endblock footer_left %}

@@ -15,7 +15,6 @@
 
 """Frontend for the API server."""
 
-import functools
 import logging
 
 # Local libraries
@@ -33,12 +32,6 @@ from . import login
 from dpxdt.server import auth
 from dpxdt.server import forms
 from dpxdt.server import models
-
-
-def _render_template_with_defaults(template_path, **context):
-    """Renders the template with some extra context"""
-    context.setdefault('current_user', current_user)
-    return render_template(template_path, **context)
 
 
 @app.route('/')
@@ -59,15 +52,13 @@ def homepage():
         auth.claim_invitations(current_user)
 
         # List builds you own first, followed by public ones.
-        # TODO: Cache this list
-        db.session.add(current_user)
         build_list = (
             current_user.builds
             .order_by(models.Build.created.desc())
             .limit(1000)
             .all()) + build_list
 
-    return _render_template_with_defaults(
+    return render_template(
         'home.html',
         build_list=build_list)
 
@@ -81,14 +72,19 @@ def new_build():
         build = models.Build()
         form.populate_obj(build)
         build.owners.append(current_user)
+
         db.session.add(build)
+        db.session.flush()
+
+        auth.save_admin_log(build, created_build=True, message=build.name)
+
         db.session.commit()
 
         logging.info('Created build via UI: build_id=%r, name=%r',
                      build.id, build.name)
         return redirect(url_for('view_build', id=build.id))
 
-    return _render_template_with_defaults(
+    return render_template(
         'new_build.html',
         build_form=form)
 
@@ -171,7 +167,7 @@ def view_build():
         elif status == models.Run.NEEDS_DIFF:
             stats_dict['runs_total'] += count
 
-    return _render_template_with_defaults(
+    return render_template(
         'view_build.html',
         build=build,
         release_name_list=release_name_list,
@@ -230,11 +226,14 @@ def view_release():
 
         if form.good.data and release.status in decision_states:
             release.status = models.Release.GOOD
+            auth.save_admin_log(build, release_good=True, release=release)
         elif form.bad.data and release.status in decision_states:
             release.status = models.Release.BAD
+            auth.save_admin_log(build, release_bad=True, release=release)
         elif form.reviewing.data and release.status in (
                 models.Release.GOOD, models.Release.BAD):
             release.status = models.Release.REVIEWING
+            auth.save_admin_log(build, release_reviewing=True, release=release)
         else:
             logging.warning(
                 'Bad state transition for name=%r, number=%r, form=%r',
@@ -277,7 +276,7 @@ def view_release():
     form.bad.data = True
     form.reviewing.data = True
 
-    return _render_template_with_defaults(
+    return render_template(
         'view_release.html',
         build=build,
         release=release,
@@ -369,8 +368,10 @@ def view_run():
     if request.method == 'POST':
         if form.approve.data and run.status == models.Run.DIFF_FOUND:
             run.status = models.Run.DIFF_APPROVED
+            auth.save_admin_log(build, run_approved=True, run=run)
         elif form.disapprove.data and run.status == models.Run.DIFF_APPROVED:
             run.status = models.Run.DIFF_FOUND
+            auth.save_admin_log(build, run_rejected=True, run=run)
         else:
             abort(400)
 
@@ -458,7 +459,7 @@ def view_run():
     else:
         template_name = 'view_run.html'
 
-    return _render_template_with_defaults(template_name, **context)
+    return render_template(template_name, **context)
 
 
 @app.route('/static/dummy')

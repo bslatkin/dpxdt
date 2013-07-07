@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title -%}
+{{ build.name }} &rsaquo; Activity log
+{%- endblock title %}
+
+{% block description -%}
+Activity log for '{{ build.name }}'
+{%- endblock description %}
+
+
+{% block body %}
+
+<div class="row">
+    <div class="span12">
+        <h4>Activity log</h4>
+    </div>
+</div>
+
+<div class="body-section">
+
+    {% import 'fragment_admin_log.html' as log %}
+
+    {% for admin_log in log_list %}
+
+    <div class="row">
+        <div class="span2 ellipsis-overflow">
+            {{ admin_log.user.email_address }}
+        </div>
+
+        {% if admin_log.log_type == 'created_api_key' %}
+            {{ log.line(description='Created API key', detail=admin_log.message) }}
+        {% elif admin_log.log_type == 'created_build' %}
+            {{ log.line(description='Created build ' + admin_log.message) }}
+        {% elif admin_log.log_type == 'invite_accepted' %}
+            {{ log.line(description='Invite accepted') }}
+        {% elif admin_log.log_type == 'invited_new_admin' %}
+            {{ log.line(description='Invited admin', detail=admin_log.message) }}
+        {% elif admin_log.log_type == 'revoked_admin' %}
+            {{ log.line(description='Revoked admin', detail=admin_log.message) }}
+        {% elif admin_log.log_type == 'revoked_api_key' %}
+            {{ log.line(description='Revoked API key', detail=admin_log.message) }}
+        {% elif admin_log.log_type == 'run_approved' %}
+            {{ log.line(description='Approved run', release=admin_log.release, run=admin_log.run) }}
+        {% elif admin_log.log_type == 'run_rejected' %}
+            {{ log.line(description='Rejected run', release=admin_log.release, run=admin_log.run) }}
+        {% elif admin_log.log_type == 'release_bad' %}
+            {{ log.line(description='Marked bad', release=admin_log.release) }}
+        {% elif admin_log.log_type == 'release_good' %}
+            {{ log.line(description='Marked good', release=admin_log.release) }}
+        {% elif admin_log.log_type == 'release_reviewing' %}
+            {{ log.line(description='Marked reviewing', release=admin_log.release) }}
+        {% else %}
+            {{ log.line(description='Unknown: ' + admin_log.log_type, detail=admin_log.message) }}
+        {% endif %}
+
+        <div class="span2">
+            {{ admin_log.created|timesince }}
+        </div>
+    </div>
+
+    {% endfor %}
+</div>
+
+{% endblock body %}

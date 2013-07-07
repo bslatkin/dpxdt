@@ -28,10 +28,6 @@ class User(db.Model):
     Primary key is prefixed with a valid AUTH_TYPES like:
 
         'google_oauth2:1234567890'
-
-    To manually set a User to have superuser status:
-
-        update user set superuser = 1 where user.id = '<user id here>';
     """
 
     EMAIL_INVITATION = 'email_invitation'
@@ -67,20 +63,8 @@ class User(db.Model):
         return other.id != self.id
 
 
-api_key_ownership_table = db.Table(
-    'api_key_ownership',
-    db.Column('api_key', db.String(255), db.ForeignKey('api_key.id')),
-    db.Column('user_id', db.String(255), db.ForeignKey('user.id')))
-
-
 class ApiKey(db.Model):
-    """API access for an automated system.
-
-    May be owned by multiple users if necessary. Owners can set its state
-    to active or revoked. May be associated with a build, in which case all
-    owners of the build may also control this API key. When set to superuser
-    requestors using this API key will be able to operate on all builds.
-    """
+    """API access for an automated system."""
 
     id = db.Column(db.String(255), primary_key=True)
     secret = db.Column(db.String(255), nullable=False)
@@ -92,9 +76,6 @@ class ApiKey(db.Model):
     revoked = db.Column(db.DateTime)
     superuser = db.Column(db.Boolean, default=False)
     build_id = db.Column(db.Integer, db.ForeignKey('build.id'))
-    owners = db.relationship('User', secondary=api_key_ownership_table,
-                             backref=db.backref('api_keys', lazy='dynamic'),
-                             lazy='dynamic')
 
 
 ownership_table = db.Table(
@@ -104,13 +85,7 @@ ownership_table = db.Table(
 
 
 class Build(db.Model):
-    """A single repository of artifacts and diffs owned by someone.
-
-    Queries:
-    - Get all builds for a specific owner.
-    - Can this user read this build.
-    - Can this user write this build.
-    """
+    """A single repository of artifacts and diffs owned by someone."""
 
     id = db.Column(db.Integer, primary_key=True)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
@@ -127,14 +102,7 @@ class Build(db.Model):
 
 
 class Release(db.Model):
-    """A set of runs that are part of a build, grouped by a user-supplied name.
-
-    Queries:
-    - For a build, find me the active release with this name.
-    - Mark this release as abandoned.
-    - Show me all active releases for this build by unique name in order
-      of creation date descending.
-    """
+    """A set of runs in a build, grouped by user-supplied name."""
 
     RECEIVING = 'receiving'
     PROCESSING = 'processing'
@@ -159,9 +127,6 @@ artifact_ownership_table = db.Table(
     db.Column('artifact', db.String(100), db.ForeignKey('artifact.id')),
     db.Column('build_id', db.Integer, db.ForeignKey('build.id')))
 
-# TODO: Actually save the blob files somewhere else, like S3. Add a
-# queue worker that uploads them there and purges the database. Move to
-# saving blobs in a directory by content-addressable filename.
 
 class Artifact(db.Model):
     """Contains a single file uploaded by a diff worker."""
@@ -177,12 +142,7 @@ class Artifact(db.Model):
 
 
 class Run(db.Model):
-    """Contains a set of screenshot records uploaded by a diff worker.
-
-    Queries:
-    - Show me all runs for the given release.
-    - Show me all runs with the given name for all releases that are live.
-    """
+    """Contains a set of screenshot records uploaded by a diff worker."""
 
     DATA_PENDING = 'data_pending'
     DIFF_APPROVED = 'diff_approved'
@@ -218,3 +178,40 @@ class Run(db.Model):
 
     diff_image = db.Column(db.String(100), db.ForeignKey('artifact.id'))
     diff_log = db.Column(db.String(100), db.ForeignKey('artifact.id'))
+
+
+class AdminLog(db.Model):
+    """Log of admin user actions for a build."""
+
+    CREATED_API_KEY = 'created_api_key'
+    CREATED_BUILD = 'created_build'
+    INVITE_ACCEPTED = 'invite_accepted'
+    INVITED_NEW_ADMIN = 'invited_new_admin'
+    REVOKED_ADMIN = 'revoked_admin'
+    REVOKED_API_KEY = 'revoked_api_key'
+    RUN_APPROVED = 'run_approved'
+    RUN_REJECTED = 'run_rejected'
+    RELEASE_BAD = 'release_bad'
+    RELEASE_GOOD = 'release_good'
+    RELEASE_REVIEWING = 'release_reviewing'
+
+    LOG_TYPES = frozenset([
+        CREATED_API_KEY, CREATED_BUILD, INVITE_ACCEPTED, INVITED_NEW_ADMIN,
+        REVOKED_ADMIN, REVOKED_API_KEY, RUN_APPROVED, RUN_REJECTED,
+        RELEASE_BAD, RELEASE_GOOD, RELEASE_REVIEWING])
+
+    id = db.Column(db.Integer, primary_key=True)
+    build_id = db.Column(db.Integer, db.ForeignKey('build.id'), nullable=False)
+
+    release_id = db.Column(db.Integer, db.ForeignKey('release.id'))
+    release = db.relationship('Release', lazy='joined', join_depth=2)
+
+    run_id = db.Column(db.Integer, db.ForeignKey('run.id'))
+    run = db.relationship('Run', lazy='joined', join_depth=1)
+
+    user_id = db.Column(db.String(255), db.ForeignKey('user.id'))
+    user = db.relationship('User', lazy='joined', join_depth=1)
+
+    created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    log_type = db.Column(db.Enum(*LOG_TYPES), nullable=False)
+    message = db.Column(db.Text)
