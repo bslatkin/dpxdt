@@ -38,7 +38,6 @@ from dpxdt.server import signals
 @app.route('/')
 def homepage():
     """Renders the homepage."""
-    build_list = []
     if current_user.is_authenticated():
         if not login_fresh():
             logging.debug('User needs a fresh token')
