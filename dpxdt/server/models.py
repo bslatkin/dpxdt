@@ -62,6 +62,10 @@ class User(db.Model):
     def __ne__(self, other):
         return other.id != self.id
 
+    # For flask-cache memoize key.
+    def __repr__(self):
+        return 'User(id=%r)' % self.get_id()
+
 
 class ApiKey(db.Model):
     """API access for an automated system."""
@@ -100,6 +104,10 @@ class Build(db.Model):
     def is_owned_by(self, user_id):
         return self.owners.filter_by(id=user_id).first() is not None
 
+    # For flask-cache memoize key.
+    def __repr__(self):
+        return 'Build(id=%r)' % self.id
+
 
 class Release(db.Model):
     """A set of runs in a build, grouped by user-supplied name."""
@@ -120,6 +128,10 @@ class Release(db.Model):
     status = db.Column(db.Enum(*STATES), default=RECEIVING, nullable=False)
     build_id = db.Column(db.Integer, db.ForeignKey('build.id'), nullable=False)
     url = db.Column(db.String(2048))
+
+    # For flask-cache memoize key.
+    def __repr__(self):
+        return 'Release(id=%r)' % self.id
 
 
 artifact_ownership_table = db.Table(
@@ -183,6 +195,10 @@ class Run(db.Model):
 
     diff_image = db.Column(db.String(100), db.ForeignKey('artifact.id'))
     diff_log = db.Column(db.String(100), db.ForeignKey('artifact.id'))
+
+    # For flask-cache memoize key.
+    def __repr__(self):
+        return 'Run(id=%r)' % self.id
 
 
 class AdminLog(db.Model):

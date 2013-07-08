@@ -63,7 +63,7 @@ def gae_mini_profiler_should_profile_production():
 
 
 def gae_mini_profiler_should_profile_development():
-    return False
+    return True
 
 
 # Fix the appstats module's formatting helper function.

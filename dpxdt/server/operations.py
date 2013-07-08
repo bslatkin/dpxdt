@@ -13,13 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Cacheable operations and eviction for models in the frontend.
+"""Cacheable operations and eviction for models in the frontend."""
 
-By using an object and its methods for @cache.memoize, you tell Flask-Cache
-to use a version number per object. That makes it easy to evict all
-information related to a single build or a single user, while leaving all
-other caches alone.
-"""
+import functools
 
 # Local modules
 from . import app
@@ -27,6 +23,20 @@ from . import cache
 from . import db
 from dpxdt.server import models
 from dpxdt.server import signals
+
+
+def instance_memoize(f):
+    """TODO"""
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        @cache.memoize(make_name=lambda fname: '%r.%s' % (args[0], fname))
+        @functools.wraps(f)
+        def instance_wrapped(*a, **k):
+            return f(*a, **k)
+
+        return instance_wrapped(*args, **kwargs)
+
+    return wrapped
 
 
 class UserOps(object):
@@ -41,8 +51,11 @@ class UserOps(object):
 
     @cache.memoize()
     def load(self):
+        if not self.user_id:
+            return None
         user = models.User.query.get(self.user_id)
-        db.session.expunge(user)
+        if user:
+            db.session.expunge(user)
         return user
 
     @cache.memoize()
@@ -80,8 +93,8 @@ class UserOps(object):
 
     def evict(self):
         """Evict all caches related to this user."""
-        cache.delete_memoized(self.get_builds)
-        cache.delete_memoized(self.owns_build)
+        cache.delete_memoized(self.get_builds, self)
+        cache.delete_memoized(self.owns_build, self)
 
 
 class BuildOps(object):
@@ -93,6 +106,61 @@ class BuildOps(object):
     # For Flask-Cache keys
     def __repr__(self):
         return 'caching.BuildOps(build_id=%r)' % self.build_id
+
+    @cache.memoize()
+    def get_candidates(self, page_size, offset):
+        candidate_list = (
+            models.Release.query
+            .filter_by(build_id=self.build_id)
+            .order_by(models.Release.created.desc())
+            .offset(offset)
+            .limit(page_size + 1)
+            .all())
+
+        for candidate in candidate_list:
+            db.session.expunge(candidate)
+
+        run_stats_dict = {}
+
+        if candidate_list:
+            candidate_keys = [c.id for c in candidate_list]
+            stats_counts = (
+                db.session.query(
+                    models.Run.release_id,
+                    models.Run.status,
+                    sqlalchemy.func.count(models.Run.id))
+                .join(models.Release)
+                .filter(models.Release.id.in_(candidate_keys))
+                .group_by(models.Run.status, models.Run.release_id)
+                .all())
+
+            for candidate_id, status, count in stats_counts:
+                if candidate_id in run_stats_dict:
+                    stats_dict = run_stats_dict[candidate_id]
+                else:
+                    stats_dict = dict(
+                        runs_total=0,
+                        runs_complete=0,
+                        runs_successful=0,
+                        runs_failed=0,
+                        runs_baseline=0)
+                    run_stats_dict[candidate.id] = stats_dict
+
+                if status in (models.Run.DIFF_APPROVED,
+                              models.Run.DIFF_NOT_FOUND):
+                    stats_dict['runs_successful'] += count
+                    stats_dict['runs_complete'] += count
+                    stats_dict['runs_total'] += count
+                elif status == models.Run.DIFF_FOUND:
+                    stats_dict['runs_failed'] += count
+                    stats_dict['runs_complete'] += count
+                    stats_dict['runs_total'] += count
+                elif status == models.Run.NO_DIFF_NEEDED:
+                    stats_dict['runs_baseline'] += count
+                elif status == models.Run.NEEDS_DIFF:
+                    stats_dict['runs_total'] += count
+
+        return candidate_list, run_stats_dict
 
     @cache.memoize()
     def get_next_previous_runs(self, run):
@@ -159,13 +227,18 @@ class BuildOps(object):
 
     def evict(self):
         """Evict all caches relating to this build."""
-        cache.delete_memoized(self.get_next_previous_runs)
+        cache.delete_memoized(self.get_candidates, self)
+        # xxx get_next_previous_runs isn't working right because
+        # it needs to evict all run caches for one build
+        cache.delete_memoized(self.get_next_previous_runs, self)
 
 
 # Connect API events to cache eviction.
 
-def _evict_run_cache(cls, build=None, release=None, run=None):
+
+def _evict_build_cache(sender, build=None, release=None, run=None):
     BuildOps(build.id).evict()
 
 
-signals.run_updated_via_api.connect(_evict_run_cache, app)
+signals.release_updated_via_api.connect(_evict_build_cache, app)
+signals.run_updated_via_api.connect(_evict_build_cache, app)

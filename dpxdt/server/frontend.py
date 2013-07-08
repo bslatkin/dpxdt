@@ -89,13 +89,9 @@ def view_build():
     build = g.build
     page_size = 20
     offset = request.args.get('offset', 0, type=int)
-    candidate_list = (
-        models.Release.query
-        .filter_by(build_id=build.id)
-        .order_by(models.Release.created.desc())
-        .offset(offset)
-        .limit(page_size + 1)
-        .all())
+
+    ops = operations.Build(build.id)
+    candidate_list, run_stats_dict = ops.get_candidates(page_size, offset)
 
     has_next_page = len(candidate_list) > page_size
     if has_next_page:
@@ -104,21 +100,11 @@ def view_build():
     # Collate by release name, order releases by latest creation. Init stats.
     release_dict = {}
     created_dict = {}
-    run_stats_dict = {}
     for candidate in candidate_list:
         release_list = release_dict.setdefault(candidate.name, [])
         release_list.append(candidate)
-
         max_created = created_dict.get(candidate.name, candidate.created)
-
         created_dict[candidate.name] = max(candidate.created, max_created)
-
-        run_stats_dict[candidate.id] = dict(
-            runs_total=0,
-            runs_complete=0,
-            runs_successful=0,
-            runs_failed=0,
-            runs_baseline=0)
 
     # Sort each release by candidate number descending
     for release_list in release_dict.itervalues():
@@ -129,36 +115,6 @@ def view_build():
         (value, key) for key, value in created_dict.iteritems()]
     release_age_list.sort(reverse=True)
     release_name_list = [key for _, key in release_age_list]
-
-    # Extract run metadata about each release
-    if run_stats_dict:
-        stats_counts = (
-            db.session.query(
-                models.Run.release_id,
-                models.Run.status,
-                sqlalchemy.func.count(models.Run.id))
-            .join(models.Release)
-            .filter(models.Release.id.in_(run_stats_dict.keys()))
-            .group_by(models.Run.status, models.Run.release_id)
-            .all())
-    else:
-        stats_counts = []
-
-    for candidate_id, status, count in stats_counts:
-        stats_dict = run_stats_dict[candidate_id]
-
-        if status in (models.Run.DIFF_APPROVED, models.Run.DIFF_NOT_FOUND):
-            stats_dict['runs_successful'] += count
-            stats_dict['runs_complete'] += count
-            stats_dict['runs_total'] += count
-        elif status == models.Run.DIFF_FOUND:
-            stats_dict['runs_failed'] += count
-            stats_dict['runs_complete'] += count
-            stats_dict['runs_total'] += count
-        elif status == models.Run.NO_DIFF_NEEDED:
-            stats_dict['runs_baseline'] += count
-        elif status == models.Run.NEEDS_DIFF:
-            stats_dict['runs_total'] += count
 
     return render_template(
         'view_build.html',
