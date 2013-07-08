@@ -109,10 +109,7 @@ class BuildOps(object):
             .limit(page_size + 1)
             .all())
 
-        for candidate in candidate_list:
-            db.session.expunge(candidate)
-
-        run_stats_dict = {}
+        stats_counts = []
 
         if candidate_list:
             candidate_keys = [c.id for c in candidate_list]
@@ -126,33 +123,10 @@ class BuildOps(object):
                 .group_by(models.Run.status, models.Run.release_id)
                 .all())
 
-            for candidate_id, status, count in stats_counts:
-                if candidate_id in run_stats_dict:
-                    stats_dict = run_stats_dict[candidate_id]
-                else:
-                    stats_dict = dict(
-                        runs_total=0,
-                        runs_complete=0,
-                        runs_successful=0,
-                        runs_failed=0,
-                        runs_baseline=0)
-                    run_stats_dict[candidate_id] = stats_dict
+        for candidate in candidate_list:
+            db.session.expunge(candidate)
 
-                if status in (models.Run.DIFF_APPROVED,
-                              models.Run.DIFF_NOT_FOUND):
-                    stats_dict['runs_successful'] += count
-                    stats_dict['runs_complete'] += count
-                    stats_dict['runs_total'] += count
-                elif status == models.Run.DIFF_FOUND:
-                    stats_dict['runs_failed'] += count
-                    stats_dict['runs_complete'] += count
-                    stats_dict['runs_total'] += count
-                elif status == models.Run.NO_DIFF_NEEDED:
-                    stats_dict['runs_baseline'] += count
-                elif status == models.Run.NEEDS_DIFF:
-                    stats_dict['runs_total'] += count
-
-        return candidate_list, run_stats_dict
+        return candidate_list, stats_counts
 
     @cache.memoize(per_instance=True)
     def get_release(self, release_name, release_number):
@@ -165,35 +139,9 @@ class BuildOps(object):
             .first())
 
         if not release:
-            return None, None, None, None
+            return None, None, None
 
-        # Sort errors first, then by name. Also show errors that were manually
-        # approved, so the paging sort order stays the same even after users
-        # approve a diff on the run page.
-        def sort(run):
-            if run.status in models.Run.DIFF_NEEDED_STATES:
-                return (0, run.name)
-            return (1, run.name)
-
-        run_list = sorted(release.runs, key=sort)
-
-        total, successful, failed, baseline = 0, 0, 0, 0
-        for run in run_list:
-            if run.status in (models.Run.DIFF_APPROVED,
-                              models.Run.DIFF_NOT_FOUND):
-                successful += 1
-                total += 1
-            elif run.status == models.Run.DIFF_FOUND:
-                failed += 1
-                total += 1
-            elif run.status in (models.Run.NEEDS_DIFF,
-                                models.Run.DATA_PENDING):
-                total += 1
-            elif run.status == models.Run.NO_DIFF_NEEDED:
-                baseline += 1
-
-        complete = successful + failed
-        stats_tuple = (total, complete, successful, failed, baseline)
+        run_list = list(release.runs)
 
         approval_log = None
         if release.status in (models.Release.GOOD, models.Release.BAD):
@@ -206,7 +154,13 @@ class BuildOps(object):
                 .order_by(models.AdminLog.created.desc())
                 .first())
 
-        return release, run_list, stats_tuple, approval_log
+        for run in run_list:
+            db.session.expunge(run)
+
+        if approval_log:
+            db.session.expunge(approval_log)
+
+        return release, run_list, approval_log
 
     def _get_next_previous_runs(self, run):
         next_run = None
@@ -263,11 +217,6 @@ class BuildOps(object):
                     .order_by(models.Run.name.desc())
                     .first())
 
-        if next_run:
-            db.session.expunge(next_run)
-        if previous_run:
-            db.session.expunge(previous_run)
-
         return next_run, previous_run
 
     @cache.memoize(per_instance=True)
@@ -293,6 +242,15 @@ class BuildOps(object):
                 .order_by(models.AdminLog.created.desc())
                 .first())
 
+        if run:
+            db.session.expunge(run)
+        if next_run:
+            db.session.expunge(next_run)
+        if previous_run:
+            db.session.expunge(previous_run)
+        if approval_log:
+            db.session.expunge(approval_log)
+
         return run, next_run, previous_run, approval_log
 
     def evict(self):
@@ -301,6 +259,7 @@ class BuildOps(object):
         cache.delete_memoized(self.get_candidates)
         cache.delete_memoized(self.get_release)
         cache.delete_memoized(self.get_run)
+
 
 
 # Connect API events to cache eviction.

@@ -90,13 +90,13 @@ def view_build():
     offset = request.args.get('offset', 0, type=int)
 
     ops = operations.BuildOps(build.id)
-    candidate_list, run_stats_dict = ops.get_candidates(page_size, offset)
+    candidate_list, stats_counts = ops.get_candidates(page_size, offset)
 
     has_next_page = len(candidate_list) > page_size
     if has_next_page:
         candidate_list = candidate_list[:-1]
 
-    # Collate by release name, order releases by latest creation. Init stats.
+    # Collate by release name, order releases by latest creation.
     release_dict = {}
     created_dict = {}
     for candidate in candidate_list:
@@ -114,6 +114,34 @@ def view_build():
         (value, key) for key, value in created_dict.iteritems()]
     release_age_list.sort(reverse=True)
     release_name_list = [key for _, key in release_age_list]
+
+    # Count totals for each run state within that release.
+    run_stats_dict = {}
+    for candidate_id, status, count in stats_counts:
+        if candidate_id in run_stats_dict:
+            stats_dict = run_stats_dict[candidate_id]
+        else:
+            stats_dict = dict(
+                runs_total=0,
+                runs_complete=0,
+                runs_successful=0,
+                runs_failed=0,
+                runs_baseline=0)
+            run_stats_dict[candidate_id] = stats_dict
+
+        if status in (models.Run.DIFF_APPROVED,
+                      models.Run.DIFF_NOT_FOUND):
+            stats_dict['runs_successful'] += count
+            stats_dict['runs_complete'] += count
+            stats_dict['runs_total'] += count
+        elif status == models.Run.DIFF_FOUND:
+            stats_dict['runs_failed'] += count
+            stats_dict['runs_complete'] += count
+            stats_dict['runs_total'] += count
+        elif status == models.Run.NO_DIFF_NEEDED:
+            stats_dict['runs_baseline'] += count
+        elif status == models.Run.NEEDS_DIFF:
+            stats_dict['runs_total'] += count
 
     return render_template(
         'view_build.html',
@@ -140,7 +168,7 @@ def view_release():
     form.validate()
 
     ops = operations.BuildOps(build.id)
-    release, run_list, stats_tuple, approval_log = ops.get_release(
+    release, run_list, approval_log = ops.get_release(
         form.name.data, form.number.data)
 
     if not release:
@@ -177,7 +205,32 @@ def view_release():
             name=release.name,
             number=release.number))
 
-    total, complete, successful, failed, baseline = stats_tuple
+    # Sort errors first, then by name. Also show errors that were manually
+    # approved, so the paging sort order stays the same even after users
+    # approve a diff on the run page.
+    def sort(run):
+        if run.status in models.Run.DIFF_NEEDED_STATES:
+            return (0, run.name)
+        return (1, run.name)
+
+    run_list.sort(key=sort)
+
+    total, successful, failed, baseline = 0, 0, 0, 0
+    for run in run_list:
+        if run.status in (models.Run.DIFF_APPROVED,
+                          models.Run.DIFF_NOT_FOUND):
+            successful += 1
+            total += 1
+        elif run.status == models.Run.DIFF_FOUND:
+            failed += 1
+            total += 1
+        elif run.status in (models.Run.NEEDS_DIFF,
+                            models.Run.DATA_PENDING):
+            total += 1
+        elif run.status == models.Run.NO_DIFF_NEEDED:
+            baseline += 1
+
+    complete = successful + failed
 
     # Update form values for rendering
     form.good.data = True
