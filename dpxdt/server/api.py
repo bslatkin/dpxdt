@@ -123,6 +123,8 @@ def create_release():
     db.session.add(release)
     db.session.commit()
 
+    signals.release_updated_via_api.send(app, build=build, release=release)
+
     logging.info('Created release: build_id=%r, release_name=%r, url=%r, '
                  'release_number=%d', build.id, release.name,
                  url, release.number)
@@ -483,6 +485,8 @@ def runs_done():
     db.session.add(release)
     _check_release_done_processing(release)
     db.session.commit()
+
+    signals.release_updated_via_api.send(app, build=build, release=release)
 
     logging.info('Runs done for release: build_id=%r, release_name=%r, '
                  'release_number=%d', build.id, release.name, release.number)
