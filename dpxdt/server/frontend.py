@@ -127,25 +127,6 @@ def view_build():
         last_offset=max(0, offset -  page_size))
 
 
-def classify_runs(run_list):
-    """Returns (total, complete, succesful, failed) for the given Runs."""
-    total, successful, failed, baseline = 0, 0, 0, 0
-    for run in run_list:
-        if run.status in (models.Run.DIFF_APPROVED, models.Run.DIFF_NOT_FOUND):
-            successful += 1
-            total += 1
-        elif run.status == models.Run.DIFF_FOUND:
-            failed += 1
-            total += 1
-        elif run.status in (models.Run.NEEDS_DIFF, models.Run.DATA_PENDING):
-            total += 1
-        elif run.status == models.Run.NO_DIFF_NEEDED:
-            baseline += 1
-
-    complete = successful + failed
-    return total, complete, successful, failed, baseline
-
-
 @app.route('/release', methods=['GET', 'POST'])
 @auth.build_access_required
 def view_release():
@@ -158,13 +139,10 @@ def view_release():
 
     form.validate()
 
-    release = (
-        models.Release.query
-        .filter_by(
-            build_id=build.id,
-            name=form.name.data,
-            number=form.number.data)
-        .first())
+    ops = operations.BuildOps(build.id)
+    release, run_list, stats_tuple, approval_log = ops.get_release(
+        form.name.data, form.number.data)
+
     if not release:
         abort(404)
 
@@ -191,34 +169,15 @@ def view_release():
         db.session.add(release)
         db.session.commit()
 
+        ops.evict()
+
         return redirect(url_for(
             'view_release',
             id=build.id,
             name=release.name,
             number=release.number))
 
-    # Sort errors first, then by name. Also show errors that were manually
-    # approved, so the paging sort order stays the same even after users
-    # approve a diff on the run page.
-    def sort(run):
-        if run.status in models.Run.DIFF_NEEDED_STATES:
-            return (0, run.name)
-        return (1, run.name)
-
-    run_list = sorted(release.runs, key=sort)
-
-    total, complete, successful, failed, baseline = classify_runs(run_list)
-
-    # Figure out who marked is as good it
-    approval_log = None
-    if release.status in (models.Release.GOOD, models.Release.BAD):
-        approval_log = (
-            models.AdminLog.query
-            .filter_by(release_id=release.id)
-            .filter(models.AdminLog.log_type.in_(
-                (models.AdminLog.RELEASE_BAD, models.AdminLog.RELEASE_GOOD)))
-            .order_by(models.AdminLog.created.desc())
-            .first())
+    total, complete, successful, failed, baseline = stats_tuple
 
     # Update form values for rendering
     form.good.data = True
@@ -293,13 +252,10 @@ def view_run():
 
     form.validate()
 
-    run = (
-        models.Run.query
-        .join(models.Release)
-        .filter(models.Release.name == form.name.data)
-        .filter(models.Release.number == form.number.data)
-        .filter(models.Run.name == form.test.data)
-        .first())
+    ops = operations.BuildOps(build.id)
+    run, next_run, previous_run, approval_log = ops.get_run(
+        form.name.data, form.number.data, form.test.data)
+
     if not run:
         abort(404)
 
@@ -320,6 +276,8 @@ def view_run():
         db.session.add(run)
         db.session.commit()
 
+        ops.evict()
+
         return redirect(url_for(
             request.endpoint,
             id=build.id,
@@ -328,21 +286,9 @@ def view_run():
             test=run.name,
             type=file_type))
 
-    ops = operations.BuildOps(build.id)
-    next_run, previous_run = ops.get_next_previous_runs(run)
-
     # Update form values for rendering
     form.approve.data = True
     form.disapprove.data = True
-
-    # Figure out who approved it
-    approval_log = None
-    if run.status == models.Run.DIFF_APPROVED:
-        approval_log = (
-            models.AdminLog.query
-            .filter_by(run_id=run.id, log_type=models.AdminLog.RUN_APPROVED)
-            .order_by(models.AdminLog.created.desc())
-            .first())
 
     context = dict(
         build=build,

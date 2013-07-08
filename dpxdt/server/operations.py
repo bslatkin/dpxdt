@@ -155,7 +155,58 @@ class BuildOps(object):
         return candidate_list, run_stats_dict
 
     @cache.memoize(per_instance=True)
-    def get_next_previous_runs(self, run):
+    def get_release(self, release_name, release_number):
+        release = (
+            models.Release.query
+            .filter_by(
+                build_id=self.build_id,
+                name=release_name,
+                number=release_number)
+            .first())
+
+        if not release:
+            return None, None, None, None
+
+        # Sort errors first, then by name. Also show errors that were manually
+        # approved, so the paging sort order stays the same even after users
+        # approve a diff on the run page.
+        def sort(run):
+            if run.status in models.Run.DIFF_NEEDED_STATES:
+                return (0, run.name)
+            return (1, run.name)
+
+        run_list = sorted(release.runs, key=sort)
+
+        total, successful, failed, baseline = 0, 0, 0, 0
+        for run in run_list:
+            if run.status in (models.Run.DIFF_APPROVED, models.Run.DIFF_NOT_FOUND):
+                successful += 1
+                total += 1
+            elif run.status == models.Run.DIFF_FOUND:
+                failed += 1
+                total += 1
+            elif run.status in (models.Run.NEEDS_DIFF, models.Run.DATA_PENDING):
+                total += 1
+            elif run.status == models.Run.NO_DIFF_NEEDED:
+                baseline += 1
+
+        complete = successful + failed
+        stats_tuple = (total, complete, successful, failed, baseline)
+
+        approval_log = None
+        if release.status in (models.Release.GOOD, models.Release.BAD):
+            approval_log = (
+                models.AdminLog.query
+                .filter_by(release_id=release.id)
+                .filter(models.AdminLog.log_type.in_(
+                    (models.AdminLog.RELEASE_BAD,
+                     models.AdminLog.RELEASE_GOOD)))
+                .order_by(models.AdminLog.created.desc())
+                .first())
+
+        return release, run_list, stats_tuple, approval_log
+
+    def _get_next_previous_runs(self, run):
         next_run = None
         previous_run = None
 
@@ -217,11 +268,37 @@ class BuildOps(object):
 
         return next_run, previous_run
 
+    @cache.memoize(per_instance=True)
+    def get_run(self, release_name, release_number, test_name):
+        run = (
+            models.Run.query
+            .join(models.Release)
+            .filter(models.Release.name == release_name)
+            .filter(models.Release.number == release_number)
+            .filter(models.Run.name == test_name)
+            .first())
+        if not run:
+            return None, None, None, None
+
+        next_run, previous_run = self._get_next_previous_runs(run)
+
+        approval_log = None
+        if run.status == models.Run.DIFF_APPROVED:
+            approval_log = (
+                models.AdminLog.query
+                .filter_by(run_id=run.id,
+                           log_type=models.AdminLog.RUN_APPROVED)
+                .order_by(models.AdminLog.created.desc())
+                .first())
+
+        return run, next_run, previous_run, approval_log
+
     def evict(self):
         """Evict all caches relating to this build."""
         logging.debug('Evicting cache for %r', self)
         cache.delete_memoized(self.get_candidates)
-        cache.delete_memoized(self.get_next_previous_runs)
+        cache.delete_memoized(self.get_release)
+        cache.delete_memoized(self.get_run)
 
 
 # Connect API events to cache eviction.
