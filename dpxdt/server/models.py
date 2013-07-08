@@ -43,6 +43,10 @@ class User(db.Model):
     def get_auth_type(self):
         return self.id.split(':', 1)[0]
 
+    # For flask-cache memoize key.
+    def __repr__(self):
+        return 'User(id=%r)' % self.get_id()
+
     # Methods required by flask-login.
     def is_authenticated(self):
         return True
@@ -61,10 +65,6 @@ class User(db.Model):
 
     def __ne__(self, other):
         return other.id != self.id
-
-    # For flask-cache memoize key.
-    def __repr__(self):
-        return 'User(id=%r)' % self.get_id()
 
 
 class ApiKey(db.Model):
@@ -236,3 +236,7 @@ class AdminLog(db.Model):
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     log_type = db.Column(db.Enum(*LOG_TYPES), nullable=False)
     message = db.Column(db.Text)
+
+    # For flask-cache memoize key.
+    def __repr__(self):
+        return 'AdminLog(id=%r)' % self.id
