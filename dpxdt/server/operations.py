@@ -25,20 +25,6 @@ from dpxdt.server import models
 from dpxdt.server import signals
 
 
-def instance_memoize(f):
-    """TODO"""
-    @functools.wraps(f)
-    def wrapped(*args, **kwargs):
-        @cache.memoize(make_name=lambda fname: '%r.%s' % (args[0], fname))
-        @functools.wraps(f)
-        def instance_wrapped(*a, **k):
-            return f(*a, **k)
-
-        return instance_wrapped(*args, **kwargs)
-
-    return wrapped
-
-
 class UserOps(object):
     """Cacheable operations for user-specified information."""
 
@@ -49,7 +35,7 @@ class UserOps(object):
     def __repr__(self):
         return 'caching.UserOps(user_id=%r)' % self.user_id
 
-    @cache.memoize()
+    @cache.memoize(per_instance=True)
     def load(self):
         if not self.user_id:
             return None
@@ -58,7 +44,7 @@ class UserOps(object):
             db.session.expunge(user)
         return user
 
-    @cache.memoize()
+    @cache.memoize(per_instance=True)
     def get_builds(self):
         if self.user_id:
             user = models.User.query.get(self.user_id)
@@ -81,7 +67,7 @@ class UserOps(object):
 
         return build_list
 
-    @cache.memoize()
+    @cache.memoize(per_instance=True)
     def owns_build(self, build_id):
         build = models.Build.query.get(build_id)
         user_is_owner = False
@@ -93,8 +79,9 @@ class UserOps(object):
 
     def evict(self):
         """Evict all caches related to this user."""
-        cache.delete_memoized(self.get_builds, self)
-        cache.delete_memoized(self.owns_build, self)
+        cache.delete_memoized(self.load)
+        cache.delete_memoized(self.get_builds)
+        cache.delete_memoized(self.owns_build)
 
 
 class BuildOps(object):
@@ -107,7 +94,7 @@ class BuildOps(object):
     def __repr__(self):
         return 'caching.BuildOps(build_id=%r)' % self.build_id
 
-    @cache.memoize()
+    @cache.memoize(per_instance=True)
     def get_candidates(self, page_size, offset):
         candidate_list = (
             models.Release.query
@@ -162,7 +149,7 @@ class BuildOps(object):
 
         return candidate_list, run_stats_dict
 
-    @cache.memoize()
+    @cache.memoize(per_instance=True)
     def get_next_previous_runs(self, run):
         next_run = None
         previous_run = None
@@ -227,10 +214,8 @@ class BuildOps(object):
 
     def evict(self):
         """Evict all caches relating to this build."""
-        cache.delete_memoized(self.get_candidates, self)
-        # xxx get_next_previous_runs isn't working right because
-        # it needs to evict all run caches for one build
-        cache.delete_memoized(self.get_next_previous_runs, self)
+        cache.delete_memoized(self.get_candidates)
+        cache.delete_memoized(self.get_next_previous_runs)
 
 
 # Connect API events to cache eviction.

@@ -90,7 +90,7 @@ def view_build():
     page_size = 20
     offset = request.args.get('offset', 0, type=int)
 
-    ops = operations.Build(build.id)
+    ops = operations.BuildOps(build.id)
     candidate_list, run_stats_dict = ops.get_candidates(page_size, offset)
 
     has_next_page = len(candidate_list) > page_size
