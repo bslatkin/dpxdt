@@ -36,6 +36,7 @@ from . import login
 import config
 from dpxdt.server import forms
 from dpxdt.server import models
+from dpxdt.server import operations
 from dpxdt.server import utils
 
 
@@ -48,7 +49,7 @@ FETCH_TIMEOUT_SECONDS = 60
 
 @login.user_loader
 def load_user(user_id):
-    user = models.User.query.get(user_id)
+    user = operations.UserOps(user_id).load()
     if user and user.is_authenticated():
         logging.debug('Authenticated as user=%r', user.get_id())
     return user
@@ -197,18 +198,16 @@ def can_user_access_build(param_name):
         logging.debug('Build ID in param_name=%r was missing', param_name)
         abort(400)
 
-    build = models.Build.query.get(build_id)
+    ops = operations.UserOps(current_user.get_id())
+    build, user_is_owner = ops.owns_build(build_id)
     if not build:
         logging.debug('Could not find build_id=%r', build_id)
         abort(404)
 
-    user_is_owner = False
-    if current_user.is_authenticated():
-        user_is_owner = build.is_owned_by(current_user.id)
-
-        if not user_is_owner:
-            claim_invitations(current_user)
-            user_is_owner = build.is_owned_by(current_user.id)
+    if current_user.is_authenticated() and not user_is_owner:
+        ops.evict()
+        claim_invitations(current_user)
+        build, user_is_owner = ops.owns_build(build_id)
 
     if not user_is_owner:
         if request.method != 'GET':
@@ -453,8 +452,14 @@ def claim_invitations(user):
 def manage_admins():
     """Page for viewing and managing build admins."""
     build = g.build
+
+    # Do not show cached data
+    db.session.add(build)
+    db.session.refresh(build)
+
     add_form = forms.AddAdminForm()
     if add_form.validate_on_submit():
+
         invitation_user_id = '%s:%s' % (
             models.User.EMAIL_INVITATION, add_form.email_address.data)
 
@@ -465,11 +470,14 @@ def manage_admins():
                 email_address=add_form.email_address.data)
             db.session.add(invitation_user)
 
+        db.session.add(build)
+        db.session.add(invitation_user)
+        db.session.refresh(build, lockmode='update')
+
         build.owners.append(invitation_user)
         save_admin_log(build, invited_new_admin=True,
                        message=invitation_user.email_address)
 
-        db.session.add(build)
         db.session.commit()
 
         logging.info('Added user=%r as owner to build_id=%r',
@@ -512,6 +520,11 @@ def revoke_admin():
                           'id=%r, build_id=%r', user.id, build.id)
             abort(400)
 
+        db.session.add(build)
+        db.session.add(user)
+        db.session.refresh(build, lockmode='update')
+        db.session.refresh(user, lockmode='update')
+
         user_is_owner = build.owners.filter_by(id=user.id)
         if not user_is_owner:
             logging.debug('User being revoked admin access is not owner. '
@@ -521,8 +534,9 @@ def revoke_admin():
         build.owners.remove(user)
         save_admin_log(build, revoked_admin=True, message=user.email_address)
 
-        db.session.add(build)
         db.session.commit()
+
+        operations.UserOps(user.get_id()).evict()
 
     return redirect(url_for('manage_admins', build_id=build.id))
 

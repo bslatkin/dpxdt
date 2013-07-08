@@ -32,18 +32,14 @@ from . import login
 from dpxdt.server import auth
 from dpxdt.server import forms
 from dpxdt.server import models
+from dpxdt.server import operations
+from dpxdt.server import signals
 
 
 @app.route('/')
 def homepage():
     """Renders the homepage."""
-    build_list = (
-        models.Build.query
-        .filter_by(public=True)
-        .order_by(models.Build.created.desc())
-        .limit(1000)
-        .all())
-
+    build_list = []
     if current_user.is_authenticated():
         if not login_fresh():
             logging.debug('User needs a fresh token')
@@ -51,12 +47,7 @@ def homepage():
 
         auth.claim_invitations(current_user)
 
-        # List builds you own first, followed by public ones.
-        build_list = (
-            current_user.builds
-            .order_by(models.Build.created.desc())
-            .limit(1000)
-            .all()) + build_list
+    build_list = operations.UserOps(current_user.get_id()).get_builds()
 
     return render_template(
         'home.html',
@@ -79,6 +70,8 @@ def new_build():
         auth.save_admin_log(build, created_build=True, message=build.name)
 
         db.session.commit()
+
+        operations.UserOps(current_user.get_id()).evict()
 
         logging.info('Created build via UI: build_id=%r, name=%r',
                      build.id, build.name)
@@ -380,56 +373,8 @@ def view_run():
             test=run.name,
             type=file_type))
 
-    # We sort the runs in the release by diffs first, then by name. Simulate
-    # that behavior here with multiple queries.
-    previous_run = None
-    next_run = None
-    if run.status in models.Run.DIFF_NEEDED_STATES:
-        previous_run = (
-            models.Run.query
-            .filter_by(release_id=run.release_id)
-            .filter(models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
-            .filter(models.Run.name < run.name)
-            .order_by(models.Run.name.desc())
-            .first())
-        next_run = (
-            models.Run.query
-            .filter_by(release_id=run.release_id)
-            .filter(models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
-            .filter(models.Run.name > run.name)
-            .order_by(models.Run.name)
-            .first())
-
-        if not next_run:
-            next_run = (
-                models.Run.query
-                .filter_by(release_id=run.release_id)
-                .filter(~models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
-                .order_by(models.Run.name)
-                .first())
-    else:
-        previous_run = (
-            models.Run.query
-            .filter_by(release_id=run.release_id)
-            .filter(~models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
-            .filter(models.Run.name < run.name)
-            .order_by(models.Run.name.desc())
-            .first())
-        next_run = (
-            models.Run.query
-            .filter_by(release_id=run.release_id)
-            .filter(~models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
-            .filter(models.Run.name > run.name)
-            .order_by(models.Run.name)
-            .first())
-
-        if not previous_run:
-            previous_run = (
-                models.Run.query
-                .filter_by(release_id=run.release_id)
-                .filter(models.Run.status.in_(models.Run.DIFF_NEEDED_STATES))
-                .order_by(models.Run.name.desc())
-                .first())
+    ops = operations.BuildOps(build.id)
+    next_run, previous_run = ops.get_next_previous_runs(run)
 
     # Update form values for rendering
     form.approve.data = True

@@ -91,6 +91,7 @@ from . import db
 from dpxdt import constants
 from dpxdt.server import auth
 from dpxdt.server import models
+from dpxdt.server import signals
 from dpxdt.server import work_queue
 from dpxdt.server import utils
 
@@ -338,6 +339,9 @@ def request_run():
     db.session.add(current_run)
     db.session.commit()
 
+    signals.run_updated_via_api.send(
+        app, build=build, release=current_release, run=current_run)
+
     return flask.jsonify(
         success=True,
         build_id=build.id,
@@ -451,6 +455,9 @@ def report_run():
     db.session.add(run)
     _check_release_done_processing(release)
     db.session.commit()
+
+    signals.run_updated_via_api.send(
+        app, build=build, release=release, run=run)
 
     logging.info('Updated run: build_id=%r, release_name=%r, '
                  'release_number=%d, run_name=%r, status=%r',
