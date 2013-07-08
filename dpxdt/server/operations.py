@@ -16,6 +16,10 @@
 """Cacheable operations and eviction for models in the frontend."""
 
 import functools
+import logging
+
+# Local libraries
+import sqlalchemy
 
 # Local modules
 from . import app
@@ -79,6 +83,7 @@ class UserOps(object):
 
     def evict(self):
         """Evict all caches related to this user."""
+        logging.debug('Evicting cache for %r', self)
         cache.delete_memoized(self.load)
         cache.delete_memoized(self.get_builds)
         cache.delete_memoized(self.owns_build)
@@ -131,7 +136,7 @@ class BuildOps(object):
                         runs_successful=0,
                         runs_failed=0,
                         runs_baseline=0)
-                    run_stats_dict[candidate.id] = stats_dict
+                    run_stats_dict[candidate_id] = stats_dict
 
                 if status in (models.Run.DIFF_APPROVED,
                               models.Run.DIFF_NOT_FOUND):
@@ -214,6 +219,7 @@ class BuildOps(object):
 
     def evict(self):
         """Evict all caches relating to this build."""
+        logging.debug('Evicting cache for %r', self)
         cache.delete_memoized(self.get_candidates)
         cache.delete_memoized(self.get_next_previous_runs)
 

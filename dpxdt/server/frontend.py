@@ -23,7 +23,6 @@ from flask import Flask, abort, g, redirect, render_template, request, url_for
 from flask.ext.login import (
     current_user, fresh_login_required, login_fresh, login_required)
 from flask.ext.wtf import Form
-import sqlalchemy
 
 # Local modules
 from . import app
