@@ -179,13 +179,15 @@ class BuildOps(object):
 
         total, successful, failed, baseline = 0, 0, 0, 0
         for run in run_list:
-            if run.status in (models.Run.DIFF_APPROVED, models.Run.DIFF_NOT_FOUND):
+            if run.status in (models.Run.DIFF_APPROVED,
+                              models.Run.DIFF_NOT_FOUND):
                 successful += 1
                 total += 1
             elif run.status == models.Run.DIFF_FOUND:
                 failed += 1
                 total += 1
-            elif run.status in (models.Run.NEEDS_DIFF, models.Run.DATA_PENDING):
+            elif run.status in (models.Run.NEEDS_DIFF,
+                                models.Run.DATA_PENDING):
                 total += 1
             elif run.status == models.Run.NO_DIFF_NEEDED:
                 baseline += 1
