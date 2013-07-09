@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export PYTHONPATH=./dependencies/lib:$PYTHONPATH
+export PYTHONPATH=.:./dependencies/lib:$PYTHONPATH
 export CAPTURE_SCRIPT=dpxdt/client/capture.js
 
 # Update these for your environment:
