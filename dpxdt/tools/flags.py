@@ -39,5 +39,5 @@ gflags.DEFINE_string(
     'but before screenshotting.')
 
 gflags.DEFINE_string(
-    'cookies_file_json', None,
+    'cookies', None,
     'Filename containing a JSON array of cookies to set.')
