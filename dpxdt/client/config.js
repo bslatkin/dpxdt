@@ -5,5 +5,6 @@
         "height": 768
     },
     "injectCss": ".my-css-rules-here { display: none; }\n.foo { visibility: hidden; }",
-    "injectJs": "document.getElementById('foobar').innerText = 'foo';"
+    "injectJs": "document.getElementById('foobar').innerText = 'foo';",
+    "cookiesFileJson": "../../cookies.json"
 }

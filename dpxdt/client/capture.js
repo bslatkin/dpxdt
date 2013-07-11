@@ -25,7 +25,7 @@ if (system.args.length == 3) {
     configPath = system.args[1];
     outputPath = system.args[2];
 } else {
-    console.log('Usage: phantomjs capture.js <config.js>');
+    console.log('Usage: phantomjs capture.js <config.js> <outputPath>');
     phantom.exit(1);
 }
 
@@ -56,6 +56,13 @@ if (config.viewportSize) {
         width: config.viewportSize.width,
         height: config.viewportSize.height
     }
+}
+
+if (config.cookiesFileJson) {
+    var cookies = JSON.parse(fs.read(config.cookiesFileJson));
+    cookies.forEach(function(cookie) {
+        phantom.addCookie(cookie);
+    });
 }
 
 // Echo all console messages from the page to our log.
