@@ -58,9 +58,8 @@ if (config.viewportSize) {
     }
 }
 
-if (config.cookiesFileJson) {
-    var cookies = JSON.parse(fs.read(config.cookiesFileJson));
-    cookies.forEach(function(cookie) {
+if (config.cookies) {
+    config.cookies.forEach(function(cookie) {
         phantom.addCookie(cookie);
     });
 }
