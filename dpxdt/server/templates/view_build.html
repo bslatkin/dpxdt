@@ -50,6 +50,7 @@ Build '{{ build.name }}'
                                         </abbr>
                                     </div>
                                     {% with stats_dict = run_stats_dict[candidate.id] %}
+                                        {% set alert_wrapper=False %}
                                         {% set runs_total = stats_dict.runs_total %}
                                         {% set runs_complete = stats_dict.runs_complete %}
                                         {% set runs_successful = stats_dict.runs_successful %}

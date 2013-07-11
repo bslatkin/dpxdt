@@ -32,7 +32,8 @@ from dpxdt.server import app
 # logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
 
 
-# When in production use precompiled templates.
+# When in production use precompiled templates. Sometimes templates break
+# in production. To debug templates there, comment this out entirely.
 if os.environ.get('SERVER_SOFTWARE', '').startswith('Google App Engine'):
     import jinja2
     app.jinja_env.auto_reload = False

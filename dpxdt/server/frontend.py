@@ -95,14 +95,21 @@ def view_build():
     if has_next_page:
         candidate_list = candidate_list[:-1]
 
-    # Collate by release name, order releases by latest creation.
+    # Collate by release name, order releases by latest creation. Init stats.
     release_dict = {}
     created_dict = {}
+    run_stats_dict = {}
     for candidate in candidate_list:
         release_list = release_dict.setdefault(candidate.name, [])
         release_list.append(candidate)
         max_created = created_dict.get(candidate.name, candidate.created)
         created_dict[candidate.name] = max(candidate.created, max_created)
+        run_stats_dict[candidate.id] = dict(
+            runs_total=0,
+            runs_complete=0,
+            runs_successful=0,
+            runs_failed=0,
+            runs_baseline=0)
 
     # Sort each release by candidate number descending
     for release_list in release_dict.itervalues():
@@ -115,18 +122,8 @@ def view_build():
     release_name_list = [key for _, key in release_age_list]
 
     # Count totals for each run state within that release.
-    run_stats_dict = {}
     for candidate_id, status, count in stats_counts:
-        if candidate_id in run_stats_dict:
-            stats_dict = run_stats_dict[candidate_id]
-        else:
-            stats_dict = dict(
-                runs_total=0,
-                runs_complete=0,
-                runs_successful=0,
-                runs_failed=0,
-                runs_baseline=0)
-            run_stats_dict[candidate_id] = stats_dict
+        stats_dict = run_stats_dict[candidate_id]
 
         if status in (models.Run.DIFF_APPROVED,
                       models.Run.DIFF_NOT_FOUND):

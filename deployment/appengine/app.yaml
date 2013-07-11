@@ -49,3 +49,15 @@ handlers:
 - url: .*
   script: main.application
   secure: always
+
+
+skip_files:
+# These are default skip files values
+- ^(.*/)?#.*#
+- ^(.*/)?.*~
+- ^(.*/)?.*\.py[co]
+- ^(.*/)?.*/RCS/.*
+- ^(.*/)?\..*
+# Don't upload Jinja2 by default; the built-in module (from "libraries" above
+# has a c-extension that provides better debugging).
+- ^(.*/)?lib/jinja2(/.*)?
