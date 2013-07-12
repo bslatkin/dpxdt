@@ -266,6 +266,9 @@ class SiteDiff(workers.WorkflowItem):
                 config_dict['injectCss'] = FLAGS.inject_css
             if FLAGS.inject_js:
                 config_dict['injectJs'] = FLAGS.inject_js
+            if FLAGS.cookies:
+                config_dict['cookies'] = json.loads(
+                    open(FLAGS.cookies).read())
             config_data = json.dumps(config_dict)
 
             run_requests.append(release_worker.RequestRunWorkflow(
