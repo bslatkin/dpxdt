@@ -37,3 +37,7 @@ gflags.DEFINE_string(
     'inject_js', None,
     'JavaScript to inject into all captured pages after they have loaded '
     'but before screenshotting.')
+
+gflags.DEFINE_string(
+    'cookies', None,
+    'Filename containing a JSON array of cookies to set.')

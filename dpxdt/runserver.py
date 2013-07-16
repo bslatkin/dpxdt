@@ -34,15 +34,18 @@ gflags.DEFINE_bool(
     'When true, run queue worker threads locally in the same process '
     'as the server.')
 
-gflags.DEFINE_bool('reload_code', False,
+gflags.DEFINE_bool(
+    'reload_code', False,
     'Reload code on every request. Should only be used in local development.')
 
-gflags.DEFINE_bool('ignore_auth', False,
+gflags.DEFINE_bool(
+    'ignore_auth', False,
     'Ignore any need for authentication for API and frontend accesses. You '
     'should only do this for local development!')
 
 gflags.DEFINE_integer('port', 5000, 'Port to run the HTTP server on.')
 
+gflags.DEFINE_string('host', '0.0.0.0', 'Host argument for the server.')
 
 
 def main(argv):
@@ -64,6 +67,7 @@ def main(argv):
 
     if FLAGS.local_queue_workers:
         coordinator = runworker.run_workers()
+
         # If the babysitter thread dies, the whole process goes down.
         def worker_babysitter():
             try:
@@ -78,7 +82,7 @@ def main(argv):
     if FLAGS.ignore_auth:
         server.app.config['IGNORE_AUTH'] = True
 
-    server.app.run(debug=FLAGS.reload_code, port=FLAGS.port)
+    server.app.run(debug=FLAGS.reload_code, host=FLAGS.host, port=FLAGS.port)
 
 
 if __name__ == '__main__':
