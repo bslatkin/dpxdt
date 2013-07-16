@@ -99,6 +99,16 @@ class BuildOps(object):
     def __repr__(self):
         return 'caching.BuildOps(build_id=%r)' % self.build_id
 
+    @staticmethod
+    def sort_run(run):
+        """Sort function for runs within a release."""
+        # Sort errors first, then by name. Also show errors that were manually
+        # approved, so the paging sort order stays the same even after users
+        # approve a diff on the run page.
+        if run.status in models.Run.DIFF_NEEDED_STATES:
+            return (0, run.name)
+        return (1, run.name)
+
     @cache.memoize(per_instance=True)
     def get_candidates(self, page_size, offset):
         candidate_list = (
@@ -110,6 +120,10 @@ class BuildOps(object):
             .all())
 
         stats_counts = []
+
+        has_next_page = len(candidate_list) > page_size
+        if has_next_page:
+            candidate_list = candidate_list[:-1]
 
         if candidate_list:
             candidate_keys = [c.id for c in candidate_list]
@@ -126,7 +140,7 @@ class BuildOps(object):
         for candidate in candidate_list:
             db.session.expunge(candidate)
 
-        return candidate_list, stats_counts
+        return has_next_page, candidate_list, stats_counts
 
     @cache.memoize(per_instance=True)
     def get_release(self, release_name, release_number):
@@ -142,6 +156,7 @@ class BuildOps(object):
             return None, None, None
 
         run_list = list(release.runs)
+        run_list.sort(key=BuildOps.sort_run)
 
         approval_log = None
         if release.status in (models.Release.GOOD, models.Release.BAD):
@@ -218,6 +233,27 @@ class BuildOps(object):
                     .first())
 
         return next_run, previous_run
+
+    @cache.memoize(per_instance=True)
+    def get_all_runs(self, release_name, release_number):
+        run_list = (
+            models.Run.query
+            .join(models.Release)
+            .filter(models.Release.name == release_name)
+            .filter(models.Release.number == release_number)
+            .filter(models.Run.name == test_name)
+            .all())
+        run_list.sort(key=BuildOps.sort_run)
+
+        run_ids = [run.id for run in run_list]
+        approval_log_list = (
+            models.AdminLog.query
+            .filter(models.AdminLog.run_id.in_(run_ids))
+            .filter_by(log_type=models.AdminLog.RUN_APPROVED)
+            .group_by(models.AdminLog.run_id)
+            .order_by(models.AdminLog.created.desc())
+            .first())
+
 
     @cache.memoize(per_instance=True)
     def get_run(self, release_name, release_number, test_name):

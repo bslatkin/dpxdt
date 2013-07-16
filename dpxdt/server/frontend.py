@@ -89,11 +89,8 @@ def view_build():
     offset = request.args.get('offset', 0, type=int)
 
     ops = operations.BuildOps(build.id)
-    candidate_list, stats_counts = ops.get_candidates(page_size, offset)
-
-    has_next_page = len(candidate_list) > page_size
-    if has_next_page:
-        candidate_list = candidate_list[:-1]
+    has_next_page, candidate_list, stats_counts = ops.get_candidates(
+        page_size, offset)
 
     # Collate by release name, order releases by latest creation. Init stats.
     release_dict = {}
@@ -123,9 +120,6 @@ def view_build():
 
     # Count totals for each run state within that release.
     for candidate_id, status, count in stats_counts:
-        if candidate_id not in run_stats_dict:
-            continue
-
         stats_dict = run_stats_dict[candidate_id]
 
         if status in (models.Run.DIFF_APPROVED,
@@ -203,16 +197,6 @@ def view_release():
             id=build.id,
             name=release.name,
             number=release.number))
-
-    # Sort errors first, then by name. Also show errors that were manually
-    # approved, so the paging sort order stays the same even after users
-    # approve a diff on the run page.
-    def sort(run):
-        if run.status in models.Run.DIFF_NEEDED_STATES:
-            return (0, run.name)
-        return (1, run.name)
-
-    run_list.sort(key=sort)
 
     total, successful, failed, baseline = 0, 0, 0, 0
     for run in run_list:
