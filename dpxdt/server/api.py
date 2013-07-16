@@ -241,6 +241,7 @@ def _get_or_create_run(build):
     run = (
         models.Run.query
         .filter_by(release_id=release.id, name=run_name)
+        .with_lockmode('update')
         .first())
     if not run:
         # Ignore re-reports of the same run name for this release.
@@ -478,6 +479,7 @@ def runs_done():
     release = (
         models.Release.query
         .filter_by(build_id=build.id, name=release_name, number=release_number)
+        .with_lockmode('update')
         .first())
     utils.jsonify_assert(release, 'Release does not exist')
 
