@@ -123,6 +123,9 @@ def view_build():
 
     # Count totals for each run state within that release.
     for candidate_id, status, count in stats_counts:
+        if candidate_id not in run_stats_dict:
+            continue
+
         stats_dict = run_stats_dict[candidate_id]
 
         if status in (models.Run.DIFF_APPROVED,
