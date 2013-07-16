@@ -53,7 +53,7 @@
         </div>
     </div>
 {% elif log_file or config_file %}
-    <div id="artifact-iframe-container">
+    <div id="artifact-iframe-container" class="container">
         <iframe src="{{ url_for('download', sha1sum=sha1sum, build_id=build.id) }}" class="artifact-iframe"></iframe>
     </div>
     <script>
