@@ -58,7 +58,7 @@ gflags.DEFINE_string(
     'Path to the script that drives the phantomjs process')
 
 gflags.DEFINE_integer(
-    'phantomjs_timeout', 120,
+    'phantomjs_timeout', 300,
     'Seconds until giving up on a phantomjs sub-process and trying again.')
 
 
