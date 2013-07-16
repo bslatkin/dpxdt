@@ -241,7 +241,6 @@ def _get_or_create_run(build):
     run = (
         models.Run.query
         .filter_by(release_id=release.id, name=run_name)
-        .with_lockmode('update')
         .first())
     if not run:
         # Ignore re-reports of the same run name for this release.
@@ -364,6 +363,10 @@ def report_run():
     build = g.build
     release, run = _get_or_create_run(build)
 
+    # Do a transaction on the run itself
+    db.session.begin_nested()
+    db.session.refresh(run, lockmode='update')
+
     current_url = request.form.get('url', type=str)
     current_image = request.form.get('image', type=str)
     current_log = request.form.get('log', type=str)
@@ -456,6 +459,8 @@ def report_run():
     # Flush the run so querying for Runs in _check_release_done_processing
     # will be find the new run too.
     db.session.add(run)
+    db.session.commit()  # Nested transaction
+
     _check_release_done_processing(release)
     db.session.commit()
 
