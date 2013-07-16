@@ -53,6 +53,8 @@ def jsonify_error(message_or_exception, status_code=400):
     else:
         message = message_or_exception
 
+    logging.debug('Returning status=%d, error message: %s',
+                  status_code, message)
     response = jsonify(error=message)
     response.status_code = status_code
     return response
