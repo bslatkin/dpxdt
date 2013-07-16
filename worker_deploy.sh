@@ -29,5 +29,7 @@ echo "cp -R $ARCHIVE_NAME/runit /etc/service/dpxdt_worker"
 echo
 echo "# Modify dpxdt_worker/flags.cfg with your API keys"
 echo "# Modify /etc/tmpreader.conf to enable /tmp file cleanups"
+echo "# Rebuild the font cache with:"
+echo "fc-cache -fv"
 echo
 echo "sv start dpxdt_worker"
