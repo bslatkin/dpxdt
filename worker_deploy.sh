@@ -15,9 +15,13 @@ tar zcf $OUTPUT_ARCHIVE -C /tmp $ARCHIVE_NAME
 
 echo "scp $OUTPUT_ARCHIVE foo@bar:/tmp"
 echo
-echo "# On the host machine as root:"
+echo "# Modify /etc/apt/sources.list and add 'contrib' and 'non-free' repos"
+echo "# You'll need this for the MS fonts package. Then as root:"
+echo "apt-get update"
 echo
-echo "apt-get install imagemagick less libfreetype6 libfontconfig runit tmpreaper"
+echo "# On the host machine as root:"
+echo "apt-get install imagemagick less libfreetype6 libfontconfig runit tmpreaper ttf-mscorefonts-installer"
+echo
 echo "cp /tmp/$ARCHIVE_NAME.tar.gz $INSTALL_PATH"
 echo "cd $INSTALL_PATH"
 echo "tar zxf $ARCHIVE_NAME.tar.gz"
