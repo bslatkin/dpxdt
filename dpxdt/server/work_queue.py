@@ -407,8 +407,18 @@ def manage_work_queue(queue_name):
         primary_key = (modify_form.task_id.data, queue_name)
         task = WorkQueue.query.get(primary_key)
         if task:
-            logging.info('Deleted task_id=%r', modify_form.task_id.data)
-            db.session.delete(task)
+            # Retry
+            if modify_form.action.data == 'retry':
+                logging.info('Retry this bad boy.')
+                # Brett - is this ok, or just plain dirty?
+                #task.live = True
+                #task.finished = None
+                #task.heartbeat = ''
+                #task.heartbeat_number = 0
+            # Delete
+            else:
+                logging.info('Deleted task_id=%r', modify_form.task_id.data)
+                db.session.delete(task)
             db.session.commit()
         else:
             logging.warning('Could not find task_id=%r to delete',

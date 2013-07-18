@@ -93,4 +93,6 @@ class ModifyWorkQueueTaskForm(Form):
     """Form for modifying a work queue task."""
 
     task_id = HiddenField()
+    action = HiddenField()
     delete = SubmitField('Delete')
+    retry = SubmitField('Retry')

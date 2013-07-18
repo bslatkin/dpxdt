@@ -70,9 +70,18 @@ Work queue: {{ queue_name }}
                     <div class="row-fluid">
                         <div class="span12">
                             <form class="inline-form" action="{{ url_for('manage_work_queue', queue_name=queue_name) }}" method="post">
+                                <input type="hidden" name="action" value="delete">
                                 {{ modify_form.csrf_token }}
                                 {{ modify_form.task_id }}
                                 {{ modify_form.delete(class_='btn btn-inverse btn-small') }}
+                            </form>
+
+
+                            <form class="inline-form" action="{{ url_for('manage_work_queue', queue_name=queue_name) }}" method="post">
+                                <input type="hidden" name="action" value="retry">
+                                {{ modify_form.csrf_token }}
+                                {{ modify_form.task_id }}
+                                {{ modify_form.retry(class_='btn btn-small') }}
                             </form>
                         </div>
                     </div>
