@@ -407,8 +407,15 @@ def manage_work_queue(queue_name):
         primary_key = (modify_form.task_id.data, queue_name)
         task = WorkQueue.query.get(primary_key)
         if task:
-            logging.info('Deleted task_id=%r', modify_form.task_id.data)
-            db.session.delete(task)
+            logging.info('Action: %s task_id=%r',
+                         modify_form.action.data, modify_form.task_id.data)
+            if modify_form.action.data == 'retry':
+                task.live = True
+                task.lease_attempts = 0
+                task.heartbeat = 'Retrying ...'
+                db.session.add(task)
+            else:
+                db.session.delete(task)
             db.session.commit()
         else:
             logging.warning('Could not find task_id=%r to delete',

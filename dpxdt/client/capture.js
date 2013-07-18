@@ -114,20 +114,11 @@ page.onResourceReceived = function(response) {
 // TODO: Header key/value pairs
 // TODO: User agent spoofing shortcut
 
+/**
+ * Just for debug logging.
+ */
 page.onInitialized = function() {
     console.log('page.onInitialized');
-    page.evaluate(function() {
-        if (document.readyState == 'complete' ||
-            document.readyState == 'loaded') {
-            // This fires when there is no JS on the page or other slow-loading
-            // resources that prevent DOM readiness.
-            window.callPhantom({readyState: document.readyState});
-        } else {
-            document.addEventListener('DOMContentLoaded', function() {
-                window.callPhantom({readyState: 'DOMContentLoaded'});
-            }, false);
-        }
-    });
 };
 
 
