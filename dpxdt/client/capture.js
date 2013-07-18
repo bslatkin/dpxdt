@@ -172,10 +172,12 @@ page.doDepictedScreenshots = function() {
         }, config);
     }
 
-
-    console.log('Taking the screenshot!');
-    page.render(outputPath);
-    phantom.exit(0);
+    // TODO: Do we need this setTimeout?
+    window.setTimeout(function() {
+        console.log('Taking the screenshot!');
+        page.render(outputPath);
+        phantom.exit(0);
+    }, 10000);
 };
 
 // Screenshot
