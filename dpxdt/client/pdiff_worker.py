@@ -59,6 +59,37 @@ class PdiffFailedError(queue_worker.GiveUpAfterAttemptsError):
     """Running a perceptual diff failed for some reason."""
 
 
+class ResizeWorkflow(process_worker.ProcessWorkflow):
+    """Workflow for making images to be diffed the same size."""
+
+    def __init__(self, log_path, ref_path, run_path, resized_ref_path):
+        """Initializer.
+
+        Args:
+            log_path: Where to write the verbose logging output.
+            ref_path: Path to reference screenshot to diff.
+            run_path: Path to the most recent run screenshot to diff.
+            resized_ref_path: Where the resized ref image should be written.
+        """
+        process_worker.ProcessWorkflow.__init__(
+            self, log_path, timeout_seconds=FLAGS.pdiff_timeout)
+        self.ref_path = ref_path
+        self.run_path = run_path
+        self.resized_ref_path = resized_ref_path
+
+    def get_args(self):
+        return [
+            'composite',
+            '-compose',
+            'src',
+            '-gravity',
+            'NorthWest',
+            self.ref_path,
+            self.run_path,
+            self.resized_ref_path,
+        ]
+
+
 class PdiffWorkflow(process_worker.ProcessWorkflow):
     """Workflow for doing perceptual diffs using pdiff."""
 
@@ -116,6 +147,7 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
         output_path = tempfile.mkdtemp()
         try:
             ref_path = os.path.join(output_path, 'ref')
+            ref_resized_path = os.path.join(output_path, 'ref_resized')
             run_path = os.path.join(output_path, 'run')
             diff_path = os.path.join(output_path, 'diff.png')
             log_path = os.path.join(output_path, 'log.txt')
@@ -128,9 +160,17 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
                     build_id, run_sha1sum, result_path=run_path)
             ]
 
+            yield heartbeat('Resizing reference image')
+            returncode = yield ResizeWorkflow(
+                log_path, ref_path, run_path, ref_resized_path)
+            if returncode != 0:
+                raise PdiffFailedError(
+                    max_attempts,
+                    'Could not resize reference image to size of new image')
+
             yield heartbeat('Running perceptual diff process')
             returncode = yield PdiffWorkflow(
-                log_path, ref_path, run_path, diff_path)
+                log_path, ref_resized_path, run_path, diff_path)
 
             diff_success = returncode == 0
             max_attempts = FLAGS.pdiff_task_max_attempts

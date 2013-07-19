@@ -53,7 +53,7 @@ class ProcessWorkflow(workers.WorkflowItem):
 
     def run(self, log_path, timeout_seconds=30):
         start_time = time.time()
-        with open(log_path, 'w') as output_file:
+        with open(log_path, 'a') as output_file:
             args = self.get_args()
             logging.info('item=%r Running subprocess: %r', self, args)
             try:
