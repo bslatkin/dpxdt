@@ -45,17 +45,21 @@ try {
 
 // Configure the page.
 var page = require('webpage').create();
+
 if (config.viewportSize) {
     page.viewportSize = {
         width: config.viewportSize.width,
         height: config.viewportSize.height
     };
+}
+
+if (config.clipRect) {
     page.clipRect = {
         left: 0,
         top: 0,
-        width: config.viewportSize.width,
-        height: config.viewportSize.height
-    }
+        width: config.clipRect.width,
+        height: config.clipRect.height
+    };
 }
 
 if (config.cookies) {
@@ -64,26 +68,35 @@ if (config.cookies) {
     });
 }
 
+// Do not load Google Analytics URLs. We don't want to pollute stats.
+var badResources = [
+    'www.google-analytics.com'
+];
+
+if (config.resourcesToIgnore) {
+    badResources.forEach(function(bad) {
+        config.resourcesToIgnore.push(bad);
+    });
+} else {
+    config.resourcesToIgnore = badResources;
+}
+
 // Echo all console messages from the page to our log.
 page.onConsoleMessage = function(message, line, source) {
     console.log('>> CONSOLE: ' + message);
 };
 
-// Do not load Google Analytics URLs. We don't want to pollute stats.
+
+// We don't necessarily want to load every resource a page asks for.
 page.onResourceRequested = function(requestData, networkRequest) {
-    var badUrls = [
-        'http://www.google-analytics.com/ga.js',
-        'https://www.google-analytics.com/ga.js',
-    ];
-    for (var i = 0, n = badUrls.length; i < n; i++) {
-        var bad = badUrls[i];
-        if (requestData.url == bad) {
-            console.log('Blocking: ' + bad);
+    config.resourcesToIgnore.forEach(function(bad) {
+        if (requestData.url.match(new RegExp(bad))) {
+            console.log('Blocking resource: ' + requestData.url);
             networkRequest.abort();
             return;
         }
-    }
-}
+    });
+};
 
 // Log all resources loaded as part of this request, for debugging.
 page.onResourceReceived = function(response) {
@@ -101,23 +114,37 @@ page.onResourceReceived = function(response) {
 // TODO: Header key/value pairs
 // TODO: User agent spoofing shortcut
 
+/**
+ * Just for debug logging.
+ */
 page.onInitialized = function() {
-    page.evaluate(function() {
-        if (document.readyState == 'complete' ||
-            document.readyState == 'loaded') {
-            // This fires when there is no JS on the page or other slow-loading
-            // resources that prevent DOM readiness.
-            window.callPhantom('DOMContentLoaded');
-        } else {
-            document.addEventListener('DOMContentLoaded', function() {
-                window.callPhantom('DOMContentLoaded');
-            }, false);
-        }
-    });
+    console.log('page.onInitialized');
 };
 
-page.onCallback = function() {
-    console.log('Dom ready: ' + config.targetUrl);
+
+/**
+ * Dumps out any error logs.
+ * @param {string} msg The exception text.
+ * @param {string} trace The exception trace.
+ */
+page.onError = function(msg, trace) {
+    console.log('=( page.onError', msg, trace);
+};
+
+
+/**
+ * Just for debug logging.
+ */
+page.onLoadFinished = function() {
+    console.log('page.onLoadFinished');
+};
+
+
+/**
+ * Our main screenshot routine.
+ */
+page.doDepictedScreenshots = function() {
+    console.log('page.doDepictedScreenshots', outputPath);
 
     if (config.injectCss) {
         console.log('Injecting CSS: ' + config.injectCss);
@@ -136,9 +163,9 @@ page.onCallback = function() {
         }, config);
     }
 
-    // TODO: Add callback event to wait for DOM completion after JS injection
-
+    // TODO: Do we need this setTimeout?
     window.setTimeout(function() {
+        console.log('Taking the screenshot!');
         page.render(outputPath);
         phantom.exit(0);
     }, 10000);
@@ -146,5 +173,7 @@ page.onCallback = function() {
 
 // Screenshot
 page.open(config.targetUrl, function(status) {
-    console.log('Finished loading page: ' + config.targetUrl);
+    console.log('Finished loading page:', config.targetUrl,
+                'w/ status:', status);
+    page.doDepictedScreenshots();
 });
