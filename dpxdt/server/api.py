@@ -363,8 +363,6 @@ def report_run():
     build = g.build
     release, run = _get_or_create_run(build)
 
-    # Do a transaction on the run itself
-    db.session.begin_nested()
     db.session.refresh(run, lockmode='update')
 
     current_url = request.form.get('url', type=str)
@@ -457,9 +455,9 @@ def report_run():
             task_id=task_id)
 
     # Flush the run so querying for Runs in _check_release_done_processing
-    # will be find the new run too.
+    # will be find the new run too and we won't deadlock.
     db.session.add(run)
-    db.session.commit()  # Nested transaction
+    db.session.flush()
 
     _check_release_done_processing(release)
     db.session.commit()
