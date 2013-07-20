@@ -24,7 +24,7 @@
 	url = https://github.com/maxcountryman/flask-login
 [submodule "dependencies/flask-cache"]
 	path = dependencies/flask-cache
-	url = https://github.com/thadeusb/flask-cache.git
+	url = https://github.com/bslatkin/flask-cache.git
 [submodule "dependencies/blinker"]
 	path = dependencies/blinker
 	url = https://github.com/jek/blinker.git
