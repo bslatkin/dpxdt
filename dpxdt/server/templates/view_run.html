@@ -9,14 +9,9 @@ Test run '{{ run.name }}'
 {%- endblock description %}
 
 
-{% block head_extra %}
-    <script src="{{ url_for('static', filename='js/run_page.js') }}"></script>
-{% endblock head_extra %}
-
-
 {% block run_row_left %}
     {% if sha1sum %}
-        <a id="test_link" href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=run.name) }}">Test: {{ run.name }}</a>
+        <a class="big-link fast-load" id="test_link" href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=run.name) }}">Test: {{ run.name }}</a>
     {% else %}
         Test: {{ run.name }}
     {% endif %}
@@ -80,10 +75,10 @@ Test run '{{ run.name }}'
             <div class="span5 text-right">
                 <p>
                 {% if previous_run %}
-                    <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=previous_run.name, type=file_type) }}" class="btn"  id="previous_button">&larr; Prev test</a>
+                    <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=previous_run.name, type=file_type) }}" class="btn fast-load" id="previous_button">&larr; Prev test</a>
                 {% endif %}
                 {% if next_run %}
-                    <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=next_run.name, type=file_type) }}" class="btn" id="next_button">&thinsp;Next test &rarr;</a>
+                    <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=next_run.name, type=file_type) }}" class="btn fast-load" id="next_button">&thinsp;Next test &rarr;</a>
                 {% endif %}
                 </p>
             </div>
@@ -129,7 +124,7 @@ Test run '{{ run.name }}'
             <div class="row-fluid">
                 <div class="span12">
                     {% if run.ref_image %}
-                        <a class="run-image-link" href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='before') }}"><img src="{{ url_for('download', sha1sum=run.ref_image, build_id=build.id) }}" class="run-image"></a>
+                        <a class="run-image-link fast-load" href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='before') }}"><img src="{{ url_for('download', sha1sum=run.ref_image, build_id=build.id) }}" class="run-image"></a>
                     {% else %}
                         No image
                     {% endif %}
@@ -152,7 +147,7 @@ Test run '{{ run.name }}'
             <div class="row-fluid">
                 <div class="span12">
                     {% if run.diff_image %}
-                        <a class="run-image-link" href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='diff') }}"><img src="{{ url_for('download', sha1sum=run.diff_image, build_id=build.id) }}" class="run-image"></a>
+                        <a class="run-image-link fast-load" href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='diff') }}"><img src="{{ url_for('download', sha1sum=run.diff_image, build_id=build.id) }}" class="run-image"></a>
                     {% else %}
                         No image
                     {% endif %}
@@ -187,7 +182,7 @@ Test run '{{ run.name }}'
             <div class="row-fluid">
                 <div class="span12">
                     {% if run.image %}
-                        <a class="run-image-link" href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='after') }}"><img src="{{ url_for('download', sha1sum=run.image, build_id=build.id) }}" class="run-image"></a>
+                        <a class="run-image-link fast-load" href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='after') }}"><img src="{{ url_for('download', sha1sum=run.image, build_id=build.id) }}" class="run-image"></a>
                     {% else %}
                         No image
                     {% endif %}
@@ -199,5 +194,3 @@ Test run '{{ run.name }}'
 </div>
 
 {% endblock belowbody%}
-
-{% include 'keyboard_shortcuts_dialog.html' %}

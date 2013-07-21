@@ -5,9 +5,9 @@
     {% if detail or release or run %}
         <div class="span5">
             {% if run %}
-                <a href="{{ url_for('view_run', id=release.build_id, name=release.name, number=release.number, test=run.name) }}" title="Release: {{ release.name }} #{{ release.number }}" class="big-link">{{ run.name }}</a>
+                <a href="{{ url_for('view_run', id=release.build_id, name=release.name, number=release.number, test=run.name) }}" title="Release: {{ release.name }} #{{ release.number }}" class="big-link ellipsis-overflow">{{ run.name }}</a>
             {% elif release %}
-                <a href="{{ url_for('view_release', id=release.build_id, name=release.name, number=release.number) }}" class="big-link">{{ release.name }} #{{ release.number }}</a>
+                <a href="{{ url_for('view_release', id=release.build_id, name=release.name, number=release.number) }}" class="big-link ellipsis-overflow">{{ release.name }} #{{ release.number }}</a>
             {% else %}
                 {{ detail }}
             {% endif %}

@@ -81,7 +81,7 @@ Release '{{ release.name }}' attempt #{{ release.number }}
             {% for run in run_list %}
                 <div class="row release-test-section">
                     <div class="span9 ellipsis-overflow" title="Test name">
-                        <a href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=run.name) }}" class="big-link">{{ run.name }}</a>
+                        <a href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=run.name) }}" class="big-link fast-load">{{ run.name }}</a>
                     </div>
                     <div class="span3" title="Test status">
                         {% set alert_wrapper=False %}

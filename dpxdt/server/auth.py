@@ -19,6 +19,7 @@ import datetime
 import functools
 import json
 import logging
+import time
 import urllib
 import urllib2
 
@@ -250,6 +251,9 @@ def build_access_required(function_or_param_name):
         @functools.wraps(f)
         def wrapped(*args, **kwargs):
             g.build = can_user_access_build(param_name)
+            if not utils.is_production():
+                # Insert a sleep to emulate page loading in production.
+                time.sleep(0.5)
             return f(*args, **kwargs)
         return wrapped
 

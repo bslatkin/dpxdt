@@ -32,3 +32,6 @@
 [submodule "dependencies/gae_mini_profiler"]
 	path = dependencies/gae_mini_profiler
 	url = https://github.com/kamens/gae_mini_profiler
+[submodule "dependencies/jquery-pjax"]
+	path = dependencies/jquery-pjax
+	url = https://github.com/defunkt/jquery-pjax.git

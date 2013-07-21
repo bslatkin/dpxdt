@@ -15,6 +15,7 @@
 
 """Frontend for the API server."""
 
+import datetime
 import logging
 
 # Local libraries
@@ -351,3 +352,12 @@ def view_run():
 @app.route('/static/dummy')
 def view_dummy_url():
     return app.send_static_file('dummy/index.html')
+
+
+@app.after_request
+def cache_pjax(response):
+    """Make it so all PJAX requests are cached."""
+    if 'X-PJAX' in request.headers:
+        response.cache_control.max_age = 60
+        response.last_modified = datetime.datetime.utcnow()
+    return response

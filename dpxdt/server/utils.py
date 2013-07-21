@@ -99,12 +99,10 @@ def timesince(when):
     return 'now'
 
 
-
 def human_uuid():
     """Returns a good UUID for using as a human readable string."""
     return base64.b32encode(
         hashlib.sha1(uuid.uuid4().bytes).digest()).lower().strip('=')
-
 
 
 def password_uuid():

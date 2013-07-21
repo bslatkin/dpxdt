@@ -12,9 +12,12 @@
         <link rel="icon shortcut" href="{{ url_for('static', filename='img/favicon.ico') }}">
         <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo_big.png') }}">
         <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-        {% block head_extra %}{% endblock head_extra %}
+        <script src="{{ url_for('static', filename='js/jquery.pjax.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/run_page.js') }}"></script>
     </head>
-    <body class="endpoint-{{ request.endpoint }}">
+    <body>
+        <div class="endpoint-{{ request.endpoint }}" id="root-container">
+
         <div class="container" id="body-container">
 
 {% block header %}
@@ -33,7 +36,7 @@
         </div>
         {% if build %}
             {% if url_for('view_build') != request.path %}
-                <h1><a href="{{ url_for('view_build', id=build.id) }}">Build: {{ build.name }}</a></h1>
+                <h1><a class="big-link" href="{{ url_for('view_build', id=build.id) }}">Build: {{ build.name }}</a></h1>
             {% else %}
                 <h1>Build: {{ build.name }}</h1>
             {% endif %}
@@ -54,7 +57,7 @@
     <div class="row">
         <div class="span7">
             {% if run %}
-                <h4 class="ellipsis-overflow"><a id="release_link" href="{{ url_for('view_release', id=build.id, name=release.name, number=release.number) }}">Release: {{ release.name }} #{{ release.number }}</a></h4>
+                <h4 class="ellipsis-overflow"><a class="big-link" id="release_link" href="{{ url_for('view_release', id=build.id, name=release.name, number=release.number) }}">Release: {{ release.name }} #{{ release.number }}</a></h4>
             {% else %}
                 <h4>Release: {{ release.name }} #{{ release.number }}</h4>
             {% endif %}
@@ -91,7 +94,7 @@
 {% block body %}
 {% endblock body %}
 
-        </div>
+        </div>  {# End body-container #}
 
 {% block belowbody %}
 {% endblock belowbody%}
@@ -123,10 +126,57 @@
 </div>
 {% endblock footer_container %}
 
+        <script>
+            // This needs to run on every new fragment that is rendered.
+            $(document).ready(function() {
+                $('a.fast-load').each(function(i, el) {
+                    $.pjax({
+                        url: el.href,
+                        container: '#root-container',
+                        prefetch: true});
+                });
+            });
+        </script>
+
+    </div>  {# End root-container #}
+
+{% include 'keyboard_shortcuts_dialog.html' %}
+
 {# gae mini profiler #}
 {% if profiler_includes %}
     {{ profiler_includes()|safe }}
 {% endif %}
+
+    <script>
+        // This only runs on the very first page that loads, to setup pjax.
+        $(document).pjax(
+            'a.fast-load',
+            {
+                container: '#root-container',
+                fragment: '#root-container',
+            });
+        $(document).on('pjax:send', function(e, xhr, settings) {
+            console.log('Loading: ' + settings.url);
+            $('#loading_dialog').show();
+        });
+        $(document).on('pjax:complete', function(e, xhr, textStatus, settings) {
+            console.log('Complete: ' + textStatus + ' for ' + settings.url);
+            $('#loading_dialog').hide();
+        });
+        $(document).on('pjax:beforeSend', function(e, xhr, settings) {
+            if (settings.prefetch) {
+                console.log('Prefetching: ' + settings.url);
+                $.ajax({
+                    url: settings.url,
+                    headers: {
+                        'X-PJAX': true,
+                        'X-PJAX-Container': settings.context.selector
+                    }
+                });
+                e.preventDefault();
+            }
+        });
+    </script>
 
     </body>
 </html>

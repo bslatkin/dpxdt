@@ -86,5 +86,11 @@ function handleKeyPress(e) {
 
 
 $(document).ready(function() {
-    $(document).keypress(handleKeyPress);
+    var root = $('#root-container');
+    if (root.hasClass('endpoint-view_run') ||
+        root.hasClass('endpoint-view_image') ||
+        root.hasClass('endpoint-view_log') ||
+        root.hasClass('endpoint-view_config')) {
+        $(document).keypress(handleKeyPress);
+    }
 });
