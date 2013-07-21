@@ -15,7 +15,9 @@
 
 """Frontend for the API server."""
 
+import base64
 import datetime
+import hashlib
 import logging
 
 # Local libraries
@@ -34,6 +36,20 @@ from dpxdt.server import forms
 from dpxdt.server import models
 from dpxdt.server import operations
 from dpxdt.server import signals
+
+
+def modtime_id(*mod_times):
+    """TODO"""
+    digest = hashlib.sha1()
+    for mod_time in mod_times:
+        digest.update(str(mod_time))
+    return base64.b32encode(digest.digest()).lower().strip('=')
+
+
+@app.context_processor
+def frontend_context():
+    """Adds extra default context for rendered templates."""
+    return dict(modtime_id=modtime_id)
 
 
 @app.route('/')
@@ -315,7 +331,7 @@ def view_run():
 
         ops.evict()
 
-        # Include the status in the URL for pjax caching.
+        # Include the modified time in the URL for pjax caching.
         return redirect(url_for(
             request.endpoint,
             id=build.id,
@@ -323,7 +339,7 @@ def view_run():
             number=run.release.number,
             test=run.name,
             type=file_type,
-            status=run.status))
+            modified=run.modified))
 
     # Update form values for rendering
     form.approve.data = True
