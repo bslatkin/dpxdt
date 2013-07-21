@@ -199,4 +199,27 @@ Test run '{{ run.name }}'
 
 </div>
 
+
+{% if next_run %}
+{# Preload the images of the next run in the list. #}
+<script>
+    var nextImages = [];
+    {% if next_run.image %}
+        nextImages.push("{{ url_for('download', sha1sum=next_run.image, build_id=build.id)|safe }}");
+    {% endif %}
+    {% if next_run.diff_image %}
+        nextImages.push("{{ url_for('download', sha1sum=next_run.diff_image, build_id=build.id)|safe }}");
+    {% endif %}
+    {% if next_run.ref_image %}
+        nextImages.push("{{ url_for('download', sha1sum=next_run.ref_image, build_id=build.id)|safe }}");
+    {% endif %}
+
+    for (var i = 0; i < nextImages.length; i++) {
+        var url = nextImages[i];
+        console.log('Prefetching image: ' + url);
+        $.get(url);
+    }
+</script>
+{% endif %}
+
 {% endblock belowbody%}
