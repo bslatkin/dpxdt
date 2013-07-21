@@ -156,6 +156,7 @@
             {
                 container: '#root-container',
                 fragment: '#root-container',
+                timeout: 3
             });
         $(document).on('pjax:send', function(e, xhr, settings) {
             console.log('Loading: ' + settings.url);
@@ -177,14 +178,6 @@
                 });
                 e.preventDefault();
             }
-        });
-        $(document).on('submit', 'form.fast-load', function(e) {
-            $.pjax.submit(
-                e,
-                {
-                    container:'#root-container',
-                    fragment: '#root-container'
-                });
         });
     </script>
 
