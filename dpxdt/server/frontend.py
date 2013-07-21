@@ -374,8 +374,9 @@ def view_dummy_url():
 
 @app.after_request
 def cache_pjax(response):
-    """Make it so all PJAX requests are cached."""
+    """Make it so all PJAX requests are cached in the browser."""
     if 'X-PJAX' in request.headers:
-        response.cache_control.max_age = 60
+        response.cache_control.max_age = 600
+        response.cache_control.private = True
         response.last_modified = datetime.datetime.utcnow()
     return response
