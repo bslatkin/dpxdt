@@ -39,7 +39,7 @@ Release '{{ release.name }}' attempt #{{ release.number }}
 <div class="row">
     <div class="span12">
         {% if release.status in ('reviewing', 'receiving') %}
-            <form action="{{ url_for('view_release') }}" method="post" class="inline-block">
+            <form action="{{ url_for(request.endpoint) }}" method="post" class="inline-block">
                 {{ release_form.csrf_token }}
                 {{ release_form.id }}
                 {{ release_form.name }}
@@ -49,7 +49,7 @@ Release '{{ release.name }}' attempt #{{ release.number }}
                     <button type="submit" class="btn btn-primary">Mark release as good</button>
                 </p>
             </form>
-            <form action="{{ url_for('view_release') }}" method="post" class="inline-block">
+            <form action="{{ url_for(request.endpoint) }}" method="post" class="inline-block">
                 {{ release_form.csrf_token }}
                 {{ release_form.id }}
                 {{ release_form.name }}
