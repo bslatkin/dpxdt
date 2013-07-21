@@ -315,13 +315,15 @@ def view_run():
 
         ops.evict()
 
+        # Include the status in the URL for pjax caching.
         return redirect(url_for(
             request.endpoint,
             id=build.id,
             name=run.release.name,
             number=run.release.number,
             test=run.name,
-            type=file_type))
+            type=file_type,
+            status=run.status))
 
     # Update form values for rendering
     form.approve.data = True

@@ -176,6 +176,14 @@
                 e.preventDefault();
             }
         });
+        $(document).on('submit', 'form.fast-load', function(e) {
+            $.pjax.submit(
+                e,
+                {
+                    container:'#root-container',
+                    fragment: '#root-container'
+                });
+        });
     </script>
 
     </body>

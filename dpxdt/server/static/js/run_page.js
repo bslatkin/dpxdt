@@ -27,6 +27,14 @@ function fireClickEvent(el) {
 // See list of virtual keyboard codes here:
 // https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent
 function handleKeyPress(e) {
+    var root = $('#root-container');
+    if (!(root.hasClass('endpoint-view_run') ||
+          root.hasClass('endpoint-view_image') ||
+          root.hasClass('endpoint-view_log') ||
+          root.hasClass('endpoint-view_config'))) {
+        return;
+    }
+
     switch (String.fromCharCode(e.which)) {
         case 'j':  // J - Next
         case 'J':
@@ -86,11 +94,5 @@ function handleKeyPress(e) {
 
 
 $(document).ready(function() {
-    var root = $('#root-container');
-    if (root.hasClass('endpoint-view_run') ||
-        root.hasClass('endpoint-view_image') ||
-        root.hasClass('endpoint-view_log') ||
-        root.hasClass('endpoint-view_config')) {
-        $(document).keypress(handleKeyPress);
-    }
+    $(document).keypress(handleKeyPress);
 });
