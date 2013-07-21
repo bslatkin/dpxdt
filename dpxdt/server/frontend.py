@@ -39,7 +39,7 @@ from dpxdt.server import signals
 
 
 def modtime_id(*mod_times):
-    """TODO"""
+    """Creates a unique ID from a list of modification times."""
     digest = hashlib.sha1()
     for mod_time in mod_times:
         digest.update(str(mod_time))
@@ -339,7 +339,8 @@ def view_run():
             number=run.release.number,
             test=run.name,
             type=file_type,
-            modified=run.modified))
+            modified=modtime_id(
+                build.modified, run.release.modified, run.modified)))
 
     # Update form values for rendering
     form.approve.data = True
