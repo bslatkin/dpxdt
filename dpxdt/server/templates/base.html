@@ -12,7 +12,6 @@
         <link rel="icon shortcut" href="{{ url_for('static', filename='img/favicon.ico') }}">
         <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo_big.png') }}">
         <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-        <script src="{{ url_for('static', filename='js/jquery.pjax.js') }}"></script>
         <script src="{{ url_for('static', filename='js/run_page.js') }}"></script>
     </head>
     <body>
@@ -99,6 +98,9 @@
 {% block belowbody %}
 {% endblock belowbody%}
 
+{% block beforefooter %}
+{% endblock beforefooter %}
+
 {% block footer_container %}
 <div class="container">
     <div class="row">
@@ -126,60 +128,14 @@
 </div>
 {% endblock footer_container %}
 
-        <script>
-            // This needs to run on every new fragment that is rendered.
-            $(document).ready(function() {
-                $('a.fast-load').each(function(i, el) {
-                    $.pjax({
-                        url: el.href,
-                        container: '#root-container',
-                        prefetch: true});
-                });
-            });
-        </script>
-
     </div>  {# End root-container #}
 
 {% include 'keyboard_shortcuts_dialog.html' %}
-
-{% include 'loading_dialog.html' %}
 
 {# gae mini profiler #}
 {% if profiler_includes %}
     {{ profiler_includes()|safe }}
 {% endif %}
-
-    <script>
-        // This only runs on the very first page that loads, to setup pjax.
-        $(document).pjax(
-            'a.fast-load',
-            {
-                container: '#root-container',
-                fragment: '#root-container',
-                timeout: 3
-            });
-        $(document).on('pjax:send', function(e, xhr, settings) {
-            console.log('Loading: ' + settings.url);
-            $('#loading_dialog').show();
-        });
-        $(document).on('pjax:complete', function(e, xhr, textStatus, settings) {
-            console.log('Complete: ' + textStatus + ' for ' + settings.url);
-            $('#loading_dialog').hide();
-        });
-        $(document).on('pjax:beforeSend', function(e, xhr, settings) {
-            if (settings.prefetch) {
-                console.log('Prefetching: ' + settings.url);
-                $.ajax({
-                    url: settings.url,
-                    headers: {
-                        'X-PJAX': true,
-                        'X-PJAX-Container': settings.context.selector
-                    }
-                });
-                e.preventDefault();
-            }
-        });
-    </script>
 
     </body>
 </html>

@@ -331,16 +331,13 @@ def view_run():
 
         ops.evict()
 
-        # Include the modified time in the URL for pjax caching.
         return redirect(url_for(
             request.endpoint,
             id=build.id,
             name=run.release.name,
             number=run.release.number,
             test=run.name,
-            type=file_type,
-            modified=modtime_id(
-                build.modified, run.release.modified, run.modified)))
+            type=file_type))
 
     # Update form values for rendering
     form.approve.data = True
@@ -365,19 +362,17 @@ def view_run():
     else:
         template_name = 'view_run.html'
 
-    return render_template(template_name, **context)
+    response = flask.Response(render_template(template_name, **context))
+
+    # Special URLs that are formulated with a modified ID can be cached.
+    if request.args.get('modified'):
+        response.cache_control.max_age = 600
+        response.cache_control.private = True
+        response.last_modified = datetime.datetime.utcnow()
+
+    return response
 
 
 @app.route('/static/dummy')
 def view_dummy_url():
     return app.send_static_file('dummy/index.html')
-
-
-@app.after_request
-def cache_pjax(response):
-    """Make it so all PJAX requests are cached in the browser."""
-    if 'X-PJAX' in request.headers:
-        response.cache_control.max_age = 600
-        response.cache_control.private = True
-        response.last_modified = datetime.datetime.utcnow()
-    return response
