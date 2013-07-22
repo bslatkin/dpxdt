@@ -83,6 +83,27 @@ function handleKeyPress(e) {
             fireClickEvent(nextLink);
             break;
 
+        case '1':  // 1 - Go to the before image
+            var flipLinks = $('.flip-link');
+            if (flipLinks.length == 3) {
+                fireClickEvent(flipLinks[0]);
+            }
+            break;
+
+        case '2':  // 2 - Go to the diff image
+            var flipLinks = $('.flip-link');
+            if (flipLinks.length == 3) {
+                fireClickEvent(flipLinks[1]);
+            }
+            break;
+
+        case '3':  // 3 - Go to the after image
+            var flipLinks = $('.flip-link');
+            if (flipLinks.length == 3) {
+                fireClickEvent(flipLinks[2]);
+            }
+            break;
+
         case '?':  // ? - Show help dialog
             $('.dialog-close').click(function() {
                 $('#keyboard_shortcuts_dialog').hide();
