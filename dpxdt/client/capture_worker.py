@@ -89,6 +89,7 @@ class CaptureWorkflow(process_worker.ProcessWorkflow):
             FLAGS.phantomjs_binary,
             '--disk-cache=false',
             '--debug=true',
+            '--ignore-ssl-errors=true',
             FLAGS.phantomjs_script,
             self.config_path,
             self.output_path,
