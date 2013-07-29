@@ -98,6 +98,7 @@ from dpxdt.server import utils
 
 @app.route('/api/create_release', methods=['POST'])
 @auth.build_api_access_required
+@utils.retryable_transaction()
 def create_release():
     """Creates a new release candidate for a build."""
     build = g.build
@@ -307,6 +308,7 @@ def _enqueue_capture(build, release, run, url, config_data, baseline=False):
 
 @app.route('/api/request_run', methods=['POST'])
 @auth.build_api_access_required
+@utils.retryable_transaction()
 def request_run():
     """Requests a new run for a release candidate."""
     build = g.build
@@ -358,6 +360,7 @@ def request_run():
 
 @app.route('/api/report_run', methods=['POST'])
 @auth.build_api_access_required
+@utils.retryable_transaction()
 def report_run():
     """Reports data for a run for a release candidate."""
     build = g.build
@@ -474,6 +477,7 @@ def report_run():
 
 @app.route('/api/runs_done', methods=['POST'])
 @auth.build_api_access_required
+@utils.retryable_transaction()
 def runs_done():
     """Marks a release candidate as having all runs reported."""
     build = g.build
@@ -540,6 +544,7 @@ def _save_artifact(build, data, content_type):
 
 @app.route('/api/upload', methods=['POST'])
 @auth.build_api_access_required
+@utils.retryable_transaction()
 def upload():
     """Uploads an artifact referenced by a run."""
     build = g.build
@@ -620,4 +625,3 @@ def download():
         return response
 
     return _get_artifact_response(artifact)
-

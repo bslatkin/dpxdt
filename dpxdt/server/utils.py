@@ -18,6 +18,7 @@
 import base64
 import datetime
 import hashlib
+import functools
 import logging
 import os
 import traceback
@@ -26,9 +27,35 @@ import uuid
 # Local libraries
 import flask
 from flask import abort, g, jsonify
+from sqlalchemy.exc import OperationalError
 
 # Local modules
 from . import app
+from . import db
+
+
+def retryable_transaction(attempts=3, exceptions=(OperationalError,)):
+    """Decorator retries a function when expected exceptions are raised."""
+    assert len(exceptions) > 0
+    assert attempts > 0
+
+    def wrapper(f):
+        @functools.wraps(f)
+        def wrapped(*args, **kwargs):
+            for i in xrange(attempts):
+                try:
+                    return f(*args, **kwargs)
+                except exceptions, e:
+                    if i == (attempts - 1):
+                        raise
+                    logging.warning(
+                        'Retryable error in transaction on attempt %d. %s: %s',
+                        i + 1, e.__class__.__name__, e)
+                    db.session.rollback()
+
+        return wrapped
+
+    return wrapper
 
 
 def jsonify_assert(asserted, message, status_code=400):

@@ -237,10 +237,12 @@ def _get_task_with_policy(queue_name, task_id, owner):
     # Lease delta should be positive, meaning it has not yet expired!
     lease_delta = now - task.eta
     if lease_delta > datetime.timedelta(0):
+        db.session.rollback()
         raise LeaseExpiredError('queue=%r, task_id=%r expired %s' % (
                                 task.queue_name, task_id, lease_delta))
 
     if task.last_owner != owner:
+        db.session.rollback()
         raise NotOwnerError('queue=%r, task_id=%r, owner=%r' % (
                             task.queue_name, task_id, task.last_owner))
 

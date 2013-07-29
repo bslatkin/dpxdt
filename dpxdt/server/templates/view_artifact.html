@@ -20,7 +20,7 @@
                     <span class="flip-link flip-link-selected" class="artifact-type-selected">{{ type|title }}</span>
                 {% else %}
                     {# Include the modified time of the run in the URLs so they can be cached separately. #}
-                    <a class="flip-link fast-load" href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=run.name, type=type, modified=run.modified) }}">{{ type|title }}</a>
+                    <a class="flip-link fast-load" href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=run.name, type=type, modified=modtime_id(build.modified, release.modified, run.modified)) }}">{{ type|title }}</a>
                 {% endif %}
                 {% if not loop.last %}
                     &ndash;
