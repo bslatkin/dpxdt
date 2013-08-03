@@ -87,6 +87,8 @@ REPLACEMENT_REGEXES = [
 
 def clean_url(url, force_scheme=None):
     """Cleans the given URL."""
+    # URL should be ASCII according to RFC 3986
+    url = str(url)
     # Collapse ../../ and related
     url_parts = urlparse.urlparse(url)
     path_parts = []
