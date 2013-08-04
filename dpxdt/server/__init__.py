@@ -32,15 +32,22 @@ import config
 
 
 app = Flask(__name__)
+
+app.config['SECRET_KEY'] = config.SECRET_KEY
+
 app.config['CACHE_TYPE'] = config.CACHE_TYPE
 app.config['CACHE_DEFAULT_TIMEOUT'] = config.CACHE_DEFAULT_TIMEOUT
+
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+
 app.config['REMEMBER_COOKIE_DOMAIN'] = config.SESSION_COOKIE_DOMAIN
-app.config['SECRET_KEY'] = config.SECRET_KEY
 app.config['SESSION_COOKIE_DOMAIN'] = config.SESSION_COOKIE_DOMAIN
+
 app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
-app.config['MAIL_USE_APPENGINE'] = True
+
 app.config['MAIL_DEFAULT_SENDER'] = config.MAIL_DEFAULT_SENDER
+app.config['MAIL_USE_APPENGINE'] = config.MAIL_USE_APPENGINE
+app.config['MAIL_SUPPRESS_SEND'] = config.MAIL_SUPPRESS_SEND
 
 
 db = SQLAlchemy(app)
