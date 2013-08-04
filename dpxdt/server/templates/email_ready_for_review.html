@@ -2,9 +2,25 @@
 
 {% block body %}
 
-<div style="font-weight: bold; font-size: 18px; line-height: 24px; color: #D03C0F">
-Basic Email Container
-</div>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+        <td valign="top">
+            <div>
+                <a href="{{ url_for('view_build', id=build.id) }}" style="font-weight: bold; font-size: 24px; line-height: 32px; color: #000000; text-decoration: none">Build: {{ build.name }}</a>
+            </div>
+            <div>
+                <a href="{{ url_for('view_release', id=build.id, name=release.name, number=release.number) }}" style="font-weight: bold; font-size: 18px; line-height: 32px; color: #000000; text-decoration: none">Release: {{ release.name }} #{{ release.number }}</a>
+            </div>
+            <div>
+
+            </div>
+        </td>
+        <td valign="top">
+            <a href="{{ url_for('homepage') }}"><img width="52" height="58" src="{{ url_for('static', filename='img/logo_big.png') }}" border="0"></a>
+        </td>
+</table>
+
+
 <br>
 
 The 100% wrapper <span style="font-family: Andale Mono, Courier, monospace; color: #666;">&lt;table&gt;</span> is included for clients that strip out the <span style="font-family: Andale Mono, Courier, monospace; color: #666;">&lt;body&gt;</span> tag. Change background color as required.

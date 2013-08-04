@@ -50,7 +50,7 @@ def send_ready_for_review(build_id, release_name, release_number):
     release, run_list, _ = ops.get_release(
         release_name, release_number)
 
-    title = '%s: %s#%d ready for review - Depicted' % (
+    title = '%s: %s #%d ready for review - Depicted' % (
         build.name, release.name, release.number)
 
     email_body = render_template(

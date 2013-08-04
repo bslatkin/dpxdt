@@ -254,7 +254,6 @@ class BuildOps(object):
             .order_by(models.AdminLog.created.desc())
             .first())
 
-
     @cache.memoize(per_instance=True)
     def get_run(self, release_name, release_number, test_name):
         run = (
