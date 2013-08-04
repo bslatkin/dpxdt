@@ -109,6 +109,19 @@ class BuildOps(object):
             return (0, run.name)
         return (1, run.name)
 
+    @staticmethod
+    def get_stats_keys(status):
+        if status in (models.Run.DIFF_APPROVED,
+                      models.Run.DIFF_NOT_FOUND):
+            return ('runs_successful', 'runs_complete', 'runs_total')
+        elif status == models.Run.DIFF_FOUND:
+            return ('runs_failed', 'runs_complete', 'runs_total')
+        elif status == models.Run.NO_DIFF_NEEDED:
+            return ('runs_baseline',)
+        elif status == models.Run.NEEDS_DIFF:
+            return ('runs_total',)
+        return ()
+
     @cache.memoize(per_instance=True)
     def get_candidates(self, page_size, offset):
         candidate_list = (
@@ -158,6 +171,16 @@ class BuildOps(object):
         run_list = list(release.runs)
         run_list.sort(key=BuildOps.sort_run)
 
+        stats_dict = dict(
+            runs_total=0,
+            runs_complete=0,
+            runs_successful=0,
+            runs_failed=0,
+            runs_baseline=0)
+        for run in run_list:
+            for key in self.get_stats_keys(run.status):
+                stats_dict[key] += 1
+
         approval_log = None
         if release.status in (models.Release.GOOD, models.Release.BAD):
             approval_log = (
@@ -175,7 +198,7 @@ class BuildOps(object):
         if approval_log:
             db.session.expunge(approval_log)
 
-        return release, run_list, approval_log
+        return release, run_list, stats_dict, approval_log
 
     def _get_next_previous_runs(self, run):
         next_run = None
