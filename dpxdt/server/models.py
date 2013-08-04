@@ -100,6 +100,8 @@ class Build(db.Model):
     owners = db.relationship('User', secondary=ownership_table,
                              backref=db.backref('builds', lazy='dynamic'),
                              lazy='dynamic')
+    send_email = db.Column(db.Boolean, default=True)
+    email_alias = db.Column(db.String(255))
 
     def is_owned_by(self, user_id):
         return self.owners.filter_by(id=user_id).first() is not None

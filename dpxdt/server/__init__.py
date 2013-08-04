@@ -23,6 +23,7 @@ import os
 from flask import Flask, url_for
 from flask.ext.cache import Cache
 from flask.ext.login import LoginManager
+from flask.ext.mail import Mail
 from flask.ext.sqlalchemy import SQLAlchemy
 import jinja2
 
@@ -38,23 +39,27 @@ app.config['REMEMBER_COOKIE_DOMAIN'] = config.SESSION_COOKIE_DOMAIN
 app.config['SECRET_KEY'] = config.SECRET_KEY
 app.config['SESSION_COOKIE_DOMAIN'] = config.SESSION_COOKIE_DOMAIN
 app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
+app.config['MAIL_USE_APPENGINE'] = True
+app.config['MAIL_DEFAULT_SENDER'] = config.MAIL_DEFAULT_SENDER
 
 
 db = SQLAlchemy(app)
 
 
-login = LoginManager()
-login.init_app(app)
+login = LoginManager(app)
 login.login_view = 'login_view'
 login.refresh_view = 'login_view'
 
 
-cache = Cache()
-cache.init_app(app)
+cache = Cache(app)
+
+
+mail = Mail(app)
 
 
 # Modules with handlers to register with the app
 from dpxdt.server import api
 from dpxdt.server import auth
+from dpxdt.server import emails
 from dpxdt.server import frontend
 from dpxdt.server import work_queue

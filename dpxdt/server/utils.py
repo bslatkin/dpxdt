@@ -87,6 +87,17 @@ def jsonify_error(message_or_exception, status_code=400):
     return response
 
 
+def ignore_exceptions(f):
+    """Decorator catches and ignores any exceptions raised by this function."""
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except:
+            logging.exception("Ignoring exception in %r", f)
+    return wrapped
+
+
 # Based on http://flask.pocoo.org/snippets/33/
 @app.template_filter()
 def timesince(when):
