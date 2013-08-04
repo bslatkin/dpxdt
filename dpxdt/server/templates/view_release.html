@@ -10,6 +10,12 @@ Release '{{ release.name }}' attempt #{{ release.number }}
 
 
 {% block run_row_left %}
+    {% set alert_wrapper=False %}
+    {% set runs_total = stats_dict.runs_total %}
+    {% set runs_complete = stats_dict.runs_complete %}
+    {% set runs_successful = stats_dict.runs_successful %}
+    {% set runs_failed = stats_dict.runs_failed %}
+    {% set runs_baseline = stats_dict.runs_baseline %}
     {% include 'fragment_runs_complete.html' with context %}
 {% endblock run_row_left %}
 
@@ -32,6 +38,11 @@ Release '{{ release.name }}' attempt #{{ release.number }}
 <div class="row body-section">
     <div class="span12">
         {% set alert_wrapper=True %}
+        {% set runs_total = stats_dict.runs_total %}
+        {% set runs_complete = stats_dict.runs_complete %}
+        {% set runs_successful = stats_dict.runs_successful %}
+        {% set runs_failed = stats_dict.runs_failed %}
+        {% set runs_baseline = stats_dict.runs_baseline %}
         {% include 'fragment_runs_failed.html' with context %}
     </div>
 </div>

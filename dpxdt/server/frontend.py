@@ -138,20 +138,8 @@ def view_build():
     # Count totals for each run state within that release.
     for candidate_id, status, count in stats_counts:
         stats_dict = run_stats_dict[candidate_id]
-
-        if status in (models.Run.DIFF_APPROVED,
-                      models.Run.DIFF_NOT_FOUND):
-            stats_dict['runs_successful'] += count
-            stats_dict['runs_complete'] += count
-            stats_dict['runs_total'] += count
-        elif status == models.Run.DIFF_FOUND:
-            stats_dict['runs_failed'] += count
-            stats_dict['runs_complete'] += count
-            stats_dict['runs_total'] += count
-        elif status == models.Run.NO_DIFF_NEEDED:
-            stats_dict['runs_baseline'] += count
-        elif status == models.Run.NEEDS_DIFF:
-            stats_dict['runs_total'] += count
+        for key in ops.get_stats_keys(status):
+            stats_dict[key] += count
 
     return render_template(
         'view_build.html',
@@ -178,7 +166,7 @@ def view_release():
     form.validate()
 
     ops = operations.BuildOps(build.id)
-    release, run_list, approval_log = ops.get_release(
+    release, run_list, stats_dict, approval_log = ops.get_release(
         form.name.data, form.number.data)
 
     if not release:
@@ -215,23 +203,6 @@ def view_release():
             name=release.name,
             number=release.number))
 
-    total, successful, failed, baseline = 0, 0, 0, 0
-    for run in run_list:
-        if run.status in (models.Run.DIFF_APPROVED,
-                          models.Run.DIFF_NOT_FOUND):
-            successful += 1
-            total += 1
-        elif run.status == models.Run.DIFF_FOUND:
-            failed += 1
-            total += 1
-        elif run.status in (models.Run.NEEDS_DIFF,
-                            models.Run.DATA_PENDING):
-            total += 1
-        elif run.status == models.Run.NO_DIFF_NEEDED:
-            baseline += 1
-
-    complete = successful + failed
-
     # Update form values for rendering
     form.good.data = True
     form.bad.data = True
@@ -242,13 +213,9 @@ def view_release():
         build=build,
         release=release,
         run_list=run_list,
-        runs_total=total,
-        runs_complete=complete,
-        runs_successful=successful,
-        runs_failed=failed,
-        runs_baseline=baseline,
         release_form=form,
-        approval_log=approval_log)
+        approval_log=approval_log,
+        stats_dict=stats_dict)
 
 
 def _get_artifact_context(run, file_type):

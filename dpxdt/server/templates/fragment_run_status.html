@@ -17,7 +17,14 @@
         <strong>
 {% endif %}
 
-<span class="text-{{ run_status }} test-result-mark">
+<span class="text-{{ run_status }} test-result-mark" {% if inline_style -%}
+    {%- if run.status == 'diff_found' -%}
+        style="color: #b94a48"
+    {%- elif run.status == 'diff_not_found' -%}
+        style="color: #3a87ad"
+    {%- endif -%}
+{%- endif -%}
+>
     {% if run.status == 'diff_found' %}
         X
     {% elif run.status == 'diff_not_found' %}

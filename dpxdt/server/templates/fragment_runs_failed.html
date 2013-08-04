@@ -13,7 +13,14 @@
         <div class="alert alert-{{ run_status }}">
             <strong>
     {% else %}
-        <span>
+        <span {% if inline_style -%}
+                {%- if run_status == 'error' -%}
+                    style="color: #b94a48"
+                {%- elif run_status == 'info' -%}
+                    style="color: #3a87ad"
+                {%- endif -%}
+            {%- endif -%}
+        >
     {% endif %}
 
     {% if runs_failed == 1 %}

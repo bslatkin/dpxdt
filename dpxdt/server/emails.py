@@ -47,17 +47,24 @@ def send_ready_for_review(build_id, release_name, release_number):
     build = models.Build.query.get(build_id)
 
     ops = operations.BuildOps(build_id)
-    release, run_list, _ = ops.get_release(
+    release, run_list, stats_dict, _ = ops.get_release(
         release_name, release_number)
 
-    title = '%s: %s #%d ready for review - Depicted' % (
-        build.name, release.name, release.number)
+    if not run_list:
+        logging.debug(
+            'Not sending ready for review email because there are '
+            ' no runs. build_id=%r, release_name=%r, release_number=%d',
+            build.id, release.name, release.number)
+        return
+
+    title = '%s: Ready for review' % build.name
 
     email_body = render_template(
         'email_ready_for_review.html',
         build=build,
         release=release,
-        run_list=run_list)
+        run_list=run_list,
+        stats_dict=stats_dict)
 
     recipients = []
     if build.email_alias:

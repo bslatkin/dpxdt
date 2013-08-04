@@ -165,7 +165,7 @@ def _check_release_done_processing(release):
     release_number = release.number
 
     @utils.after_this_request
-    def send_notification_email():
+    def send_notification_email(response):
         emails.send_ready_for_review(build_id, release_name, release_number)
 
     release.status = models.Release.REVIEWING
