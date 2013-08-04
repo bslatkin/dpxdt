@@ -6,10 +6,8 @@
         <meta name="description" content="{% block description %}{% endblock description %}">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta property="og:image" content="{{ url_for('static', filename='img/logo_big.png', _external=True) }}">
-        {% block bootstrap_include %}
-            <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-            <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap-responsive.min.css') }}">
-        {% endblock bootstrap_include %}
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap-responsive.min.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/base.css') }}">
         <link rel="icon shortcut" href="{{ url_for('static', filename='img/favicon.ico') }}">
         <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo_big.png') }}">
