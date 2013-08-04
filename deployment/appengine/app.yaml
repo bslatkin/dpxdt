@@ -58,6 +58,8 @@ skip_files:
 - ^(.*/)?.*\.py[co]
 - ^(.*/)?.*/RCS/.*
 - ^(.*/)?\..*
-# Don't upload Jinja2 by default; the built-in module (from "libraries" above
-# has a c-extension that provides better debugging).
-- ^(.*/)?lib/jinja2(/.*)?
+# NOTE: In production uncomment the line below. Don't upload Jinja2 by.
+# The built-in module (from "libraries" above) has a c-extension that provides
+# better debugging because it can parse stack frames. For local testing with
+# dev_appserver this must be commented out.
+# - ^(.*/)?lib/jinja2(/.*)?
