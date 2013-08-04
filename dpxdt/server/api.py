@@ -90,6 +90,7 @@ from . import app
 from . import db
 from dpxdt import constants
 from dpxdt.server import auth
+from dpxdt.server import emails
 from dpxdt.server import models
 from dpxdt.server import signals
 from dpxdt.server import work_queue
@@ -156,6 +157,16 @@ def _check_release_done_processing(release):
     logging.info('Release done processing, now reviewing: build_id=%r, '
                  'name=%r, number=%d', release.build_id, release.name,
                  release.number)
+
+    # Send the email at the end of this request so we know it's only
+    # sent a single time (guarded by the release.status check above).
+    build_id = release.build_id
+    release_name = release.name
+    release_number = release.number
+
+    @utils.after_this_request
+    def send_notification_email():
+        emails.send_ready_for_review(build_id, release_name, release_number)
 
     release.status = models.Release.REVIEWING
     db.session.add(release)

@@ -204,10 +204,15 @@ a.big-link {
     background-color: #eee;
 }
 
-/* For internal consoles. */
+/* For internal consoles and debug pages. */
 .workqueue-task-row {
     margin-top: 10px;
     margin-bottom: 10px;
     padding-bottom: 10px;
     border-bottom: 1px solid #ccc;
+}
+
+.debug-email-body {
+    width: 800px;
+    border: 1px solid #000;
 }

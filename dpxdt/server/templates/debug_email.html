@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title -%}
+
+Email debug: {{ request.endpoint }}
+
+{%- endblock title %}
+
+
+{% block page_title %}
+
+Email debug: {{ request.endpoint }}
+
+{% endblock page_title %}
+
+
+{% block body %}
+
+<div class="row">
+    <div class="span12">
+        <h4>{{ message.subject }}</h4>
+
+        <div class="debug-email-body">
+            {{ message.html|safe }}
+        </div>
+    </div>
+</div>
+
+{% endblock body %}
