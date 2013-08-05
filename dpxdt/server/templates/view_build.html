@@ -129,10 +129,12 @@ Build '{{ build.name }}'
 
 {% block footer_left %}
 
-<a href="{{ url_for('manage_admins', build_id=build.id) }}">Manage admins</a>
+<a href="{{ url_for('build_settings', build_id=build.id) }}">Settings</a>
 &ndash;
-<a href="{{ url_for('manage_api_keys', build_id=build.id) }}">Set up API keys</a>
+<a href="{{ url_for('manage_admins', build_id=build.id) }}">Admins</a>
 &ndash;
-<a href="{{ url_for('view_admin_log', id=build.id) }}">Activity log</a>
+<a href="{{ url_for('manage_api_keys', build_id=build.id) }}">API keys</a>
+&ndash;
+<a href="{{ url_for('view_admin_log', build_id=build.id) }}">Activity</a>
 
 {% endblock footer_left %}

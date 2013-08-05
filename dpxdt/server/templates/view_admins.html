@@ -30,7 +30,10 @@ Admin management for '{{ build.name }}'
         <form action="{{ url_for('manage_admins') }}" method="post">
             {{ add_form.csrf_token }}
             {{ add_form.build_id }}
-            {{ add_form.email_address.label }} {{ add_form.email_address }}
+            <div>
+                {{ add_form.email_address.label }}
+                {{ add_form.email_address }}
+            </div>
             <br>
             {{ add_form.add(class_='btn btn-primary') }}
         </form>

@@ -577,7 +577,7 @@ def save_admin_log(build, **kwargs):
 
 @app.route('/activity')
 @fresh_login_required
-@build_access_required('id')
+@build_access_required('build_id')
 def view_admin_log():
     """Page for viewing the log of admin activity."""
     build = g.build

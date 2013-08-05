@@ -23,6 +23,12 @@ from blinker import Namespace
 _signals = Namespace()
 
 
+# The build settings have been modified. Sender is the app. Arguments
+# are (models.Build, models.User). Signal is sent immediately *after* the
+# Build is committed to the DB.
+build_updated = _signals.signal('build-updated')
+
+
 # A release has been created or updated via the API. Sender is the app.
 # Arguments are (models.Build, models.Release). Signal is sent immediately
 # *after* the Release is committed to the DB.

@@ -30,7 +30,10 @@ API key management for '{{ build.name }}'
         <form action="{{ url_for('manage_api_keys') }}" method="post">
             {{ create_form.csrf_token }}
             {{ create_form.build_id }}
-            {{ create_form.purpose.label }} {{ create_form.purpose }}
+            <div>
+                {{ create_form.purpose.label }}
+                {{ create_form.purpose }}
+            </div>
             <br>
             {{ create_form.create(class_='btn btn-primary') }}
         </form>

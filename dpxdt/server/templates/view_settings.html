@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title -%}
+{{ build.name }} &rsaquo; Settings
+{%- endblock title %}
+
+{% block description -%}
+Settings for '{{ build.name }}'
+{%- endblock description %}
+
+{% block body %}
+
+<div class="row">
+    <div class="span12">
+        <h4>Settings</h4>
+
+        {% if settings_form.errors %}
+            <div class="row">
+                <div class="span6 alert alert-error">
+                {% for field, field_errors in settings_form.errors|dictsort %}
+                    <div>
+                        Invalid {{ settings_form[field].label(class="inline") }}
+                    </div>
+                {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <form autocomplete="off" action="{{ url_for('build_settings') }}" method="post">
+            {{ settings_form.csrf_token }}
+            {{ settings_form.build_id }}
+            <div>
+                <label class="checkbox" for="{{ settings_form.send_email.label.field_id }}">
+                    {{ settings_form.send_email }}
+                    {{ settings_form.send_email.label.text }}
+                </label>
+                <span class="help-block">e.g., When a release is ready for review</span>
+            </div>
+            <div>
+                {{ settings_form.email_alias.label }}
+                {{ settings_form.email_alias }}
+                <span class="help-block">Otherwise sent to build admins</span>
+            </div>
+            <br>
+            {{ settings_form.save(class_='btn btn-primary') }}
+        </form>
+    </div>
+</div>
+
+{% endblock body %}
