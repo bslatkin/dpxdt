@@ -38,7 +38,7 @@
         <td valign="top">
             <a href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=run.name, _external=True) }}" style="color: #08c; text-decoration: none; display: block;">{{ run.name }}</a>
         </td>
-        <td width="25%" valign="top" align="right">
+        <td width="25%" valign="top">
             {% set alert_wrapper=False %}
             {% set inline_style=True %}
             {% include 'fragment_run_status.html' with context %}
