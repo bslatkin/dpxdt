@@ -57,7 +57,7 @@ def send_ready_for_review(build_id, release_name, release_number):
             build.id, release.name, release.number)
         return
 
-    title = '%s: Ready for review' % build.name
+    title = '%s: %s - Ready for review' % (build.name, release.name)
 
     email_body = render_template(
         'email_ready_for_review.html',

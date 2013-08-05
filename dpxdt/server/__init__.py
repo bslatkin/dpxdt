@@ -34,6 +34,7 @@ import config
 app = Flask(__name__)
 
 app.config['SECRET_KEY'] = config.SECRET_KEY
+app.config['SERVER_NAME'] = os.environ.get('SERVER_NAME', None)
 
 app.config['CACHE_TYPE'] = config.CACHE_TYPE
 app.config['CACHE_DEFAULT_TIMEOUT'] = config.CACHE_DEFAULT_TIMEOUT
