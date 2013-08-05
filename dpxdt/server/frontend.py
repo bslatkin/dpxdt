@@ -351,8 +351,9 @@ def build_settings():
         build.send_email = settings_form.send_email.data
         build.email_alias = settings_form.email_alias.data
 
-        logging.info('Setting build_id=%r, send_email=%r, email_alias=%r',
-                     build.id, build.send_email, build.email_alias)
+        message = ('send_email=%r, email_alias=%r' % (
+            build.send_email, build.email_alias))
+        auth.save_admin_log(build, changed_settings=True, message=message)
 
         db.session.add(build)
         db.session.commit()

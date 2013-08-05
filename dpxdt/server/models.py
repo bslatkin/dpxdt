@@ -206,6 +206,7 @@ class Run(db.Model):
 class AdminLog(db.Model):
     """Log of admin user actions for a build."""
 
+    CHANGED_SETTINGS = 'changed_settings'
     CREATED_API_KEY = 'created_api_key'
     CREATED_BUILD = 'created_build'
     INVITE_ACCEPTED = 'invite_accepted'
@@ -219,9 +220,9 @@ class AdminLog(db.Model):
     RELEASE_REVIEWING = 'release_reviewing'
 
     LOG_TYPES = frozenset([
-        CREATED_API_KEY, CREATED_BUILD, INVITE_ACCEPTED, INVITED_NEW_ADMIN,
-        REVOKED_ADMIN, REVOKED_API_KEY, RUN_APPROVED, RUN_REJECTED,
-        RELEASE_BAD, RELEASE_GOOD, RELEASE_REVIEWING])
+        CHANGED_SETTINGS, CREATED_API_KEY, CREATED_BUILD, INVITE_ACCEPTED,
+        INVITED_NEW_ADMIN, REVOKED_ADMIN, REVOKED_API_KEY, RUN_APPROVED,
+        RUN_REJECTED, RELEASE_BAD, RELEASE_GOOD, RELEASE_REVIEWING])
 
     id = db.Column(db.Integer, primary_key=True)
     build_id = db.Column(db.Integer, db.ForeignKey('build.id'), nullable=False)

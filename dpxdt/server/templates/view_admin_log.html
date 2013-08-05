@@ -28,7 +28,9 @@ Activity log for '{{ build.name }}'
             {{ admin_log.user.email_address }}
         </div>
 
-        {% if admin_log.log_type == 'created_api_key' %}
+        {% if admin_log.log_type == 'changed_settings' %}
+            {{ log.line(description='Changed settings', detail=admin_log.message) }}
+        {% elif admin_log.log_type == 'created_api_key' %}
             {{ log.line(description='Created API key', detail=admin_log.message) }}
         {% elif admin_log.log_type == 'created_build' %}
             {{ log.line(description='Created build ' + admin_log.message) }}
