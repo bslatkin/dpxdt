@@ -34,4 +34,4 @@
 	url = https://github.com/kamens/gae_mini_profiler
 [submodule "dependencies/flask-mail"]
 	path = dependencies/flask-mail
-	url = https://github.com/mattupstate/flask-mail.git
+	url = https://github.com/bslatkin/flask-mail.git
