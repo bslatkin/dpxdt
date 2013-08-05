@@ -340,6 +340,35 @@ def view_run():
     return response
 
 
-@app.route('/static/dummy')
-def view_dummy_url():
-    return app.send_static_file('dummy/index.html')
+@app.route('/settings', methods=['GET', 'POST'])
+@auth.build_access_required('build_id')
+def build_settings():
+    build = g.build
+
+    settings_form = forms.SettingsForm()
+
+    if settings_form.validate_on_submit():
+        build.send_email = settings_form.send_email.data
+        build.email_alias = settings_form.email_alias.data
+
+        logging.info('Setting build_id=%r, send_email=%r, email_alias=%r',
+                     build.id, build.send_email, build.email_alias)
+
+        db.session.add(build)
+        db.session.commit()
+
+        signals.build_updated.send(app, build=build, user=current_user)
+
+        return redirect(url_for(
+            request.endpoint,
+            build_id=build.id))
+
+    # Update form values for rendering
+    settings_form.build_id.data = build.id
+    settings_form.email_alias.data = build.email_alias
+    settings_form.send_email.data = build.send_email
+
+    return render_template(
+        'view_settings.html',
+        build=build,
+        settings_form=settings_form)

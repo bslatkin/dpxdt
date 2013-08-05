@@ -320,12 +320,17 @@ class BuildOps(object):
 
 
 
-# Connect API events to cache eviction.
+# Connect Frontend and API events to cache eviction.
+
+
+def _evict_user_cache(sender, user=None, build=None):
+    UserOps(user.get_id()).evict()
 
 
 def _evict_build_cache(sender, build=None, release=None, run=None):
     BuildOps(build.id).evict()
 
 
+signals.build_updated.connect(_evict_user_cache, app)
 signals.release_updated_via_api.connect(_evict_build_cache, app)
 signals.run_updated_via_api.connect(_evict_build_cache, app)

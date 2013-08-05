@@ -19,8 +19,8 @@ import datetime
 
 # Local libraries
 from flask.ext.wtf import (
-    BooleanField, DataRequired, Form, HiddenField, IntegerField,
-    Length, NumberRange, Required, SubmitField, TextField)
+    BooleanField, DataRequired, Email, Form, HiddenField, IntegerField,
+    Length, NumberRange, Optional, Required, SubmitField, TextField)
 
 # Local modules
 from . import app
@@ -96,3 +96,13 @@ class ModifyWorkQueueTaskForm(Form):
     action = HiddenField()
     delete = SubmitField('Delete')
     retry = SubmitField('Retry')
+
+
+class SettingsForm(Form):
+    """Form for modifying build settings."""
+
+    send_email = BooleanField('Send notification emails')
+    email_alias = TextField('Mailing list for notifications',
+                            validators=[Optional(), Email()])
+    build_id = HiddenField(validators=[NumberRange(min=1)])
+    save = SubmitField('Save')
