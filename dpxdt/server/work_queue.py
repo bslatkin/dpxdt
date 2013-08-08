@@ -290,8 +290,7 @@ def heartbeat(queue_name, task_id, owner, message, index):
     task.heartbeat_number = index
     db.session.add(task)
 
-    # XXX clear the run cache
-    ## signals.run_updated_via_api()
+    signals.task_heartbeat_updated.send(task)
 
     return True
 

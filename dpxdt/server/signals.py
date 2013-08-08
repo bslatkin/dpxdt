@@ -39,3 +39,8 @@ release_updated_via_api = _signals.signal('release-update')
 # are (models.Build, models.Release, models.Run). Signal is sent immediately
 # *after* the Run is committed to the DB.
 run_updated_via_api = _signals.signal('run-updated')
+
+# A WorkQueue task's heartbeat has been updated via the API. Sender is the app.
+# Argument is (work_queue.WorkQueue). Signal is sent immediately after the
+# task is updated but before it is committed to the DB.
+task_heartbeat_updated = _signals.signal('task-heartbeat')

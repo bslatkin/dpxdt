@@ -337,6 +337,16 @@ def _evict_build_cache(sender, build=None, release=None, run=None):
     BuildOps(build.id).evict()
 
 
+def _evict_task_cache(sender, task):
+    if not task.run_id:
+        return
+    run = models.Run.query.get(task.run_id)
+    # Update the modification time on the run, since the task status changed.
+    db.session.add(run)
+    BuildOps(run.release.build_id).evict()
+
+
 signals.build_updated.connect(_evict_user_cache, app)
 signals.release_updated_via_api.connect(_evict_build_cache, app)
 signals.run_updated_via_api.connect(_evict_build_cache, app)
+signals.task_heartbeat_updated.connect(_evict_task_cache, app)
