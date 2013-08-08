@@ -30,6 +30,10 @@ Settings for '{{ build.name }}'
             {{ settings_form.csrf_token }}
             {{ settings_form.build_id }}
             <div>
+                {{ settings_form.name.label }}
+                {{ settings_form.name }}
+            </div>
+            <div>
                 <label class="checkbox" for="{{ settings_form.send_email.label.field_id }}">
                     {{ settings_form.send_email }}
                     {{ settings_form.send_email.label.text }}

@@ -101,6 +101,7 @@ class ModifyWorkQueueTaskForm(Form):
 class SettingsForm(Form):
     """Form for modifying build settings."""
 
+    name = TextField(validators=[Length(min=1, max=200)])
     send_email = BooleanField('Send notification emails')
     email_alias = TextField('Mailing list for notifications',
                             validators=[Optional(), Email()])

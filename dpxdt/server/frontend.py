@@ -348,11 +348,10 @@ def build_settings():
     settings_form = forms.SettingsForm()
 
     if settings_form.validate_on_submit():
-        build.send_email = settings_form.send_email.data
-        build.email_alias = settings_form.email_alias.data
+        settings_form.populate_obj(build)
 
-        message = ('send_email=%r, email_alias=%r' % (
-            build.send_email, build.email_alias))
+        message = ('name=%s, send_email=%s, email_alias=%s' % (
+            build.name, build.send_email, build.email_alias))
         auth.save_admin_log(build, changed_settings=True, message=message)
 
         db.session.add(build)
@@ -365,6 +364,7 @@ def build_settings():
             build_id=build.id))
 
     # Update form values for rendering
+    settings_form.name.data = build.name
     settings_form.build_id.data = build.id
     settings_form.email_alias.data = build.email_alias
     settings_form.send_email.data = build.send_email
