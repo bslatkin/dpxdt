@@ -46,6 +46,12 @@ def send_ready_for_review(build_id, release_name, release_number):
     """Sends an email indicating that the release is ready for review."""
     build = models.Build.query.get(build_id)
 
+    if not build.send_email:
+        logging.debug(
+            'Not sending ready for review email because build does not have '
+            'email enabled. build_id=%r', build.id)
+        return
+
     ops = operations.BuildOps(build_id)
     release, run_list, stats_dict, _ = ops.get_release(
         release_name, release_number)
