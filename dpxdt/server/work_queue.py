@@ -51,17 +51,27 @@ class WorkQueue(db.Model):
 
     Queries:
     - By task_id for finishing a task or extending a lease.
-    - By Index(queue_name, live, eta) for finding the oldest task for a queue
+    - By Index(queue_name, status, eta) for finding the oldest task for a queue
         that is still pending.
-    - By Index(live, create) for finding old tasks that should be deleted from
-        the table periodically to free up space.
+    - By Index(status, create) for finding old tasks that should be deleted
+        from the table periodically to free up space.
     """
+
+    CANCELED = 'canceled'
+    DONE = 'done'
+    ERROR = 'error'
+    LIVE = 'live'
+    STATES = frozenset([CANCELED, DONE, ERROR, LIVE])
 
     task_id = db.Column(db.String(100), primary_key=True, nullable=False)
     queue_name = db.Column(db.String(100), primary_key=True, nullable=False)
-    live = db.Column(db.Boolean, default=True, nullable=False)
+    status = db.Column(db.Enum(*STATES), default=LIVE, nullable=False)
     eta = db.Column(db.DateTime, default=datetime.datetime.utcnow,
                     nullable=False)
+
+    build_id = db.Column(db.Integer, db.ForeignKey('build.id'))
+    release_id = db.Column(db.Integer, db.ForeignKey('release.id'))
+    run_id = db.Column(db.Integer, db.ForeignKey('run.id'))
 
     source = db.Column(db.String(500))
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
@@ -78,13 +88,13 @@ class WorkQueue(db.Model):
     content_type = db.Column(db.String(100))
 
     __table_args__ = (
-        db.Index('lease_index', 'queue_name', 'live', 'eta'),
-        db.Index('reap_index', 'live', 'created'),
+        db.Index('lease_index', 'queue_name', 'status', 'eta'),
+        db.Index('reap_index', 'status', 'created'),
     )
 
     @property
     def lease_outstanding(self):
-        if not self.live:
+        if not self.status == WorkQueue.LIVE:
             return False
         if not self.last_owner:
             return False
@@ -181,7 +191,7 @@ def lease(queue_name, owner, count=1, timeout_seconds=60):
     now = datetime.datetime.utcnow()
     query = (
         WorkQueue.query
-        .filter_by(queue_name=queue_name, live=True)
+        .filter_by(queue_name=queue_name, status=WorkQueue.LIVE)
         .filter(WorkQueue.eta <= now)
         .order_by(WorkQueue.eta)
         .with_lockmode('update')
@@ -282,13 +292,14 @@ def heartbeat(queue_name, task_id, owner, message, index):
     return True
 
 
-def finish(queue_name, task_id, owner):
+def finish(queue_name, task_id, owner, error=False):
     """Marks a work item on a queue as finished.
 
     Args:
         queue_name: Name of the queue the work item is on.
         task_id: ID of the task that is finished.
         owner: Who or what has the current lease on the task.
+        error: Defaults to false. True if this task's final state is an error.
 
     Returns:
         True if the task has been finished for the first time; False if the
@@ -301,12 +312,16 @@ def finish(queue_name, task_id, owner):
     """
     task = _get_task_with_policy(queue_name, task_id, owner)
 
-    if not task.live:
+    if not task.status == WorkQueue.LIVE:
         logging.warning('Finishing already dead task. queue=%r, task_id=%r, '
-                        'owner=%r', task.queue_name, task_id, owner)
+                        'owner=%r, status=%r',
+                        task.queue_name, task_id, owner, task.status)
         return False
 
-    task.live = False
+    if not error:
+        task.status = WorkQueue.DONE
+    else:
+        task.status = WorkQueue.ERROR
     task.finished = datetime.datetime.utcnow()
     db.session.add(task)
     return True
@@ -390,14 +405,15 @@ def handle_finish(queue_name):
     """Marks a task on a queue as finished."""
     task_id = request.form.get('task_id', type=str)
     owner = request.form.get('owner', request.remote_addr, type=str)
+    error = request.form.get('error', type=str) is not None
     try:
-        finish(queue_name, task_id, owner)
+        finish(queue_name, task_id, owner, error=error)
     except Error, e:
         return utils.jsonify_error(e)
 
     db.session.commit()
-    logging.debug('Task finished: queue=%r, task_id=%r, owner=%r',
-                  queue_name, task_id, owner)
+    logging.debug('Task finished: queue=%r, task_id=%r, owner=%r, error=%r',
+                  queue_name, task_id, owner, error)
     return flask.jsonify(success=True)
 
 
@@ -416,7 +432,7 @@ def manage_work_queue(queue_name):
             logging.info('Action: %s task_id=%r',
                          modify_form.action.data, modify_form.task_id.data)
             if modify_form.action.data == 'retry':
-                task.live = True
+                task.status = WorkQueue.LIVE
                 task.lease_attempts = 0
                 task.heartbeat = 'Retrying ...'
                 db.session.add(task)

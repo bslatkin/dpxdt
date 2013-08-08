@@ -34,21 +34,21 @@ Work queue: {{ queue_name }}
                     <div class="row-fluid">
                         {% if task.lease_outstanding %}
                             <div class="span6">
-                                Lease #{{task.lease_attempts}}
+                                Lease #{{ task.lease_attempts }}
                             </div>
                             <div class="span6">
                                 {{ task.last_lease|timesince }}
                             </div>
-                        {% elif task.live %}
+                        {% elif task.status == 'live' %}
                             <div class="span6">
-                                ETA #{{task.lease_attempts}}
+                                ETA #{{ task.lease_attempts }}
                             </div>
                             <div class="span6">
                                 {{ task.eta|timesince }}
                             </div>
                         {% else %}
                             <div class="span6">
-                                Finished #{{task.lease_attempts}}
+                                {{ task.status|title }} #{{ task.lease_attempts }}
                             </div>
                             <div class="span6">
                                 {{ task.finished|timesince }}

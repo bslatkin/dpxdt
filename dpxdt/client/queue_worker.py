@@ -131,6 +131,8 @@ class DoTaskWorkflow(workers.WorkflowItem):
         payload = task['payload']
         payload.update(heartbeat=heartbeat)
 
+        error = False
+
         try:
             yield local_queue_workflow(**payload)
         except Exception, e:
@@ -142,17 +144,22 @@ class DoTaskWorkflow(workers.WorkflowItem):
             if (isinstance(e, GiveUpAfterAttemptsError) and
                     task['lease_attempts'] >= e.max_attempts):
                 logging.warning(
-                    'Hit max attempts on task=%r, giving up',
+                    'Hit max attempts on task=%r, marking task as error',
                     task)
+                error = True
             else:
                 # The task has legimiately failed. Do not mark the task as
                 # finished. Let it retry in the queue again.
                 return
 
+        finish_params = {'task_id': task_id}
+        if error:
+            finish_params['error'] = '1'
+
         try:
             finish_item = yield fetch_worker.FetchItem(
                 queue_url + '/finish',
-                post={'task_id': task_id},
+                post=finish_params,
                 username=FLAGS.release_client_id,
                 password=FLAGS.release_client_secret)
         except Exception, e:
