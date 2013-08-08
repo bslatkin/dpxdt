@@ -102,8 +102,8 @@ class WorkQueue(db.Model):
         return now < self.eta
 
 
-def add(queue_name, payload=None, content_type=None,
-        source=None, task_id=None):
+def add(queue_name, payload=None, content_type=None, source=None, task_id=None,
+        build_id=None, release_id=None, run_id=None):
     """Adds a work item to a queue.
 
     Args:
@@ -116,6 +116,9 @@ def add(queue_name, payload=None, content_type=None,
         task_id: Optional. When supplied, only enqueue this task if a task
             with this ID does not already exist. If a task with this ID already
             exists, then this function will do nothing.
+        build_id: Build ID to associate with this task. May be None.
+        release_id: Release ID to associate with this task. May be None.
+        run_id: Run ID to associate with this task. May be None.
 
     Returns:
         ID of the task that was added.
@@ -137,6 +140,9 @@ def add(queue_name, payload=None, content_type=None,
         queue_name=queue_name,
         eta=now,
         source=source,
+        build_id=build_id,
+        release_id=release_id,
+        run_id=run_id,
         payload=payload,
         content_type=content_type)
     db.session.add(task)
@@ -325,6 +331,49 @@ def finish(queue_name, task_id, owner, error=False):
     task.finished = datetime.datetime.utcnow()
     db.session.add(task)
     return True
+
+
+def query(queue_name=None, build_id=None, release_id=None, run_id=None,
+          count=1):
+    """Queries for work items based on their criteria.
+
+    Args:
+        queue_name: Optional queue name to restrict to.
+        build_id: Optional build ID to restrict to.
+        release_id: Optional release ID to restrict to.
+        run_id: Optional run ID to restrict to.
+        count: How many tasks to fetch. Defaults to 1.
+
+    Returns:
+        The most recent tasks that match the criteria, in order of finished
+        tasks first, followed by most recently created. When count is 1 the
+        return value will be the most recent task or None. When count is
+        not 1 the return value will be a list of tasks.
+    """
+    assert queue_name or build_id or release_id or run_id
+
+    q = WorkQueue.query
+    if queue_name:
+        q = q.filter_by(queue_name=queue_name)
+    if build_id:
+        q = q.filter_by(build_id=build_id)
+    if release_id:
+        q = q.filter_by(release_id=release_id)
+    if run_id:
+        q = q.filter_by(run_id=run_id)
+
+    result = (
+        q
+        .order_by(WorkQueue.finished.desc(), WorkQueue.created.desc())
+        .limit(count))
+
+    if count > 1:
+        return result
+
+    if result:
+        return result[0]
+    else:
+        return None
 
 
 @app.route('/api/work_queue/<string:queue_name>/add', methods=['POST'])
