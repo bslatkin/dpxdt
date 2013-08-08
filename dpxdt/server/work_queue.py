@@ -24,6 +24,7 @@ import uuid
 # Local modules
 from . import app
 from . import db
+from dpxdt.server import signals
 
 
 class Error(Exception):
@@ -288,6 +289,10 @@ def heartbeat(queue_name, task_id, owner, message, index):
     task.heartbeat = message
     task.heartbeat_number = index
     db.session.add(task)
+
+    # XXX clear the run cache
+    ## signals.run_updated_via_api()
+
     return True
 
 
@@ -357,7 +362,7 @@ def query(queue_name=None, build_id=None, release_id=None, run_id=None,
 
     result = (
         q
-        .order_by(WorkQueue.finished.desc(), WorkQueue.created.desc())
+        .order_by(WorkQueue.created.desc())
         .limit(count)
         .all())
 
