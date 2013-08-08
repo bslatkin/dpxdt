@@ -160,6 +160,8 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
                     build_id, run_sha1sum, result_path=run_path)
             ]
 
+            max_attempts = FLAGS.pdiff_task_max_attempts
+
             yield heartbeat('Resizing reference image')
             returncode = yield ResizeWorkflow(
                 log_path, ref_path, run_path, ref_resized_path)
@@ -173,7 +175,6 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
                 log_path, ref_resized_path, run_path, diff_path)
 
             diff_success = returncode == 0
-            max_attempts = FLAGS.pdiff_task_max_attempts
 
             # Check for a successful run or a known failure.
             if os.path.isfile(log_path):
