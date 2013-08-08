@@ -314,6 +314,7 @@ def finish(queue_name, task_id, owner):
 
 @app.route('/api/work_queue/<string:queue_name>/add', methods=['POST'])
 @auth.superuser_api_key_required
+@utils.retryable_transaction()
 def handle_add(queue_name):
     """Adds a task to a queue."""
     source = request.form.get('source', request.remote_addr, type=str)
@@ -335,6 +336,7 @@ def handle_add(queue_name):
 
 @app.route('/api/work_queue/<string:queue_name>/lease', methods=['POST'])
 @auth.superuser_api_key_required
+@utils.retryable_transaction()
 def handle_lease(queue_name):
     """Leases a task from a queue."""
     owner = request.form.get('owner', request.remote_addr, type=str)
@@ -359,6 +361,7 @@ def handle_lease(queue_name):
 
 @app.route('/api/work_queue/<string:queue_name>/heartbeat', methods=['POST'])
 @auth.superuser_api_key_required
+@utils.retryable_transaction()
 def handle_heartbeat(queue_name):
     """Updates the heartbeat message for a task."""
     task_id = request.form.get('task_id', type=str)
@@ -382,6 +385,7 @@ def handle_heartbeat(queue_name):
 
 @app.route('/api/work_queue/<string:queue_name>/finish', methods=['POST'])
 @auth.superuser_api_key_required
+@utils.retryable_transaction()
 def handle_finish(queue_name):
     """Marks a task on a queue as finished."""
     task_id = request.form.get('task_id', type=str)
