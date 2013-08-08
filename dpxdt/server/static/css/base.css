@@ -55,6 +55,9 @@ a.big-link {
         text-align: left;
     }
 }
+.no-min-height [class*="span"] {
+    min-height: 0;
+}
 
 /* Page branding. */
 .endpoint-homepage .base-logo-container {

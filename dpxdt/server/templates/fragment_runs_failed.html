@@ -8,37 +8,37 @@
     {% set run_status='normal' %}
 {% endif %}
 
-{% if runs_total or runs_baseline %}
-    {% if alert_wrapper %}
-        <div class="alert alert-{{ run_status }}">
-            <strong>
-    {% else %}
-        <span {% if inline_style -%}
-                {%- if run_status == 'error' -%}
-                    style="color: #b94a48"
-                {%- elif run_status == 'info' -%}
-                    style="color: #3a87ad"
-                {%- endif -%}
+{% if alert_wrapper %}
+    <div class="alert alert-{{ run_status }}">
+        <strong>
+{% else %}
+    <span {% if inline_style -%}
+            {%- if run_status == 'error' -%}
+                style="color: #b94a48"
+            {%- elif run_status == 'info' -%}
+                style="color: #3a87ad"
             {%- endif -%}
-        >
-    {% endif %}
+        {%- endif -%}
+    >
+{% endif %}
 
-    {% if runs_failed == 1 %}
-        1 failure
-    {% elif runs_failed > 0 %}
-        {{ runs_failed }} failures
-    {% elif runs_total > 0 and runs_successful == runs_total %}
-        All passing
-    {% elif runs_total > 0 %}
-        Pending
-    {% else %}
-        Nothing to test
-    {% endif %}
+{% if runs_failed == 1 %}
+    1 failure
+{% elif runs_failed > 0 %}
+    {{ runs_failed }} failures
+{% elif runs_total > 0 and runs_successful == runs_total %}
+    All passing
+{% elif runs_pending == 1 %}
+    1 pending
+{% elif runs_pending > 0 %}
+    {{ runs_pending }} pending
+{% else %}
+    Nothing to test
+{% endif %}
 
-    {% if alert_wrapper %}
-            </strong>
-        </div>
-    {% else %}
-        </span>
-    {% endif %}
+{% if alert_wrapper %}
+        </strong>
+    </div>
+{% else %}
+    </span>
 {% endif %}

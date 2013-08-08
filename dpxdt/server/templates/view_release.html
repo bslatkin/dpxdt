@@ -43,6 +43,7 @@ Release '{{ release.name }}' attempt #{{ release.number }}
         {% set runs_successful = stats_dict.runs_successful %}
         {% set runs_failed = stats_dict.runs_failed %}
         {% set runs_baseline = stats_dict.runs_baseline %}
+        {% set runs_pending = stats_dict.runs_pending %}
         {% include 'fragment_runs_failed.html' with context %}
     </div>
 </div>

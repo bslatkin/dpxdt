@@ -71,3 +71,4 @@ from dpxdt.server import auth
 from dpxdt.server import emails
 from dpxdt.server import frontend
 from dpxdt.server import work_queue
+from dpxdt.server import work_queue_handlers

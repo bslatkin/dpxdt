@@ -56,6 +56,7 @@ Build '{{ build.name }}'
                                         {% set runs_successful = stats_dict.runs_successful %}
                                         {% set runs_failed = stats_dict.runs_failed %}
                                         {% set runs_baseline = stats_dict.runs_baseline %}
+                                        {% set runs_pending = stats_dict.runs_pending %}
                                         <div class="span2">
                                             {% include 'fragment_runs_complete.html' with context %}
                                         </div>

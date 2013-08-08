@@ -9,12 +9,14 @@
 {% elif run.status == 'no_diff_needed' %}
     {% set run_status='normal' %}
 {% else %}
-    {% set run_status='warning' %}
+    {% set run_status='normal' %}
 {% endif %}
 
 {% if alert_wrapper %}
-    <div class="alert alert-{{ run_status }}">
-        <strong>
+<div class="alert alert-{{ run_status }}">
+    <div class="row-fluid no-min-height">
+        <div class="span4">
+            <strong>
 {% endif %}
 
 <span class="text-{{ run_status }} test-result-mark" {% if inline_style -%}
@@ -55,6 +57,13 @@
 </span>
 
 {% if alert_wrapper %}
-        </strong>
+            </strong>
+        </div>
+    {% if run.status in ('data_pending', 'needs_diff') and run_detail %}
+        <div class="span4 text-center">
+            {{ run_detail }}
+        </div>
+    {% endif %}
     </div>
+</div>
 {% endif %}

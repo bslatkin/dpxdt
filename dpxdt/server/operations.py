@@ -27,6 +27,7 @@ from . import cache
 from . import db
 from dpxdt.server import models
 from dpxdt.server import signals
+from dpxdt.server import work_queue
 
 
 class UserOps(object):
@@ -120,7 +121,7 @@ class BuildOps(object):
             return ('runs_baseline',)
         elif status == models.Run.NEEDS_DIFF:
             return ('runs_total',)
-        return ()
+        return ('runs_pending',)
 
     @cache.memoize(per_instance=True)
     def get_candidates(self, page_size, offset):
@@ -176,7 +177,8 @@ class BuildOps(object):
             runs_complete=0,
             runs_successful=0,
             runs_failed=0,
-            runs_baseline=0)
+            runs_baseline=0,
+            runs_pending=0)
         for run in run_list:
             for key in self.get_stats_keys(run.status):
                 stats_dict[key] += 1
@@ -300,6 +302,8 @@ class BuildOps(object):
                 .order_by(models.AdminLog.created.desc())
                 .first())
 
+        last_task = work_queue.query(run_id=run.id)
+
         if run:
             db.session.expunge(run)
         if next_run:
@@ -308,8 +312,10 @@ class BuildOps(object):
             db.session.expunge(previous_run)
         if approval_log:
             db.session.expunge(approval_log)
+        if last_task:
+            db.session.expunge(last_task)
 
-        return run, next_run, previous_run, approval_log
+        return run, next_run, previous_run, approval_log, last_task
 
     def evict(self):
         """Evict all caches relating to this build."""

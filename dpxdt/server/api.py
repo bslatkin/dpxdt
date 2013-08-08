@@ -304,6 +304,9 @@ def _enqueue_capture(build, release, run, url, config_data, baseline=False):
             config_sha1sum=config_artifact.id,
             baseline=baseline,
         ),
+        build_id=build.id,
+        release_id=release.id,
+        run_id=run.id,
         source='request_run',
         task_id=task_id)
 
@@ -465,6 +468,9 @@ def report_run():
                 run_sha1sum=run.image,
                 reference_sha1sum=run.ref_image,
             ),
+            build_id=build.id,
+            release_id=release.id,
+            run_id=run.id,
             source='report_run',
             task_id=task_id)
 

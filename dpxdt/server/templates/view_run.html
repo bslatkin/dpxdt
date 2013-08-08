@@ -37,6 +37,7 @@ Test run '{{ run.name }}'
 <div class="row body-section">
     <div class="span12">
         {% set alert_wrapper=True %}
+        {% set run_detail=last_task.heartbeat %}
         {% include 'fragment_run_status.html' with context %}
     </div>
 </div>
