@@ -312,8 +312,6 @@ class BuildOps(object):
             db.session.expunge(previous_run)
         if approval_log:
             db.session.expunge(approval_log)
-        if last_task:
-            db.session.expunge(last_task)
 
         return run, next_run, previous_run, approval_log, last_task
 
