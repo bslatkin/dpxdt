@@ -38,20 +38,6 @@ from dpxdt.server import operations
 from dpxdt.server import signals
 
 
-def modtime_id(*mod_times):
-    """Creates a unique ID from a list of modification times."""
-    digest = hashlib.sha1()
-    for mod_time in mod_times:
-        digest.update(str(mod_time))
-    return base64.b32encode(digest.digest()).lower().strip('=')
-
-
-@app.context_processor
-def frontend_context():
-    """Adds extra default context for rendered templates."""
-    return dict(modtime_id=modtime_id)
-
-
 @app.route('/')
 def homepage():
     """Renders the homepage."""
@@ -332,12 +318,6 @@ def view_run():
         template_name = 'view_run.html'
 
     response = flask.Response(render_template(template_name, **context))
-
-    # Special URLs that are formulated with a modified ID can be cached.
-    if request.args.get('modified'):
-        response.cache_control.max_age = 600
-        response.cache_control.private = True
-        response.last_modified = datetime.datetime.utcnow()
 
     return response
 
