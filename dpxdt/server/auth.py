@@ -559,11 +559,20 @@ def save_admin_log(build, **kwargs):
     if not log_type:
         raise TypeError('Bad log_type argument: %s' % log_enum)
 
+    # The caller can be from the API or the frontend.
+    if current_user.is_anonymous():
+        user_id = None
+        api_key_id = current_api_key().id
+    else:
+        user_id = current_user.get_id()
+        api_key_id = None
+
     log = models.AdminLog(
         build_id=build.id,
         log_type=log_type,
         message=message,
-        user_id=current_user.get_id())
+        user_id=user_id,
+        api_key_id=api_key_id)
 
     if release:
         log.release_id = release.id

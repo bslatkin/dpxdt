@@ -121,6 +121,15 @@ def create_release():
         .first())
     if last_candidate:
         release.number += last_candidate.number
+        if last_candidate.status == models.Release.PROCESSING:
+            canceled_task_count = work_queue.cancel(
+                release_id=last_candidate.id)
+            logging.info('Canceling %d tasks for previous attempt '
+                         'build_id=%r, release_name=%r, release_number=%d',
+                         canceled_task_count, build.id, last_candidate.name,
+                         last_candidate.number)
+            last_candidate.status = models.Release.BAD
+            db.session.add(last_candidate)
 
     db.session.add(release)
     db.session.commit()

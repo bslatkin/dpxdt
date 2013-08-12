@@ -302,7 +302,7 @@ class BuildOps(object):
                 .order_by(models.AdminLog.created.desc())
                 .first())
 
-        last_task = work_queue.query(run_id=run.id)
+        last_task = work_queue.query(run_id=run.id, count=1)
 
         if run:
             db.session.expunge(run)

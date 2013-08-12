@@ -325,13 +325,14 @@ def finish(queue_name, task_id, owner, error=False):
         task.status = WorkQueue.DONE
     else:
         task.status = WorkQueue.ERROR
+
     task.finished = datetime.datetime.utcnow()
     db.session.add(task)
     return True
 
 
-def query(queue_name=None, build_id=None, release_id=None, run_id=None,
-          count=1):
+def _query(queue_name=None, build_id=None, release_id=None, run_id=None,
+           count=None):
     """Queries for work items based on their criteria.
 
     Args:
@@ -339,13 +340,11 @@ def query(queue_name=None, build_id=None, release_id=None, run_id=None,
         build_id: Optional build ID to restrict to.
         release_id: Optional release ID to restrict to.
         run_id: Optional run ID to restrict to.
-        count: How many tasks to fetch. Defaults to 1.
+        count: How many tasks to fetch. Defaults to None, which means all
+            tasks are fetch that match the query.
 
     Returns:
-        The most recent tasks that match the criteria, in order of finished
-        tasks first, followed by most recently created. When count is 1 the
-        return value will be the most recent task or None. When count is
-        not 1 the return value will be a list of tasks.
+        List of WorkQueue items.
     """
     assert queue_name or build_id or release_id or run_id
 
@@ -359,16 +358,56 @@ def query(queue_name=None, build_id=None, release_id=None, run_id=None,
     if run_id:
         q = q.filter_by(run_id=run_id)
 
-    result = (
-        q
-        .order_by(WorkQueue.created.desc())
-        .limit(count)
-        .all())
+    q = q.order_by(WorkQueue.created.desc())
 
-    if count > 1:
-        return result
+    if count is not None:
+        q = q.limit(count)
 
-    if result:
-        return result[0]
-    else:
-        return None
+    return q.all()
+
+
+def query(**kwargs):
+    """Queries for work items based on their criteria.
+
+    Args:
+        queue_name: Optional queue name to restrict to.
+        build_id: Optional build ID to restrict to.
+        release_id: Optional release ID to restrict to.
+        run_id: Optional run ID to restrict to.
+        count: How many tasks to fetch. Defaults to None, which means all
+            tasks are fetch that match the query.
+
+    Returns:
+        Dictionaries of the most recent tasks that match the criteria, in
+        order of most recently created. When count is 1 the return value will
+        be the most recent task or None. When count is not 1 the return value
+        will be a  list of tasks.
+    """
+    count = kwargs.get('count', None)
+    task_list = _query(**kwargs)
+    task_dict_list = [_task_to_dict(task) for task in task_list]
+
+    if count == 1:
+        if not task_dict_list:
+            return None
+        else:
+            return task_dict_list[0]
+
+    return task_dict_list
+
+
+def cancel(**kwargs):
+    """Cancels work items based on their criteria.
+
+    Args:
+        **kwargs: Same parameters as the query() method.
+
+    Returns:
+        The number of tasks that were canceled.
+    """
+    task_list = _query(**kwargs)
+    for task in task_list:
+        task.status = WorkQueue.CANCELED
+        task.finished = datetime.datetime.utcnow()
+        db.session.add(task)
+    return len(task_list)
