@@ -15,9 +15,13 @@
 
 """Configuration for local development."""
 
+import os
 from secrets import *
 
 SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/test.db'
+
+SERVER_NAME = os.environ.get('SERVER_NAME', None)
+MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
 # Google OAuth2 login config for local development.
 GOOGLE_OAUTH2_EMAIL_ADDRESS = (
