@@ -3,11 +3,8 @@ language: python
 python:
   - "3.3"
 
-#
-# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-# install: PLEASE CHANGE ME
-#
+install: true
 
-script: run_tests.sh
+script: ./run_tests.sh
 
 
