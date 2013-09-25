@@ -363,7 +363,7 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
     """
 
     def run(self, build_id, release_name, release_number, run_name,
-            diff_path=None, log_path=None, diff_success=False):
+            diff_path=None, log_path=None, diff_success=False, distortion=None):
         diff_id = None
         log_id = None
         if (isinstance(diff_path, basestring) and
@@ -389,6 +389,8 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
             post.update(diff_log=log_id)
         if diff_success:
             post.update(diff_success='yes')
+        if distortion:
+            post.update(distortion=distortion)    
 
         call = yield fetch_worker.FetchItem(
             FLAGS.release_server_prefix + '/report_run',

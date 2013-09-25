@@ -98,6 +98,9 @@ Release '{{ release.name }}' attempt #{{ release.number }}
                     <div class="span3" title="Test status">
                         {% set alert_wrapper=False %}
                         {% include 'fragment_run_status.html' with context %}
+                        {% if run.distortion %}
+                            {{ '%f' %(run.distortion*100) + '%' }}
+                        {% endif %}
                     </div>
                 </div>
             {% endfor %}
