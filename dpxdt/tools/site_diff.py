@@ -60,7 +60,7 @@ TRAVERSAL_URL_REGEX = (
     r"(?P<relative>\.(\.)?)/(?!(/)|"
     r"(http(s?)://)|(url\())(?P<url>[^\"'> \t]*)")
 # URLs that are in the same directory as the requested URL.
-SAME_DIR_URL_REGEX = r"(?!(/)|(http(s?)://)|(#)|(url\())(?P<url>[^\"'> \t]+)"
+SAME_DIR_URL_REGEX = r"(?!(/)|(.{1,10}:(//)?)|(#)|(url\())(?P<url>[^\"'> \t]+)"
 # URL matches the root directory.
 ROOT_DIR_URL_REGEX = r"(?!//(?!>))/(?P<url>)(?=[ \t\n]*[\"'> /])"
 # Start of a tag using 'src' or 'href'

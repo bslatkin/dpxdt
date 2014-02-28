@@ -107,6 +107,14 @@ class HtmlRewritingTest(unittest.TestCase):
             test('http://www.example.com/relative-with/some-'
                  '(parenthesis%20here)'))
 
+        self.assertEquals(None, test('ftp://bob@www.example.com/'))
+
+        self.assertEquals(None, test('mailto:bob@example.com'))
+
+        self.assertEquals(None, test('javascript:runme()'))
+
+        self.assertEquals(None, test('tel:1-555-555-5555'))
+
 
 def webserver(func):
     """Runs the given function as a webserver.
