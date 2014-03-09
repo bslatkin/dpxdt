@@ -162,6 +162,16 @@ Here's an example invocation of Site Diff:
     http://www.example.com/my/website/here
 ```
 
+Note, when you use this the "upload_build_id" above should be changed to match your build id in the UI, for example:
+```
+https://dpxdt-test.appspot.com/build?id=500
+```
+You should use:
+```
+--upload_build_id=500
+```
+
+
 Another example tool is [available in the repo](./dpxdt/tools/url_pair_diff.py) called Pair Diff. Unlike Site Diff, which establishes a baseline on each subsequent run, Pair Diff takes two live URLs and compares them. This is useful when you have a live version and staging version of your site both available at the same time and can do screenshots of both independently.
 
 Here's an example run of Pair Diff:
