@@ -25,6 +25,7 @@ import tempfile
 import threading
 import time
 import urllib2
+import re
 
 # Local Libraries
 import gflags
@@ -53,6 +54,8 @@ gflags.DEFINE_integer(
 gflags.DEFINE_integer(
     'pdiff_timeout', 60,
     'Seconds until we should give up on a pdiff sub-process and try again.')
+
+diff_regex = re.compile(".*all:.*\(([0-9e\-\.]*)\).*")
 
 
 class PdiffFailedError(queue_worker.GiveUpAfterAttemptsError):
@@ -184,11 +187,17 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
                 elif 'image widths or heights differ' in log_data:
                     # Give up immediately
                     max_attempts = 1
+                    
+                # Try to find the image magic normalized root square mean and grab the first one     
+                r = diff_regex.findall(log_data)
+                distortion = None
+                if len(r) > 0:
+                    distortion = r[0]
 
             yield heartbeat('Reporting diff status to server')
             yield release_worker.ReportPdiffWorkflow(
                 build_id, release_name, release_number, run_name,
-                diff_path, log_path, diff_success)
+                diff_path, log_path, diff_success, distortion)
 
             if not diff_success:
                 raise PdiffFailedError(

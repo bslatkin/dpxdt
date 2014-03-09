@@ -405,6 +405,8 @@ def report_run():
     diff_image = request.form.get('diff_image', type=str)
     diff_log = request.form.get('diff_log', type=str)
 
+    distortion = request.form.get('distortion', type=str)
+
     if current_url:
         run.url = current_url
     if current_image:
@@ -446,6 +448,8 @@ def report_run():
                      'diff_image=%r, diff_log=%r',
                      build.id, release.name, release.number, run.name,
                      run.diff_image, run.diff_log)
+    if distortion:
+        run.distortion = float(distortion)
 
     if run.image and run.diff_image:
         run.status = models.Run.DIFF_FOUND

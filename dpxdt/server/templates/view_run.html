@@ -142,6 +142,9 @@ Test run '{{ run.name }}'
                         {% if run.diff_log %}
                             <a href="{{ url_for('view_log', id=build.id, name=release.name, number=release.number, test=run.name, type='diff') }}">Log</a>
                         {% endif %}
+                        {% if run.distortion %}
+                            {{ '%f' %(run.distortion*100) + '%' }}
+                        {% endif %}
                     </small>
                 </div>
             </div>

@@ -197,6 +197,7 @@ class Run(db.Model):
 
     diff_image = db.Column(db.String(100), db.ForeignKey('artifact.id'))
     diff_log = db.Column(db.String(100), db.ForeignKey('artifact.id'))
+    distortion = db.Column(db.Float())
 
     # For flask-cache memoize key.
     def __repr__(self):
