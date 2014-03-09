@@ -168,7 +168,7 @@ page.doDepictedScreenshots = function() {
         console.log('Taking the screenshot!');
         page.render(outputPath);
         phantom.exit(0);
-    }, 10000);
+    }, 1000);
 };
 
 // Screenshot
