@@ -18,6 +18,7 @@
 import BaseHTTPServer
 import logging
 import os
+import socket
 import sys
 import tempfile
 import threading
@@ -28,13 +29,60 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
+from dpxdt import runserver
+from dpxdt import runworker
+from dpxdt import server
+from dpxdt.client import capture_worker
 from dpxdt.client import workers
+from dpxdt.server import db
+from dpxdt.server import models
 from dpxdt.tools import site_diff
 
 
 # For convenience
 exists = os.path.exists
 join = os.path.join
+
+
+
+def get_free_port():
+    sock = socket.socket()
+    sock.bind(('', 0))
+    return sock.getsockname()[1]
+
+
+# Will be set by one-time setUp
+server_thread = None
+build_id = None
+
+
+def setUpModule():
+    """Sets up the environment for testing."""
+    global server_thread, build_id
+
+    FLAGS.fetch_frequency = 100
+    FLAGS.polltime = 0.01
+    FLAGS.ignore_auth = True
+    FLAGS.port = get_free_port()
+    FLAGS.queue_server_prefix = (
+        'http://localhost:%d/api/work_queue' % FLAGS.port)
+    FLAGS.release_server_prefix = 'http://localhost:%d/api' % FLAGS.port
+
+    db.drop_all()
+    db.create_all()
+
+    runworker.run_workers()
+    server_thread = threading.Thread(target=runserver.run_server)
+    server_thread.setDaemon(True)
+    server_thread.start()
+
+
+def create_build():
+    """Creates a new build and returns its ID."""
+    build = models.Build(name='My build')
+    db.session.add(build)
+    db.session.commit()
+    return build.id
 
 
 class HtmlRewritingTest(unittest.TestCase):
@@ -141,12 +189,8 @@ class SiteDiffTest(unittest.TestCase):
 
     def setUp(self):
         """Sets up the test harness."""
-        FLAGS.fetch_frequency = 100
-        FLAGS.polltime = 0.01
-        self.test_dir = tempfile.mkdtemp('site_diff_test')
-        self.output_dir = join(self.test_dir, 'output')
-        self.reference_dir = join(self.test_dir, 'reference')
         self.coordinator = workers.get_coordinator()
+        self.build_id = create_build()
 
     def output_readlines(self, path):
         """Reads the lines of an output file, stripping newlines."""
@@ -162,9 +206,10 @@ class SiteDiffTest(unittest.TestCase):
 
         site_diff.real_main(
             start_url='http://%s:%d/' % test.server_address,
-            output_dir=self.output_dir,
-            coordinator=self.coordinator)
+            upload_build_id=self.build_id)
         test.shutdown()
+
+        # Wait for all tasks to finish.
 
         self.assertTrue(exists(join(self.output_dir, '__run.log')))
         self.assertTrue(exists(join(self.output_dir, '__run.png')))
@@ -271,7 +316,6 @@ class SiteDiffTest(unittest.TestCase):
         site_diff.real_main(
             start_url='http://%s:%d/' % test.server_address,
             ignore_prefixes=['/ignore'],
-            output_dir=self.output_dir,
             coordinator=self.coordinator)
         test.shutdown()
 
