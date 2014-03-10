@@ -232,41 +232,36 @@ class SiteDiffTest(unittest.TestCase):
             - Finds new links in HTML data
             - Avoids non-HTML pages
             - Respects ignore patterns specified on flags
+            - Properly handles 404s
         """
         @webserver
         def test(path):
             if path == '/':
                 return 200, 'text/html', (
                     'Hello world! <a href="/stuff">x</a> '
-                    '<a href="/ignore">y</a>')
+                    '<a href="/ignore">y</a> and also '
+                    '<a href="/missing">z</a>')
             elif path == '/stuff':
                 return 200, 'text/html', 'Stuff page <a href="/avoid">x</a>'
+            elif path == '/missing':
+                return 404, 'text/plain', 'Nope'
             elif path == '/avoid':
                 return 200, 'text/plain', 'Ignore me!'
 
         site_diff.real_main(
             start_url=test.server_prefix + '/',
+            upload_build_id=self.build_id,
+            upload_release_name=self.release_name,
             ignore_prefixes=['/ignore'])
+
+        release = wait_for_release(self.build_id, self.release_name)
+        run_list = models.Run.query.all()
+        found = set(run.name for run in run_list)
+
+        expected = set(['/', '/stuff'])
+        self.assertEquals(expected, found)
+
         test.shutdown()
-
-        self.fail()
-
-    def testNotFound(self):
-        """Tests when a URL in the crawl is not found."""
-        @webserver
-        def test(path):
-            if path == '/':
-                return 200, 'text/html', (
-                    'Hello world! <a href="/missing">x</a>')
-            elif path == '/missing':
-                return 404, 'text/plain', 'Nope'
-
-        site_diff.real_main(
-            start_url=test.server_prefix + '/',
-            ignore_prefixes=['/ignore'])
-        test.shutdown()
-
-        self.fail()
 
 
 class HtmlRewritingTest(unittest.TestCase):
