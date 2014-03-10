@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+// TODO: Username/password using HTTP basic auth
+// TODO: Header key/value pairs
+// TODO: User agent spoofing shortcut
+
 var fs = require('fs');
 var system = require('system');
 
@@ -68,6 +72,13 @@ if (config.cookies) {
     });
 }
 
+if (config.resourceTimeoutMs) {
+    page.settings.resourceTimeout = 10000;
+} else {
+    page.settings.resourceTimeout = config.resourceTimeoutMs;
+}
+
+
 // Do not load Google Analytics URLs. We don't want to pollute stats.
 var badResources = [
     'www.google-analytics.com'
@@ -110,9 +121,10 @@ page.onResourceReceived = function(response) {
     }
 };
 
-// TODO: Username/password using HTTP basic auth
-// TODO: Header key/value pairs
-// TODO: User agent spoofing shortcut
+// If any resources timeout, fail the whole run.
+page.onResourceTimeout = function(request) {
+    console.log('Loading resource timed out: ', request);
+};
 
 /**
  * Just for debug logging.
@@ -128,15 +140,21 @@ page.onInitialized = function() {
  * @param {string} trace The exception trace.
  */
 page.onError = function(msg, trace) {
-    console.log('=( page.onError', msg, trace);
+    console.log('page.onError', msg, trace);
 };
 
 
 /**
  * Just for debug logging.
  */
-page.onLoadFinished = function() {
+page.onLoadFinished = function(status) {
     console.log('page.onLoadFinished');
+    if (status == 'success') {
+        console.log('Loading the page successful');
+    } else {
+        console.log('Loading the page failed');
+        phantom.exit(1);
+    }
 };
 
 

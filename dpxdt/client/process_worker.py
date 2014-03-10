@@ -81,4 +81,6 @@ class ProcessWorkflow(workers.WorkflowItem):
                     yield timer_worker.TimerItem(FLAGS.polltime)
                     continue
 
+                logging.info('item=%r Subprocess finished with returncode %r',
+                             self, process.returncode)
                 raise workers.Return(process.returncode)

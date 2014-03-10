@@ -6,4 +6,4 @@ source common.sh
     --phantomjs_binary=$PHANTOMJS_BINARY \
     --phantomjs_script=$CAPTURE_SCRIPT
 
-# ./tests/workers_test.py
+./tests/workers_test.py

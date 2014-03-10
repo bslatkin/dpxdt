@@ -620,6 +620,7 @@ def download():
     try:
         build = auth.can_user_access_build('build_id')
     except HTTPException:
+        logging.debug('User access to artifact failed. Trying API key.')
         _, build = auth.can_api_key_access_build('build_id')
 
     sha1sum = request.args.get('sha1sum', type=str)

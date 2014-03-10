@@ -48,13 +48,6 @@ gflags.DEFINE_integer('port', 5000, 'Port to run the HTTP server on.')
 gflags.DEFINE_string('host', '0.0.0.0', 'Host argument for the server.')
 
 
-def run_server():
-    if FLAGS.ignore_auth:
-        server.app.config['IGNORE_AUTH'] = True
-
-    server.app.run(debug=FLAGS.reload_code, host=FLAGS.host, port=FLAGS.port)
-
-
 def main(argv):
     try:
         argv = FLAGS(argv)
@@ -86,7 +79,10 @@ def main(argv):
         babysitter_thread.setDaemon(True)
         babysitter_thread.start()
 
-    run_server()
+    if FLAGS.ignore_auth:
+        server.app.config['IGNORE_AUTH'] = True
+
+    server.app.run(debug=FLAGS.reload_code, host=FLAGS.host, port=FLAGS.port)
 
 
 if __name__ == '__main__':

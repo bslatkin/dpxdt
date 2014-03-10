@@ -74,7 +74,7 @@ def login_view():
                 id=fake_id,
                 email_address='superuser@example.com',
                 superuser=1)
-            db.session.add(anonymous_superuser);
+            db.session.add(anonymous_superuser)
             db.session.commit()
         login_user(anonymous_superuser)
         confirm_login()
@@ -211,12 +211,12 @@ def can_user_access_build(param_name):
         build, user_is_owner = ops.owns_build(build_id)
 
     if not user_is_owner:
-        if request.method != 'GET':
+        if current_user.is_authenticated() and current_user.superuser:
+            pass
+        elif request.method != 'GET':
             logging.debug('No way to log in user via modifying request')
             abort(403)
         elif build.public:
-            pass
-        elif current_user.is_authenticated() and current_user.superuser:
             pass
         elif current_user.is_authenticated():
             logging.debug('User does not have access to this build')

@@ -281,7 +281,8 @@ The config passed to the `request_run` function may have any or all of these fie
         "height": 768
     },
     "injectCss": ".my-css-rules-here { display: none; }",
-    "injectJs": "document.getElementById('foobar').innerText = 'foo';"
+    "injectJs": "document.getElementById('foobar').innerText = 'foo';",
+    "resourceTimeoutMs": 60000
 }
 ```
 
