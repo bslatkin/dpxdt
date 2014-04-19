@@ -624,6 +624,10 @@ def download():
         _, build = auth.can_api_key_access_build('build_id')
 
     sha1sum = request.args.get('sha1sum', type=str)
+    if not sha1sum:
+        logging.debug('Artifact sha1sum=%r not supplied', sha1sum)
+        abort(404)
+
     artifact = models.Artifact.query.get(sha1sum)
     if not artifact:
         logging.debug('Artifact sha1sum=%r does not exist', sha1sum)

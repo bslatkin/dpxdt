@@ -138,7 +138,7 @@ a.big-link {
     right: 0;
     bottom: 5px;
 }
-.artifact-iframe {
+#artifact-iframe {
     width: 100%;
     height: 100%;
     border: 0;

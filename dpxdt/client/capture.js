@@ -176,9 +176,19 @@ page.doDepictedScreenshots = function() {
 
     if (config.injectJs) {
         console.log('Injecting JS: ' + config.injectJs);
-        page.evaluate(function(config) {
-            window.eval(config.injectJs);
+        var success = page.evaluate(function(config) {
+            try {
+                window.eval(config.injectJs);
+            } catch (e) {
+                console.log('Exception running injectJs');
+                console.log(e.stack);
+                return false;
+            }
+            return true;
         }, config);
+        if (!success) {
+            phantom.exit(1);
+        }
     }
 
     // TODO: Do we need this setTimeout?
