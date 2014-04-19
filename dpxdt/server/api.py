@@ -459,6 +459,8 @@ def report_run():
         run.status = models.Run.DIFF_NOT_FOUND
     elif run.image and not run.ref_config:
         run.status = models.Run.NO_DIFF_NEEDED
+    else:
+        run.status = models.Run.FAILED
 
     # TODO: Consider adding another status of "diff failed" or capture
     # failed for situations where it couldn't finish.

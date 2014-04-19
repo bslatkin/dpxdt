@@ -66,6 +66,7 @@
             iframe.css('height', container.outerHeight(true));
         }
         $(window).resize(handleResize);
+        $(document).ready(handleResize);
         $('#artifact-iframe').load(handleResize);
     </script>
 {% endif %}

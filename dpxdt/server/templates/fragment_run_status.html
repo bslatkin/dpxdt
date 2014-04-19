@@ -8,6 +8,8 @@
     {% set run_status='info' %}
 {% elif run.status == 'no_diff_needed' %}
     {% set run_status='normal' %}
+{% elif run.status == 'failed' %}
+    {% set run_status='error' %}
 {% else %}
     {% set run_status='normal' %}
 {% endif %}
@@ -27,7 +29,7 @@
     {%- endif -%}
 {%- endif -%}
 >
-    {% if run.status == 'diff_found' %}
+    {% if run.status in ('diff_found', 'failed') %}
         X
     {% elif run.status == 'diff_not_found' %}
         &#x2713;
@@ -51,6 +53,8 @@
         Diff pending
     {% elif run.status == 'no_diff_needed' %}
         Diff not required
+    {% elif run.status == 'failed' %}
+        Run failed
     {% else %}
         Data pending
     {% endif %}
