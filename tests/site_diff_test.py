@@ -65,9 +65,11 @@ def setUpModule():
         'http://localhost:%d/api/work_queue' % server_port)
     FLAGS.release_server_prefix = 'http://localhost:%d/api' % server_port
 
+    db_path = tempfile.mktemp(suffix='.db')
+    logging.info('sqlite path used in tests: %s', db_path)
+    server.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
     db.drop_all()
     db.create_all()
-
 
     server.app.config['CSRF_ENABLED'] = False
     server.app.config['IGNORE_AUTH'] = True
