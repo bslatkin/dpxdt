@@ -200,6 +200,12 @@ class Run(db.Model):
     diff_log = db.Column(db.String(100), db.ForeignKey('artifact.id'))
     distortion = db.Column(db.Float())
 
+    tasks = db.relationship('WorkQueue',
+                            backref=db.backref('runs', lazy='select'),
+                            lazy='joined',
+                            join_depth=1,
+                            order_by='WorkQueue.created')
+
     # For flask-cache memoize key.
     def __repr__(self):
         return 'Run(id=%r)' % self.id

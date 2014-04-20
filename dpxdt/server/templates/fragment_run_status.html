@@ -15,10 +15,9 @@
 {% endif %}
 
 {% if alert_wrapper %}
-<div class="alert alert-{{ run_status }}">
-    <div class="row-fluid no-min-height">
-        <div class="span4">
-            <strong>
+<div class="row-fluid status-panel status-panel-{{ run_status }} no-min-height">
+    <div class="span3">
+        <strong>
 {% endif %}
 
 <span class="text-{{ run_status }} test-result-mark" {% if inline_style -%}
@@ -64,13 +63,20 @@
 </span>
 
 {% if alert_wrapper %}
-            </strong>
-        </div>
-    {% if run.status in ('data_pending', 'needs_diff') and run_detail %}
-        <div class="span4 text-center">
-            {{ run_detail }}
-        </div>
-    {% endif %}
+        </strong>
+    </div>
+    <div class="span9 text-right ellipsis-overflow">
+        {% if run.tasks %}
+            {% set last_task=run.tasks[-1] %}
+            {% if last_task.status == 'error' %}
+                Failed after max attempts.
+            {% elif last_task.status != 'done' and run.status == 'failed' %}
+                Needs retry.
+            {% endif %}
+            {% if last_task.status != 'done' %}
+                {{ last_task.heartbeat|default('', true) }}
+            {% endif %}
+        {% endif %}
     </div>
 </div>
 {% endif %}

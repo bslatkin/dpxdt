@@ -304,8 +304,6 @@ class BuildOps(object):
                 .order_by(models.AdminLog.created.desc())
                 .first())
 
-        last_task = work_queue.query(run_id=run.id, count=1)
-
         if run:
             db.session.expunge(run)
         if next_run:
@@ -315,7 +313,7 @@ class BuildOps(object):
         if approval_log:
             db.session.expunge(approval_log)
 
-        return run, next_run, previous_run, approval_log, last_task
+        return run, next_run, previous_run, approval_log
 
     def evict(self):
         """Evict all caches relating to this build."""

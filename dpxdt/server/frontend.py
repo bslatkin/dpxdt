@@ -262,7 +262,7 @@ def view_run():
     form.validate()
 
     ops = operations.BuildOps(build.id)
-    run, next_run, previous_run, approval_log, last_task = ops.get_run(
+    run, next_run, previous_run, approval_log = ops.get_run(
         form.name.data, form.number.data, form.test.data)
 
     if not run:
@@ -311,8 +311,7 @@ def view_run():
         log_file=log_file,
         config_file=config_file,
         sha1sum=sha1sum,
-        approval_log=approval_log,
-        last_task=last_task)
+        approval_log=approval_log)
 
     if file_type:
         template_name = 'view_artifact.html'

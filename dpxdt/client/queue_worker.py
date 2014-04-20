@@ -138,8 +138,7 @@ class DoTaskWorkflow(workers.WorkflowItem):
         except Exception, e:
             logging.exception('Exception while processing work from '
                               'queue_url=%r, task=%r', queue_url, task)
-            yield heartbeat('Task failed. %s: %s' %
-                            (e.__class__.__name__, str(e)))
+            yield heartbeat('%s: %s' % (e.__class__.__name__, str(e)))
 
             if (isinstance(e, GiveUpAfterAttemptsError) and
                     task['lease_attempts'] >= e.max_attempts):
