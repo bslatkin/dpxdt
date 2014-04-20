@@ -38,7 +38,7 @@ Work queue index
             </div>
             {% for group in queue_list|groupby('name') %}
                 <div class="row">
-                    <div class="span12 work-queue-header">
+                    <div class="span12 workqueue-index-first-row">
                         <a class="big-link" href="{{ url_for('manage_work_queue', queue_name=group.grouper) }}">{{ group.grouper|title }}</a>
                     </div>
                 </div>
@@ -51,10 +51,14 @@ Work queue index
                             {{ queue_dict.count }}
                         </div>
                         <div class="span2">
-                            {{ queue_dict.newest_created|timesince }}
+                            <abbr title="Created {{ queue_dict.newest_created.strftime('%Y-%m-%dT%H:%MZ') }}">
+                                {{ queue_dict.newest_created|timesince }}
+                            </abbr>
                         </div>
                         <div class="span2">
-                            {{ queue_dict.oldest_eta|timesince }}
+                            <abbr title="Oldest ETA {{ queue_dict.oldest_eta.strftime('%Y-%m-%dT%H:%MZ') }}">
+                                {{ queue_dict.oldest_eta|timesince }}
+                            </abbr>
                         </div>
                     </div>
                 {% endfor %}

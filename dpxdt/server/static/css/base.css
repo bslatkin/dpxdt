@@ -193,6 +193,12 @@ a.big-link {
 }
 
 /* For internal consoles and debug pages. */
+.workqueue-index-first-row {
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 5px;
+    margin-top: 15px;
+}
+
 .workqueue-task-row {
     margin-top: 10px;
     margin-bottom: 10px;
