@@ -4,8 +4,7 @@ python:
   - "2.7"
   - "2.6"
 
-install: true
+install:
+  - echo "SECRET_KEY = 'just_for_testing'" > secrets.py
 
 script: ./run_tests.sh
-
-
