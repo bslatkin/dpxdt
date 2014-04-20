@@ -45,6 +45,9 @@
 <span>
     {% if run.status == 'diff_found' %}
         Diff found
+        {%- if run.distortion %}:
+            {{ '%.1f' % (run.distortion*100) + '%' }}
+        {% endif %}
     {% elif run.status == 'diff_not_found' %}
         Same
     {% elif run.status == 'diff_approved' %}
