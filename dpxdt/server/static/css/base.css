@@ -196,8 +196,11 @@ a.big-link {
 .workqueue-task-row {
     margin-top: 10px;
     margin-bottom: 10px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #ccc;
+}
+
+.workqueue-task-row + .workqueue-task-row {
+    padding-top: 10px;
+    border-top: 1px solid #ccc;
 }
 
 .debug-email-body {

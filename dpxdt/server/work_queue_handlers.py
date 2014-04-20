@@ -20,6 +20,7 @@ import logging
 # Local libraries
 import flask
 from flask import Flask, redirect, render_template, request, url_for
+from sqlalchemy import func
 
 # Local modules
 from . import app
@@ -120,7 +121,31 @@ def handle_finish(queue_name):
     return flask.jsonify(success=True)
 
 
-# TODO: Add an index page that shows all possible work queues
+@app.route('/api/work_queue')
+@auth.superuser_required
+def view_all_work_queues():
+    """Page for viewing the index of all active work queues."""
+    result_list = list(
+        db.session.query(
+            work_queue.WorkQueue.queue_name,
+            work_queue.WorkQueue.status,
+            func.count(work_queue.WorkQueue.task_id),
+            func.max(work_queue.WorkQueue.created),
+            func.min(work_queue.WorkQueue.eta))
+        .group_by(work_queue.WorkQueue.queue_name,
+                  work_queue.WorkQueue.status)
+        .order_by(work_queue.WorkQueue.queue_name.asc(),
+                  work_queue.WorkQueue.status.asc()))
+
+    queue_list = [
+        dict(name=name, status=status, count=count,
+             newest_created=newest_created, oldest_eta=oldest_eta)
+        for name, status, count, newest_created, oldest_eta in result_list]
+
+    context = dict(
+        queue_list=queue_list,
+    )
+    return render_template('view_work_queue_index.html', **context)
 
 
 @app.route('/api/work_queue/<string:queue_name>', methods=['GET', 'POST'])
