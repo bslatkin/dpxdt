@@ -151,6 +151,10 @@ def create_release():
 def _check_release_done_processing(release):
     """Moves a release candidate to reviewing if all runs are done."""
     if release.status != models.Release.PROCESSING:
+        # NOTE: This statement also guards for situations where the user has
+        # prematurely specified that the release is good or bad. Once the user
+        # has done that, the system will not automatically move the release
+        # back into the 'reviewing' state or send the email notification below.
         logging.info('Release not in processing state yet: build_id=%r, '
                      'name=%r, number=%d', release.build_id, release.name,
                      release.number)
@@ -159,8 +163,13 @@ def _check_release_done_processing(release):
     query = models.Run.query.filter_by(release_id=release.id)
     for run in query:
         if run.status == models.Run.NEEDS_DIFF:
+            # Still waiting for the diff to finish.
             return False
-        if not run.image:
+        if run.ref_config and not run.ref_image:
+            # Still waiting for the ref capture to process.
+            return False
+        if run.config and not run.image:
+            # Still waiting for the run capture to process.
             return False
 
     logging.info('Release done processing, now reviewing: build_id=%r, '
@@ -405,7 +414,8 @@ def report_run():
     diff_image = request.form.get('diff_image', type=str)
     diff_log = request.form.get('diff_log', type=str)
 
-    distortion = request.form.get('distortion', type=str)
+    distortion = request.form.get('distortion', default=None, type=float)
+    run_failed = request.form.get('run_failed', type=str)
 
     if current_url:
         run.url = current_url
@@ -449,7 +459,7 @@ def report_run():
                      build.id, release.name, release.number, run.name,
                      run.diff_image, run.diff_log)
     if distortion:
-        run.distortion = float(distortion)
+        run.distortion = distortion
 
     if run.image and run.diff_image:
         run.status = models.Run.DIFF_FOUND
@@ -459,11 +469,13 @@ def report_run():
         run.status = models.Run.DIFF_NOT_FOUND
     elif run.image and not run.ref_config:
         run.status = models.Run.NO_DIFF_NEEDED
-    else:
+    elif run_failed:
         run.status = models.Run.FAILED
-
-    # TODO: Consider adding another status of "diff failed" or capture
-    # failed for situations where it couldn't finish.
+    else:
+        # NOTE: Intentionally do not transition state here in the default case.
+        # We allow multiple background workers to be writing to the same Run in
+        # parallel updating its various properties.
+        pass
 
     # TODO: Verify the build has access to both the current_image and
     # the reference_sha1sum so they can't make a diff from a black image

@@ -161,7 +161,9 @@ def view_release():
 
     if request.method == 'POST':
         decision_states = (
-            models.Release.REVIEWING, models.Release.RECEIVING)
+            models.Release.REVIEWING,
+            models.Release.RECEIVING,
+            models.Release.PROCESSING)
 
         if form.good.data and release.status in decision_states:
             release.status = models.Release.GOOD

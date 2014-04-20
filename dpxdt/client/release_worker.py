@@ -264,6 +264,11 @@ class ReportRunWorkflow(workers.WorkflowItem):
             and image_path are for the reference baseline of the specified
             run, not the new capture. If this is True, the ref_* parameters
             must not be provided.
+        run_failed: Optional. When specified and True it means that this run
+            has failed for some reason. The run may be tried again in the
+            future but this will cause this run to immediately show up as
+            failing. When not specified or False the run will be assumed to
+            have been successful.
 
     Raises:
         ReportRunError if the run could not be reported.
@@ -272,7 +277,7 @@ class ReportRunWorkflow(workers.WorkflowItem):
     def run(self, build_id, release_name, release_number, run_name,
             image_path=None, log_path=None, url=None, config_path=None,
             ref_url=None, ref_image=None, ref_log=None, ref_config=None,
-            baseline=None):
+            baseline=None, run_failed=False):
         if baseline and (ref_url or ref_image or ref_log or ref_config):
             raise ReportRunError(
                 'Cannot specify "baseline" along with any "ref_*" arguments.')
@@ -322,6 +327,9 @@ class ReportRunWorkflow(workers.WorkflowItem):
             post.update(log=log_id)
         if config_id:
             post.update(config=config_id)
+
+        if run_failed:
+            post.update(run_failed='yes')
 
         if ref_url:
             post.update(ref_url=ref_url)
@@ -390,7 +398,7 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
         if diff_success:
             post.update(diff_success='yes')
         if distortion:
-            post.update(distortion=distortion)    
+            post.update(distortion=distortion)
 
         call = yield fetch_worker.FetchItem(
             FLAGS.release_server_prefix + '/report_run',

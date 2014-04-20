@@ -122,7 +122,7 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
             image_path = os.path.join(output_path, 'capture.png')
             log_path = os.path.join(output_path, 'log.txt')
             config_path = os.path.join(output_path, 'config.json')
-            capture_success = False
+            capture_failed = True
             failure_reason = None
 
             yield heartbeat('Fetching webpage capture config')
@@ -136,20 +136,21 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
             except (process_worker.TimeoutError, OSError), e:
                 failure_reason = str(e)
             else:
-                capture_success = returncode == 0
+                capture_failed = returncode != 0
                 failure_reason = 'returncode=%s' % returncode
 
             # Don't upload bad captures, but always upload the error log.
-            if not capture_success:
+            if capture_failed:
                 image_path = None
 
             yield heartbeat('Reporting capture status to server')
 
             yield release_worker.ReportRunWorkflow(
                 build_id, release_name, release_number, run_name,
-                image_path=image_path, log_path=log_path, baseline=baseline)
+                image_path=image_path, log_path=log_path, baseline=baseline,
+                run_failed=capture_failed)
 
-            if not capture_success:
+            if capture_failed:
                 raise CaptureFailedError(
                     FLAGS.capture_task_max_attempts,
                     failure_reason)

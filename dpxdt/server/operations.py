@@ -115,12 +115,14 @@ class BuildOps(object):
         if status in (models.Run.DIFF_APPROVED,
                       models.Run.DIFF_NOT_FOUND):
             return ('runs_successful', 'runs_complete', 'runs_total')
-        elif status == models.Run.DIFF_FOUND:
+        elif status in models.Run.DIFF_FOUND:
             return ('runs_failed', 'runs_complete', 'runs_total')
         elif status == models.Run.NO_DIFF_NEEDED:
             return ('runs_baseline',)
         elif status == models.Run.NEEDS_DIFF:
-            return ('runs_total',)
+            return ('runs_total', 'runs_pending')
+        elif status == models.Run.FAILED:
+            return ('runs_failed',)
         return ('runs_pending',)
 
     @cache.memoize(per_instance=True)
