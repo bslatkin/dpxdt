@@ -18,6 +18,8 @@ Depicted is:
 
 See [this video for a presentation](http://youtu.be/UMnZiTL0tUc) about how perceptual diffs have made continuous deployment safe.
 
+[![Build Status](https://travis-ci.org/bslatkin/dpxdt.svg?branch=master)](https://travis-ci.org/bslatkin/dpxdt)
+
 ## Overview
 
 Here are the steps to making Depicted useful to you:
@@ -364,6 +366,10 @@ Reports data for a run for a release candidate. May be called multiple times as 
     <dd>Artifact ID (SHA1 hash) of the log file from the perceptual diff process associated with the run.</dd>
     <dt>diff_success</dt>
     <dd>Present and non-empty string when the diff process ran successfully. May be missing when diff ran and reported a log but may need to retry for this run.</dd>
+    <dt>run_failed</dt>
+    <dd>Present and non-empty string when the run failed for some reason. May be missing when capture ran and reported a log but may need to retry for this run.</dd>
+    <dt>distortion</dt>
+    <dd>Float amount of difference found in the diff that was uploaded, as a float between 0 and 1</dd>
 </dl>
 
 ##### Returns
