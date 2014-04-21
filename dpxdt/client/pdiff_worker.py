@@ -183,7 +183,9 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
             # the output text.
             diff_success = False
 
+
             # Check for a successful run or a known failure.
+            distortion = None
             if os.path.isfile(log_path):
                 log_data = open(log_path).read()
                 if 'all: 0 (0)' in log_data:
@@ -196,7 +198,6 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
                     # Try to find the image magic normalized root square
                     # mean and grab the first one.
                     r = DIFF_REGEX.findall(log_data)
-                    distortion = None
                     if len(r) > 0:
                         diff_success = True
                         distortion = r[0]
