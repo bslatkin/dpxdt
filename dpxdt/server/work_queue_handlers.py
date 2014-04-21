@@ -197,7 +197,7 @@ def manage_work_queue(queue_name):
         work_queue.WorkQueue.query
         .filter_by(queue_name=queue_name)
         .order_by(work_queue.WorkQueue.created.desc())
-        .limit(1000))
+        .limit(100))
 
     work_list = []
     for item in item_list:
