@@ -397,16 +397,21 @@ Marks a release candidate as having all runs reported.
 
 ## Deployment
 
-This is still kinda rough. It primarily explains how to deploy to App Engine / CloudSQL / Google Compute Engine.
+Here's how to deploy to App Engine / CloudSQL / Google Compute Engine. This guide is still a little rough.
 
-1. Provision a CloudSQL DB for your project and initialize it:
+1. [Create a new Cloud Project](http://cloud.google.com/console). Provision a CloudSQL DB and initialize it:
 
-        ./google_sql.sh dpxdt-cloud:test
+        ./google_sql.sh <your-project>:<your-db-name>
         sql> create database test;
 
-1. Go to the [Google API console](https://code.google.com/apis/console/) and provision a new project and "API Access". This will give you the OAuth client ID and secret you need to make auth work properly. Update ```config.py``` with your values.
-1. Go to the [Google Cloud Console](cloud.google.com/console) and find the Google Cloud Storage bucket you've created for your deployment. In the App Engine admin console, go to "Application Settings" and find your "Service Account Name". Copy that name and in the Cloud Console add it as a team member (this gives your app access to the bucket). Update ```config.py``` with your bucket.
-1. Go to the ```deployment/appengine``` directory. Update ```app.yaml``` with your parameters. Create the ```secrets.py``` file as explained for development.
+1. Go to the [Google API console](https://code.google.com/apis/console/) and provision a new project and "API Access". This will give you the OAuth client ID and secret you need to make auth work properly. Update ```config.py``` with your values for anything with the prefix ```GOOGLE_OAUTH2_```.
+
+1. Go to the [Google Cloud Console](http://cloud.google.com/console) and find the Google Cloud Storage bucket you've created for your deployment. In the App Engine admin console, go to "Application Settings" and find your "Service Account Name". Copy that name and in the Cloud Console add it as a team member (this gives your app access to the bucket). Update ```config.py``` with your bucket in ```GOOGLE_CLOUD_STORAGE_BUCKET```.
+
+1. Go to the ```deployment/appengine``` directory. Update ```app.yaml``` with your parameters. Create the ```secrets.py``` file as explained for development. Edit ```config.py``` and change this to match your CloudSQL setup:
+
+        SQLALCHEMY_DATABASE_URI = 'mysql+gaerdbms:///test?instance=<your-project>:<your-db-name>''
+
 1. Deploy the app:
 
         ./appengine_deploy.sh
@@ -429,3 +434,91 @@ This is still kinda rough. It primarily explains how to deploy to App Engine / C
 
 1. Follow the commands it prints out to deploy the worker to a VM.
 
+#### Upgrading production and migrating your database
+
+Depicted uses [Alembic](https://alembic.readthedocs.org/en/latest/tutorial.html) to migrate production data stored in MySQL. The state of *your* database will be unique to when you last pulled from HEAD.
+
+To update to the latest version of the DB schema, follow these steps:
+
+1. Get an IP address assigned for your Google Cloud SQL database [following these directions](https://developers.google.com/cloud-sql/docs/access-control#appaccess). Set the root password for your account. Enable your development machine's IP to access your MySQL instance. You can test this is working by doing:
+
+        mysql -h <your-instance-ip> -u root -p
+        use <your-db-name>;
+        show tables;
+And you should see something like:
+
+        +--------------------+
+        | Tables_in_test     |
+        +--------------------+
+        | admin_log          |
+        | alembic_version    |
+        | api_key            |
+        | artifact           |
+        | artifact_ownership |
+        | build              |
+        | build_ownership    |
+        | release            |
+        | run                |
+        | user               |
+        | work_queue         |
+        +--------------------+
+
+
+1. Modify ```config.py``` to use a standard MySQL driver:
+
+        SQLALCHEMY_DATABASE_URI = (
+            'mysql+mysqldb://root:<your-password>@<your-instance-ip>/<your-db-name>')
+
+1. Edit ```alembic.ini``` and set this value to match ```config.py```:
+
+        sqlalchemy.url = mysql+mysqldb://root:<your-password>@<your-instance-ip>/<your-db-name>
+
+1. Run alembic to generate a migration script:
+
+        ./alembic.py revision --autogenerate -m 'production diff'
+You'll get output that looks like this:
+
+        INFO  [alembic.migration] Context impl MySQLImpl.
+        INFO  [alembic.migration] Will assume non-transactional DDL.
+        INFO  [alembic.autogenerate.compare] Detected removed table u'api_key_ownership'
+        INFO  [alembic.autogenerate.compare] Detected NOT NULL on column 'admin_log.log_type'
+        INFO  [alembic.autogenerate.compare] Detected added column 'run.distortion'
+        INFO  [alembic.autogenerate.compare] Detected removed column 'work_queue.live'
+        INFO  [alembic.autogenerate.compare] Detected NOT NULL on column 'work_queue.status'
+          Generating /Users/bslatkin/projects/dpxdt/alembic/versions/160c55b1c4b9_production_diff.py ... done
+
+
+1. Look inside the ```alembic/versions/<random_string>_production_diff.py``` file generated by Alembic and make sure it seems sane. Commit this to your git repo if you want to make the migration repeatable on multiple DB instances or downgradable so you can rollback.
+
+1. Run the migration. This is scary! 
+
+        ./alembic.py upgrade head
+It will print this out and then sit there for a long time:
+
+        INFO  [alembic.migration] Context impl MySQLImpl.
+        INFO  [alembic.migration] Will assume non-transactional DDL.
+        INFO  [alembic.migration] Running upgrade None -> 160c55b1c4b9, production diff
+To find out what it's actually doing while it's running, reconnect using ```mysql``` as described above and run this command periodically:
+
+        show processlist;
+You'll see what is happening and how long it's taking:
+
+        +----+------+----------------+------+---------+------+-------------------+---------------------------------------------+
+        | Id | User | Host           | db   | Command | Time | State             | Info                                        |
+        +----+------+----------------+------+---------+------+-------------------+---------------------------------------------+
+        | 83 | root |                | test | Query   |  236 | copy to tmp table | ALTER TABLE run ADD COLUMN distortion FLOAT |
+        | 87 | root |                | test | Query   |    0 | NULL              | show processlist                            |
+        +----+------+----------------+------+---------+------+-------------------+---------------------------------------------+
+Eventually the command will finish and drop you back at a shell.
+
+1. Go back to the [Google Cloud Console](http://cloud.google.com/console) and disable the IP address for your MySQL instance. This is safer for your data. Google also charges you to have a public IP address and this stops the cost. You can reenable the IP address next time you need to migrate.
+
+1. Update ```app.yaml``` with a new version name and run this command to deploy the new code on a new non-default version:
+
+        ./appengine_deploy.sh
+
+1. Access the new non-default version on a url like ```yourversion.yourappid.appspot.com```. Click around. Make sure everything is working.
+
+1. Go to the [Google Cloud Console](http://cloud.google.com/console) for your App Engine app. To to the App Engine section. Go to the versions section. Select your newly deployed version. Click "make default". Confirm that when you load ```yourappid.appspot.com``` (without the explicit version prefix) that you see the new version of the code running.
+
+1. Congratulations, you are done!
