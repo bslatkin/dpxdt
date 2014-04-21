@@ -431,8 +431,8 @@ def report_run():
                      'image=%r, log=%r, config=%r, distortion=%r, '
                      'diff_success=%r, run_failed=%r',
                      build.id, release.name, release.number, run.name,
-                     run.url, run.image, run.log, distortion,
-                     run.config, run_failed)
+                     run.url, run.image, run.log, run.config,
+                     distortion, diff_success, run_failed)
 
     if ref_url:
         run.ref_url = ref_url
