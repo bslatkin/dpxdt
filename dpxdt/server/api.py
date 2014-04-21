@@ -426,11 +426,13 @@ def report_run():
     if current_config:
         run.config = current_config
     if current_image or current_log or current_config:
-        logging.info('Saved run data: build_id=%r, release_name=%r, '
+        logging.info('Saving run data: build_id=%r, release_name=%r, '
                      'release_number=%d, run_name=%r, url=%r, '
-                     'image=%r, log=%r, config=%r',
+                     'image=%r, log=%r, config=%r, distortion=%r, '
+                     'diff_success=%r, run_failed=%r',
                      build.id, release.name, release.number, run.name,
-                     run.url, run.image, run.log, run.config)
+                     run.url, run.image, run.log, distortion,
+                     run.config, run_failed)
 
     if ref_url:
         run.ref_url = ref_url
