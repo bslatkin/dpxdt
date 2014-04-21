@@ -36,6 +36,13 @@ from dpxdt.server import forms
 from dpxdt.server import models
 from dpxdt.server import operations
 from dpxdt.server import signals
+from dpxdt.server import utils
+
+
+@app.context_processor
+def frontend_context():
+    """Adds extra default context for rendered templates."""
+    return dict(cache_buster=utils.get_deployment_timestamp())
 
 
 @app.route('/')
