@@ -19,11 +19,6 @@ h4 a:hover {
 .force-wrap {
     word-wrap: break-word;
 }
-.alert-normal {
-    color: #999999;
-    background-color: #eeeeee;
-    border-color: #cccccc;
-}
 .inline-form {
     margin: 0;
 }
@@ -130,17 +125,22 @@ a.big-link {
     -moz-border-radius: 4px;
     border-radius: 4px;
 }
-.status-panel-info{
+.status-panel-normal {
+    color: #999999;
+    background-color: #eeeeee;
+    border-color: #cccccc;
+}
+.status-panel-info {
     color: #3a87ad;
     background-color: #d9edf7;
     border-color: #bce8f1;
 }
-.status-panel-error{
+.status-panel-error {
     color: #b94a48;
     background-color: #f2dede;
     border-color: #eed3d7;
 }
-.status-panel-warning{
+.status-panel-warning {
     color: #c09853;
     background-color: #fcf8e3;
     border-color: #fbeed5;
