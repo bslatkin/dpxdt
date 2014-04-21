@@ -55,7 +55,7 @@ gflags.DEFINE_integer(
     'pdiff_timeout', 60,
     'Seconds until we should give up on a pdiff sub-process and try again.')
 
-diff_regex = re.compile(".*all:.*\(([0-9e\-\.]*)\).*")
+DIFF_REGEX = re.compile(".*all:.*\(([0-9e\-\.]*)\).*")
 
 
 class PdiffFailedError(queue_worker.GiveUpAfterAttemptsError):
@@ -177,22 +177,29 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
             returncode = yield PdiffWorkflow(
                 log_path, ref_resized_path, run_path, diff_path)
 
-            diff_success = returncode == 0
+            # ImageMagick returns 1 if the images are different and 0 if
+            # they are the same, so the return code is a bad judge of
+            # successfully running the diff command. Instead we need to check
+            # the output text.
+            diff_success = False
 
             # Check for a successful run or a known failure.
             if os.path.isfile(log_path):
                 log_data = open(log_path).read()
                 if 'all: 0 (0)' in log_data:
                     diff_path = None
+                    diff_success = True
                 elif 'image widths or heights differ' in log_data:
                     # Give up immediately
                     max_attempts = 1
-                    
-                # Try to find the image magic normalized root square mean and grab the first one     
-                r = diff_regex.findall(log_data)
-                distortion = None
-                if len(r) > 0:
-                    distortion = r[0]
+                else:
+                    # Try to find the image magic normalized root square
+                    # mean and grab the first one.
+                    r = DIFF_REGEX.findall(log_data)
+                    distortion = None
+                    if len(r) > 0:
+                        diff_success = True
+                        distortion = r[0]
 
             yield heartbeat('Reporting diff status to server')
             yield release_worker.ReportPdiffWorkflow(

@@ -517,7 +517,7 @@ Eventually the command will finish and drop you back at a shell.
 
         ./appengine_deploy.sh
 
-1. Access the new non-default version on a url like ```yourversion.yourappid.appspot.com```. Click around. Make sure everything is working.
+1. Access the new non-default version on a url like ```https://yourversion.yourappid.appspot.com```. You probably should use Firefox so you can easily add an SSL certificate error exception. When you login you'll land back on the default version so edit the URL manually to go back to the new version. Then click around. Make sure everything is working!
 
 1. Go to the [Google Cloud Console](http://cloud.google.com/console) for your App Engine app. To to the App Engine section. Go to the versions section. Select your newly deployed version. Click "make default". Confirm that when you load ```yourappid.appspot.com``` (without the explicit version prefix) that you see the new version of the code running.
 

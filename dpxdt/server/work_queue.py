@@ -82,6 +82,7 @@ class WorkQueue(db.Model):
     content_type = db.Column(db.String(100))
 
     __table_args__ = (
+        db.Index('created_index', 'queue_name', 'status', 'created'),
         db.Index('lease_index', 'queue_name', 'status', 'eta'),
         db.Index('reap_index', 'status', 'created'),
     )
