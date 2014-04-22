@@ -97,12 +97,25 @@ page.onConsoleMessage = function(message, line, source) {
     console.log('>> CONSOLE: ' + message);
 };
 
+var ResourceStatus = {
+    DONE: 'done',
+    ERROR: 'error',
+    TIMEOUT: 'timeout',
+    PENDING: 'pending'
+};
+
+// Maps a URL to a ResultStatus value.
+var resourceStatusMap = {};
 
 // We don't necessarily want to load every resource a page asks for.
 page.onResourceRequested = function(requestData, networkRequest) {
+    var url = requestData.url;
+    if (!resourceStatusMap[url]) {
+        resourceStatusMap[url] = ResourceStatus.PENDING;
+    }
     config.resourcesToIgnore.forEach(function(bad) {
-        if (requestData.url.match(new RegExp(bad))) {
-            console.log('Blocking resource: ' + requestData.url);
+        if (url.match(new RegExp(bad))) {
+            console.log('Blocking resource: ' + url);
             networkRequest.abort();
             return;
         }
@@ -114,43 +127,54 @@ page.onResourceReceived = function(response) {
     if (response.stage != 'end') {
         return;
     }
-    if (response.url.indexOf('data:') == 0) {
+    var url = response.url;
+    if (url.indexOf('data:') == 0) {
         console.log('Loaded data URI');
     } else {
-        console.log('Loaded: ' + response.url);
+        console.log('Loaded: ' + url);
+    }
+    if (resourceStatusMap[url] == ResourceStatus.PENDING) {
+        resourceStatusMap[url] = ResourceStatus.DONE;
     }
 };
 
-// If any resources timeout, fail the whole run.
+// Detect if any resources timeout.
 page.onResourceTimeout = function(request) {
-    console.log('Loading resource timed out: ', request);
+    var url = request.url;
+    console.log('Loading resource timed out: ' + url);
+    if (resourceStatusMap[url] == ResourceStatus.PENDING) {
+        resourceStatusMap[url] = ResourceStatus.TIMEOUT;
+    }
 };
 
-/**
- * Just for debug logging.
- */
+// Detect if any resources fail to load.
+page.OnResourceError = function(error) {
+    var url = error.url;
+    console.log('Loading resource errored: ' + url +
+                ', errorCode=' + error.errorCode +
+                ', errorString=' + error.errorString);
+    if (resourceStatusMap[url] == ResourceStatus.PENDING) {
+        resourceStatusMap[url] = ResourceStatus.ERROR;
+    }
+};
+
+// Just for debug logging.
 page.onInitialized = function() {
     console.log('page.onInitialized');
 };
 
 
-/**
- * Dumps out any error logs.
- * @param {string} msg The exception text.
- * @param {string} trace The exception trace.
- */
+// Dumps out any error logs.
 page.onError = function(msg, trace) {
     console.log('page.onError', msg, trace);
 };
 
 
-/**
- * Just for debug logging.
- */
+// Just for debug logging.
 page.onLoadFinished = function(status) {
     console.log('page.onLoadFinished');
     if (status == 'success') {
-        console.log('Loading the page successful');
+        console.log('Loaded the page successfully');
     } else {
         console.log('Loading the page failed');
         phantom.exit(1);
@@ -158,13 +182,20 @@ page.onLoadFinished = function(status) {
 };
 
 
-/**
- * Our main screenshot routine.
- */
-page.doDepictedScreenshots = function() {
-    console.log('page.doDepictedScreenshots', outputPath);
+// Takes the screenshot and exits successfully.
+page.doScreenshot = function() {
+    console.log('Taking the screenshot and saving to:', outputPath);
+    page.render(outputPath);
+    phantom.exit(0);
+};
+
+
+// Injects CSS and JS into the page.
+page.doInject = function() {
+    var didInject = false;
 
     if (config.injectCss) {
+        didInject = true;
         console.log('Injecting CSS: ' + config.injectCss);
         page.evaluate(function(config) {
             var styleEl = document.createElement('style');
@@ -175,6 +206,7 @@ page.doDepictedScreenshots = function() {
     }
 
     if (config.injectJs) {
+        didInject = true;
         console.log('Injecting JS: ' + config.injectJs);
         var success = page.evaluate(function(config) {
             try {
@@ -191,17 +223,47 @@ page.doDepictedScreenshots = function() {
         }
     }
 
-    // TODO: Do we need this setTimeout?
+    if (!didInject) {
+        page.doScreenshot();
+    } else {
+        // Wait for any injected CSS and JS to finish running, including
+        // asynchronous requests, then take a screenshot.
+        window.setTimeout(function() {
+            page.waitForReady(page.doScreenshot);
+        }, 500);
+    }
+}
+
+// Wait for all resources on the page to load, then call the given function.
+page.waitForReady = function(func) {
+    var totals = {};
+    for (var url in resourceStatusMap) {
+        var status = resourceStatusMap[url];
+        var value = totals[status] || 0;
+        totals[status] = value + 1;
+    }
+
+    console.log('Status of all resources:', JSON.stringify(totals));
+
+    var pending = totals[ResourceStatus.PENDING] || 0;
+    if (!pending) {
+        console.log('No more resources are pending!');
+        func();
+        return;
+    }
+
     window.setTimeout(function() {
-        console.log('Taking the screenshot!');
-        page.render(outputPath);
-        phantom.exit(0);
-    }, 1000);
+        page.waitForReady(func);
+    }, 500);
 };
 
-// Screenshot
+// Kickoff the load!
 page.open(config.targetUrl, function(status) {
     console.log('Finished loading page:', config.targetUrl,
                 'w/ status:', status);
-    page.doDepictedScreenshots();
+
+    // Wait for the page to get ready, then inject CSS and JS.
+    window.setTimeout(function() {
+        page.waitForReady(page.doInject);
+    }, 500);
 });
