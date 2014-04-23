@@ -47,6 +47,7 @@ try {
     }
 });
 
+
 // Configure the page.
 var page = require('webpage').create();
 
@@ -92,10 +93,12 @@ if (config.resourcesToIgnore) {
     config.resourcesToIgnore = badResources;
 }
 
+
 // Echo all console messages from the page to our log.
 page.onConsoleMessage = function(message, line, source) {
     console.log('>> CONSOLE: ' + message);
 };
+
 
 var ResourceStatus = {
     DONE: 'done',
@@ -106,6 +109,7 @@ var ResourceStatus = {
 
 // Maps a URL to a ResultStatus value.
 var resourceStatusMap = {};
+
 
 // We don't necessarily want to load every resource a page asks for.
 page.onResourceRequested = function(requestData, networkRequest) {
@@ -121,6 +125,7 @@ page.onResourceRequested = function(requestData, networkRequest) {
         }
     });
 };
+
 
 // Log all resources loaded as part of this request, for debugging.
 page.onResourceReceived = function(response) {
@@ -138,6 +143,7 @@ page.onResourceReceived = function(response) {
     }
 };
 
+
 // Detect if any resources timeout.
 page.onResourceTimeout = function(request) {
     var url = request.url;
@@ -146,6 +152,7 @@ page.onResourceTimeout = function(request) {
         resourceStatusMap[url] = ResourceStatus.TIMEOUT;
     }
 };
+
 
 // Detect if any resources fail to load.
 page.OnResourceError = function(error) {
@@ -157,6 +164,7 @@ page.OnResourceError = function(error) {
         resourceStatusMap[url] = ResourceStatus.ERROR;
     }
 };
+
 
 // Just for debug logging.
 page.onInitialized = function() {
@@ -232,7 +240,8 @@ page.doInject = function() {
             page.waitForReady(page.doScreenshot);
         }, 500);
     }
-}
+};
+
 
 // Wait for all resources on the page to load, then call the given function.
 page.waitForReady = function(func) {
@@ -256,6 +265,7 @@ page.waitForReady = function(func) {
         page.waitForReady(func);
     }, 500);
 };
+
 
 // Kickoff the load!
 page.open(config.targetUrl, function(status) {
