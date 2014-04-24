@@ -184,6 +184,28 @@ Go to [the release page](http://localhost:5000/release?number=1&id=1&name=Awesom
 
 Go to [the release page](http://localhost:5000/release?number=2&id=1&name=Awesome) and wait for the diffs to generate. Note how the first set of images you uploaded are used as the baseline automatically.
 
+This example app works by reading a config file like this:
+
+```
+[
+    {
+        "name": "My homepage",
+        "run_failed": false,
+        "image_path": "tests/testdata/JellyBean1920.png",
+        "log_path": "tests/testdata/testlog1.txt",
+        "url": "http://example.com/another/url/that/is/here"
+    },
+    {
+        "name": "My other page",
+        "run_failed": false,
+        "image_path": "tests/testdata/JellyBellyBeans.png",
+        "log_path": "/tmp/testlog2.txt",
+        "url": "http://example.com/other/url/that/is/here"
+    }
+]
+```
+
+[See the source code](./dpxdt/tools/diff_my_images.py) for more details.
 
 ## API
 
