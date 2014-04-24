@@ -335,7 +335,7 @@ def _evict_build_cache(sender, build=None, release=None, run=None):
     BuildOps(build.id).evict()
 
 
-def _evict_task_cache(sender, task):
+def _evict_task_cache(sender, task=None):
     if not task.run_id:
         return
     run = models.Run.query.get(task.run_id)
