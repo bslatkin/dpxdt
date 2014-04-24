@@ -193,12 +193,18 @@ def manage_work_queue(queue_name):
                             modify_form.task_id.data)
         return redirect(url_for('manage_work_queue', queue_name=queue_name))
 
-    item_list = list(
+    query = (
         work_queue.WorkQueue.query
         .filter_by(queue_name=queue_name)
-        .order_by(work_queue.WorkQueue.created.desc())
-        .limit(100))
+        .order_by(work_queue.WorkQueue.created.desc()))
 
+    status = request.args.get('status', '', type=str).lower()
+    if status in work_queue.WorkQueue.STATES:
+        query = query.filter_by(status=status)
+    else:
+        status = None
+
+    item_list = list(query.limit(100))
     work_list = []
     for item in item_list:
         form = forms.ModifyWorkQueueTaskForm()
@@ -208,6 +214,7 @@ def manage_work_queue(queue_name):
 
     context = dict(
         queue_name=queue_name,
+        status=status,
         work_list=work_list,
     )
     return render_template('view_work_queue.html', **context)

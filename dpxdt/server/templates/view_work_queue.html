@@ -3,6 +3,7 @@
 {% block title -%}
 
 Work queue: {{ queue_name|title }}
+{%- if status %}: {{ status|title }}{% endif %}
 
 {%- endblock title %}
 
@@ -10,6 +11,7 @@ Work queue: {{ queue_name|title }}
 {% block page_title %}
 
 Work queue: {{ queue_name|title }}
+{%- if status %}: {{ status|title }}{% endif %}
 
 {% endblock page_title %}
 

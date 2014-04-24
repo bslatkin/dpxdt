@@ -45,7 +45,7 @@ Work queue index
                 {% for queue_dict in group.list %}
                     <div class="row">
                         <div class="span2 offset2">
-                            {{ queue_dict.status|title }}
+                            <a href="{{ url_for('manage_work_queue', queue_name=group.grouper, status=queue_dict.status) }}">{{ queue_dict.status|title }}</a>
                         </div>
                         <div class="span2">
                             {{ queue_dict.count }}
