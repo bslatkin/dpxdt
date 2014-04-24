@@ -70,6 +70,12 @@ Notes:
   lets the API establish a "baseline" release easily for first-time users.
 
 - Only one release candidate may be receiving runs for a build at a time.
+
+- Failure status can be indicated for a run at the capture phase or the
+  diff phase. The API assumes that the same user that indicated the failure
+  will also provide a log for the failing process so it can be inspected
+  manually for a root cause. Uploading image artifacts for failed runs is
+  not supported.
 """
 
 import datetime
@@ -410,7 +416,7 @@ def report_run():
     ref_log = request.form.get('ref_log', type=str)
     ref_config = request.form.get('ref_config', type=str)
 
-    diff_success = request.form.get('diff_success', type=str)
+    diff_failed = request.form.get('diff_failed', type=str)
     diff_image = request.form.get('diff_image', type=str)
     diff_log = request.form.get('diff_log', type=str)
 
@@ -428,11 +434,9 @@ def report_run():
     if current_image or current_log or current_config:
         logging.info('Saving run data: build_id=%r, release_name=%r, '
                      'release_number=%d, run_name=%r, url=%r, '
-                     'image=%r, log=%r, config=%r, distortion=%r, '
-                     'diff_success=%r, run_failed=%r',
+                     'image=%r, log=%r, config=%r, run_failed=%r',
                      build.id, release.name, release.number, run.name,
-                     run.url, run.image, run.log, run.config,
-                     distortion, diff_success, run_failed)
+                     run.url, run.image, run.log, run.config, run_failed)
 
     if ref_url:
         run.ref_url = ref_url
@@ -453,25 +457,25 @@ def report_run():
         run.diff_image = diff_image
     if diff_log:
         run.diff_log = diff_log
+    if distortion:
+        run.distortion = distortion
 
     if diff_image or diff_log:
         logging.info('Saved pdiff: build_id=%r, release_name=%r, '
-                     'release_number=%d, run_name=%r, '
-                     'diff_image=%r, diff_log=%r',
+                     'release_number=%d, run_name=%r, diff_image=%r, '
+                     'diff_log=%r, diff_failed=%r, distortion=%r',
                      build.id, release.name, release.number, run.name,
-                     run.diff_image, run.diff_log)
-    if distortion:
-        run.distortion = distortion
+                     run.diff_image, run.diff_log, diff_failed, distortion)
 
     if run.image and run.diff_image:
         run.status = models.Run.DIFF_FOUND
     elif run.image and run.ref_image and not run.diff_log:
         run.status = models.Run.NEEDS_DIFF
-    elif run.image and run.ref_image and diff_success:
+    elif run.image and run.ref_image and not diff_failed:
         run.status = models.Run.DIFF_NOT_FOUND
     elif run.image and not run.ref_config:
         run.status = models.Run.NO_DIFF_NEEDED
-    elif run_failed:
+    elif run_failed or diff_failed:
         run.status = models.Run.FAILED
     else:
         # NOTE: Intentionally do not transition state here in the default case.

@@ -363,15 +363,15 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
         run_name: Name of the pdiff being uploaded.
         diff_path: Path to the diff to upload.
         log_path: Path to the diff log to upload.
-        diff_success: True when the diff was computed successfully. False when
-            there was a problem computing the diff. Defaults to False.
+        diff_failed: True when there was a problem computing the diff. False
+            when the diff was computed successfully. Defaults to False.
 
     Raises:
         ReportPdiffError if the pdiff status could not be reported.
     """
 
     def run(self, build_id, release_name, release_number, run_name,
-            diff_path=None, log_path=None, diff_success=False, distortion=None):
+            diff_path=None, log_path=None, diff_failed=False, distortion=None):
         diff_id = None
         log_id = None
         if (isinstance(diff_path, basestring) and
@@ -395,8 +395,8 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
             post.update(diff_image=diff_id)
         if log_id:
             post.update(diff_log=log_id)
-        if diff_success:
-            post.update(diff_success='yes')
+        if diff_failed:
+            post.update(diff_failed='yes')
         if distortion:
             post.update(distortion=distortion)
 

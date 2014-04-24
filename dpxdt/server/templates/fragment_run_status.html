@@ -69,9 +69,11 @@
         {% if run.tasks %}
             {% set last_task=run.tasks[-1] %}
             {% if last_task.status == 'error' %}
-                Failed after max attempts.
+                Failed after max attempts:
             {% elif last_task.status != 'done' and run.status == 'failed' %}
-                Needs retry.
+                Needs retry:
+            {% elif last_task.status != 'done' and last_task.heartbeat %}
+                Last status:
             {% endif %}
             {% if last_task.status != 'done' %}
                 {{ last_task.heartbeat|default('', true) }}

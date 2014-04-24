@@ -364,8 +364,8 @@ Reports data for a run for a release candidate. May be called multiple times as 
     <dd>Artifact ID (SHA1 hash) of the perceptual diff image associated with the run.</dd>
     <dt>diff_log</dt>
     <dd>Artifact ID (SHA1 hash) of the log file from the perceptual diff process associated with the run.</dd>
-    <dt>diff_success</dt>
-    <dd>Present and non-empty string when the diff process ran successfully. May be missing when diff ran and reported a log but may need to retry for this run.</dd>
+    <dt>diff_failed</dt>
+    <dd>Present and non-empty string when the diff process failed for some reason. May be missing when diff ran and reported a log but may need to retry for this run.</dd>
     <dt>run_failed</dt>
     <dd>Present and non-empty string when the run failed for some reason. May be missing when capture ran and reported a log but may need to retry for this run.</dd>
     <dt>distortion</dt>
