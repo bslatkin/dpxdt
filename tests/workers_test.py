@@ -78,15 +78,18 @@ class RootWaitAnyWorkflow(workers.WorkflowItem):
             EchoItem(2),
             EchoItem(25),
         ])
-        assert len([x for x in output if x.done]) == 3
-        assert output[0].done and output[0].output_number == 10
+        # At least one EchoItem will be done. We don't know exactly because
+        # the jobs WorkflowItems in WaitAny are inserted into a dictionary
+        # so their completion ordering is non-deterministic.
+        assert len([x for x in output if x.done]) >= 1
+        # The EchoChild will not be ready yet.
         assert not output[1].done
-        assert output[2].done and output[2].output_number == 2
-        assert output[3].done and output[3].output_number == 25
 
         yield timer_worker.TimerItem(2)
 
         results = yield output
+        # Now everything will be done.
+        assert len([x for x in output if x.done]) >= 1
         assert results[0].done and results[0].output_number == 10
         assert results[1] == 42
         assert results[2].done and results[2].output_number == 2
