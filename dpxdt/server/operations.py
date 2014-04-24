@@ -347,4 +347,4 @@ def _evict_task_cache(sender, task=None):
 signals.build_updated.connect(_evict_user_cache, app)
 signals.release_updated_via_api.connect(_evict_build_cache, app)
 signals.run_updated_via_api.connect(_evict_build_cache, app)
-signals.task_heartbeat_updated.connect(_evict_task_cache, app)
+signals.task_updated.connect(_evict_task_cache, app)

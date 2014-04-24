@@ -291,7 +291,7 @@ def heartbeat(queue_name, task_id, owner, message, index):
     task.heartbeat_number = index
     db.session.add(task)
 
-    signals.task_heartbeat_updated.send(app, task=task)
+    signals.task_updated.send(app, task=task)
 
     return True
 
@@ -329,6 +329,9 @@ def finish(queue_name, task_id, owner, error=False):
 
     task.finished = datetime.datetime.utcnow()
     db.session.add(task)
+
+    signals.task_updated.send(app, task=task)
+
     return True
 
 
