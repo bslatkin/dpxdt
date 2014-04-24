@@ -458,6 +458,14 @@ class WorkflowThread(WorkerThread):
             item = barrier.get_item()
 
 
+class PrintWorkflow(WorkflowItem):
+    """Prints a message to stdout."""
+
+    def run(self, message):
+        yield []  # Make this into a generator
+        print message
+
+
 def get_coordinator():
     """Creates a coordinator and returns it."""
     workflow_queue = Queue.Queue()

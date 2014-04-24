@@ -1,0 +1,16 @@
+[
+    {
+        "name": "My homepage",
+        "run_failed": false,
+        "image_path": "tests/testdata/JellyBean1920.png",
+        "log_path": "tests/testdata/testlog1.txt",
+        "url": "http://example.com/another/url/that/is/here"
+    },
+    {
+        "name": "My other page",
+        "run_failed": false,
+        "image_path": "tests/testdata/JellyBellyBeans.png",
+        "log_path": "/tmp/testlog2.txt",
+        "url": "http://example.com/other/url/that/is/here"
+    }
+]

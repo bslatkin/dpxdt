@@ -169,7 +169,7 @@ class BuildOps(object):
             .first())
 
         if not release:
-            return None, None, None
+            return None, None, None, None
 
         run_list = list(release.runs)
         run_list.sort(key=BuildOps.sort_run)

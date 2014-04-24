@@ -157,6 +157,34 @@ Here's an example run of Pair Diff against a real API server:
     http://www.example.com/my/after/page
 ```
 
+### Diff My Images
+
+One more example tool is [available in the repo](./dpxdt/tools/diff_my_images.py) called Diff My Images. This client plugs screenshots generated in a tool like Selenium into Depicted. It uses the last known good screenshots for tests with the same name as the baseline for
+comparison. Depicted will generate diffs for you and manage the workflow.
+
+To try this out on your local server, first establish a baseline:
+
+```
+./run_diff_my_images.sh \
+    --upload_build_id=1 \
+    --release_cut_url=http://example.com/my/release/branch \
+    --tests_json_path=tests/testdata/my_tests.json \
+    --upload_release_name="Awesome"
+```
+
+Go to [the release page](http://localhost:5000/release?number=1&id=1&name=Awesome) and mark the release as good. Then upload a new set of images that represents an update:
+
+```
+./run_diff_my_images.sh \
+    --upload_build_id=1 \
+    --release_cut_url=http://example.com/my/release/branch \
+    --tests_json_path=tests/testdata/my_tests2.json \
+    --upload_release_name="Awesome"
+```
+
+Go to [the release page](http://localhost:5000/release?number=2&id=1&name=Awesome) and wait for the diffs to generate. Note how the first set of images you uploaded are used as the baseline automatically.
+
+
 ## API
 
 You can try out the API on the test instance of Depicted located at [https://dpxdt-test.appspot.com](https://dpxdt-test.appspot.com). This instance's database will be dropped from time to time, so please don't rely on it.

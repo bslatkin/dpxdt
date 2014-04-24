@@ -13,7 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utility for doing a diff between a pair of URLs."""
+"""Utility for doing a diff between a pair of URLs.
+
+Example usage:
+
+./dpxdt/tools/url_pair_diff.py \
+    --upload_build_id=1234 \
+    --release_server_prefix=https://my-dpxdt-apiserver.example.com/api \
+    --release_client_id=<your api key> \
+    --release_client_secret=<your api secret> \
+    http://www.example.com/my/before/page \
+    http://www.example.com/my/after/page
+"""
 
 import HTMLParser
 import Queue
@@ -99,14 +110,6 @@ class UrlPairDiff(workers.WorkflowItem):
         yield heartbeat('Results viewable at: %s' % release_url)
 
 
-class PrintWorkflow(workers.WorkflowItem):
-    """Prints a message to stdout."""
-
-    def run(self, message):
-        yield []  # Make this into a generator
-        print message
-
-
 def real_main(new_url=None,
               baseline_url=None,
               upload_build_id=None,
@@ -121,7 +124,7 @@ def real_main(new_url=None,
         baseline_url,
         upload_build_id,
         upload_release_name=upload_release_name,
-        heartbeat=PrintWorkflow)
+        heartbeat=workers.PrintWorkflow)
     item.root = True
 
     coordinator.input_queue.put(item)

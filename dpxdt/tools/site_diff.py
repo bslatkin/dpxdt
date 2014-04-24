@@ -13,7 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utility for doing incremental diffs for a live website."""
+"""Utility for doing incremental diffs for a live website.
+
+Example usage:
+
+./dpxdt/tools/site_diff.py \
+    --upload_build_id=1234 \
+    --release_server_prefix=https://my-dpxdt-apiserver.example.com/api \
+    --release_client_id=<your api key> \
+    --release_client_secret=<your api secret> \
+    --crawl_depth=1 \
+    http://www.example.com/my/website/here
+"""
 
 import HTMLParser
 import Queue
@@ -286,14 +297,6 @@ class SiteDiff(workers.WorkflowItem):
         yield heartbeat('Results viewable at: %s' % release_url)
 
 
-class PrintWorkflow(workers.WorkflowItem):
-    """Prints a message to stdout."""
-
-    def run(self, message):
-        yield []  # Make this into a generator
-        print message
-
-
 def real_main(start_url=None,
               ignore_prefixes=None,
               upload_build_id=None,
@@ -308,7 +311,7 @@ def real_main(start_url=None,
         ignore_prefixes=ignore_prefixes,
         upload_build_id=upload_build_id,
         upload_release_name=upload_release_name,
-        heartbeat=PrintWorkflow)
+        heartbeat=workers.PrintWorkflow)
     item.root = True
 
     coordinator.input_queue.put(item)
