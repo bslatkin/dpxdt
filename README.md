@@ -20,38 +20,9 @@ See [this video for a presentation](http://youtu.be/UMnZiTL0tUc) about how perce
 
 [![Build Status](https://travis-ci.org/bslatkin/dpxdt.svg?branch=master)](https://travis-ci.org/bslatkin/dpxdt)
 
-## Overview
-
-Here are the steps to making Depicted useful to you:
-
-1. Establish a baseline release with an initial set of screenshots of your site.
-1. Create a new release with a new set of screenshots of your new version.
-1. Manually approve or reject each difference the tool finds.
-1. Manually mark the new release as good or bad.
-1. Repeat. Your approved release will become the baseline for the next one.
-
-Depicted organizes your releases by a build ID. You can create a build through the API server's UI. A build is usually synonymous with a binary that's pushed to production. But it could also be a unique view into one product, like one build for desktop web and another for mobile web.
-
-Within a build are releases with names. I recommend naming a release as the day it was branched in your source repository, and maybe an attempt number, like "06-16-r01" for June 16th, release 1. If you use codenames for your releases, like "bumblebee", that works too.
-
-Each release may be attempted many times. The full history of each release attempt is saved in the UI. Releases can be manually marked as good or bad in the UI. When results for a new release are uploaded, they will automatically be compared to the last known-good version within that build.
-
-A release consists of many separate test runs. A test run is a single screenshot of a single page. A test run has a name that is used to pair it up with a baseline test run from the known-good, previous release. Usually the test run is named as the path of the URL being tested (like /foo?bar=meep). This lets the baseline release and new release serve on different hostnames.
-
-The life-cycle of a release:
-
-1. Created: A new release is created with a specific name. The system gives it a release number.
-1. Receiving: The release is waiting for all test runs to be requested or reported.
-1. Processing: All test runs have been reported, but additional processing (like screenshotting or pdiffing) is required.
-1. Reviewing: All test runs have been processed. Now the build admin should review any pdiffs that were found and approve the release.
-
-Final release states:
-- Bad: The build admin has marked the release and all its test runs as bad. It will never be used as a baseline.
-- Good: The build admin has marked the release and all of its test runs as passing. The next release created for this build will use this just-approved release as the new baseline.
-
 ## Getting started
 
-Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it easy to run in your environment. It works with SQLite out of the box. The API server runs on App Engine. The workers run [ImageMagick](http://www.imagemagick.org/Usage/compare/) and [PhantomJS](http://phantomjs.org/) as subprocesses. I like to run the worker on a cloud VM, but you could run it on your laptop behind a firewall if that's important to you. See [deployment](#deployment) below for details.
+Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it easy to run in your environment. It works with SQLite out of the box right on your laptop. The API server can also run on App Engine. The workers run [ImageMagick](http://www.imagemagick.org/Usage/compare/) and [PhantomJS](http://phantomjs.org/) as subprocesses. I like to run the worker on a cloud VM, but you could run it on your behind a firewall if that's important to you. See [deployment](#deployment) below for details.
 
 ### Running the server locally
 
@@ -93,40 +64,97 @@ Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it 
 
 1. Follow the URL the tool writes to the terminal and verify screenshots are present. Any errors will be printed to the log in the terminal where you are running the server process.
 
+## How to use Depicted effectively
 
-### Other scripts
+Here are the steps to making Depicted useful to you:
 
-To run the "site diff" script, use:
+1. Establish a baseline release with an initial set of screenshots of your site.
+1. Create a new release with a new set of screenshots of your new version.
+1. Manually approve or reject each difference the tool finds.
+1. Manually mark the new release as good or bad.
+1. Repeat. Your approved release will become the baseline for the next one.
+
+Depicted organizes your releases by a build ID. You can create a build through the API server's UI. A build is usually synonymous with a binary that's pushed to production. But it could also be a unique view into one product, like one build for desktop web and another for mobile web.
+
+Within a build are releases with names. I recommend naming a release as the day it was branched in your source repository, and maybe an attempt number, like "06-16-r01" for June 16th, release 1. If you use codenames for your releases, like "bumblebee", that works too.
+
+Each release may be attempted many times. The full history of each release attempt is saved in the UI. Releases can be manually marked as good or bad in the UI. When results for a new release are uploaded, they will automatically be compared to the last known-good version within that build.
+
+A release consists of many separate test runs. A test run is a single screenshot of a single page. A test run has a name that is used to pair it up with a baseline test run from the known-good, previous release. Usually the test run is named as the path of the URL being tested (like /foo?bar=meep). This lets the baseline release and new release serve on different hostnames.
+
+The life-cycle of a release:
+
+1. Created: A new release is created with a specific name. The system gives it a release number.
+1. Receiving: The release is waiting for all test runs to be requested or reported.
+1. Processing: All test runs have been reported, but additional processing (like screenshotting or pdiffing) is required.
+1. Reviewing: All test runs have been processed. Now the build admin should review any pdiffs that were found and approve the release.
+
+Final release states:
+- Bad: The build admin has marked the release and all its test runs as bad. It will never be used as a baseline.
+- Good: The build admin has marked the release and all of its test runs as passing. The next release created for this build will use this just-approved release as the new baseline.
+
+
+## Example tools
+
+Here are some example tools that show you how to use Depicted and its API, which is [documented in detail](#api) below.
+
+### Site Diff
+
+An example client tool that exercises the whole workflow is [available in the repo](./dpxdt/tools/site_diff.py). It's called "Site Diff". It will crawl a webpage, follow all links with the same prefix path, then create a new release that screenshots all the URLs. Running the tool multiple times lets you diff your entire site with little effort. Site Diff is very helpful, for example, when you have a blog with a lot of content and want to make a change to your base template and be sure you haven't broken any pages.
+
+Here's an example invocation of Site Diff for your local server:
 
 ```
 ./run_site_diff.sh \
     --upload_build_id=1 \
     --crawl_depth=1 \
-    http://www.example.com
+    http://www.example.com/my/website/here
 ```
 
-To run the tests to make sure you haven't broken the world:
+Here's an example invocation of Site Diff against a real API server:
 
 ```
-./run_tests.sh
+./dpxdt/tools/site_diff.py \
+    --upload_build_id=1234 \
+    --release_server_prefix=https://my-dpxdt-apiserver.example.com/api \
+    --release_client_id=<your api key> \
+    --release_client_secret=<your api secret> \
+    --crawl_depth=1 \
+    http://www.example.com/my/website/here
 ```
 
-To run the API server locally, without any worker threads:
-
+Note, when you use this the "upload_build_id" above should be changed to match your build id in the UI, for example:
 ```
-./run_server.sh
+https://dpxdt-test.appspot.com/build?id=500
 ```
-
-To run the background workers independently against the local API server:
-
+You should use:
 ```
-./run_worker.sh
+--upload_build_id=500
 ```
 
-To run in the App Engine development environment (see the [section on deployment](#deployment) for config details):
+### Pair Diff
+
+Another example tool is [available in the repo](./dpxdt/tools/url_pair_diff.py) called Pair Diff. Unlike Site Diff, which establishes a baseline on each subsequent run, Pair Diff takes two live URLs and compares them. This is useful when you have a live version and staging version of your site both available at the same time and can do screenshots of both independently.
+
+Here's an example run of Pair Diff for your local server:
 
 ```
-./appengine_run.sh
+./run_url_pair_diff.sh \
+    --upload_build_id=1 \
+    http://www.example.com/my/before/page \
+    http://www.example.com/my/after/page
+```
+
+Here's an example run of Pair Diff against a real API server:
+
+```
+./dpxdt/tools/url_pair_diff.py \
+    --upload_build_id=1234 \
+    --release_server_prefix=https://my-dpxdt-apiserver.example.com/api \
+    --release_client_id=<your api key> \
+    --release_client_secret=<your api secret> \
+    http://www.example.com/my/before/page \
+    http://www.example.com/my/after/page
 ```
 
 ## API
@@ -148,49 +176,18 @@ curl -v \
     'http://localhost:5000/api/report_run'
 ```
 
-### Example tools that use the API
-
-An example client tool that exercises the whole workflow is [available in the repo](./dpxdt/tools/site_diff.py). It's called "Site Diff". It will crawl a webpage, follow all links with the same prefix path, then create a new release that screenshots all the URLs. Running the tool multiple times lets you diff your entire site with little effort. Site Diff is very helpful, for example, when you have a blog with a lot of content and want to make a change to your base template and be sure you haven't broken any pages.
-
-Here's an example invocation of Site Diff:
-
-```
-./dpxdt/tools/site_diff.py \
-    --upload_build_id=1234 \
-    --release_server_prefix=https://my-dpxdt-apiserver.example.com/api \
-    --release_client_id=<your api key> \
-    --release_client_secret=<your api secret> \
-    --crawl_depth=1 \
-    http://www.example.com/my/website/here
-```
-
-Note, when you use this the "upload_build_id" above should be changed to match your build id in the UI, for example:
-```
-https://dpxdt-test.appspot.com/build?id=500
-```
-You should use:
-```
---upload_build_id=500
-```
-
-
-Another example tool is [available in the repo](./dpxdt/tools/url_pair_diff.py) called Pair Diff. Unlike Site Diff, which establishes a baseline on each subsequent run, Pair Diff takes two live URLs and compares them. This is useful when you have a live version and staging version of your site both available at the same time and can do screenshots of both independently.
-
-Here's an example run of Pair Diff:
-
-```
-./dpxdt/tools/url_pair_diff.py \
-    --upload_build_id=1234 \
-    --release_server_prefix=https://my-dpxdt-apiserver.example.com/api \
-    --release_client_id=<your api key> \
-    --release_client_secret=<your api secret> \
-    http://www.example.com/my/before/page \
-    http://www.example.com/my/after/page
-```
-
 ### API Reference
 
 All of these requests are POSTs with URL-encoded or multipart/form-data bodies and require HTTP Basic Authentication using your API key as the username and secret as the password. All responses are JSON. The 'success' key will be present in all responses and true if the request was successful. If 'success' isn't present, a human-readable error message may be present in the response under the key 'error'.
+
+Endpoints:
+
+- [/api/create_release](#apicreate_release)
+- [/api/find_run](#apifind_run)
+- [/api/request_run](#apirequest_run)
+- [/api/upload](#apiupload)
+- [/api/report_run](#apireport_run)
+- [/api/runs_done](#apiruns_done)
 
 #### /api/create_release
 
@@ -332,7 +329,7 @@ Uploads an artifact referenced by a run.
 
 #### /api/report_run
 
-Reports data for a run for a release candidate. May be called multiple times as progress is made for a run. No longer callable once the screenshot image for the run has been assigned.
+Reports data for a run for a release candidate. May be called multiple times as progress is made for a run. Should not be called once the screenshot image for the run has been assigned.
 
 ##### Parameters
 <dl>
