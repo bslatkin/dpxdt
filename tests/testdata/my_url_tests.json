@@ -1,0 +1,44 @@
+[
+    {
+        "name": "My homepage",
+        "run_url": "http://localhost:5000/static/dummy/dummy_page1.html",
+        "run_config": {
+            "viewportSize": {
+                "width": 1024,
+                "height": 768
+            },
+            "injectCss": "#foobar { background-color: lime; }",
+            "injectJs": "document.getElementById('foobar').innerText = 'bar';"
+        },
+        "ref_url": "http://localhost:5000/static/dummy/dummy_page1.html",
+        "ref_config": {
+            "viewportSize": {
+                "width": 1024,
+                "height": 768
+            },
+            "injectCss": "#foobar { background-color: goldenrod; }",
+            "injectJs": "document.getElementById('foobar').innerText = 'foo';"
+        }
+    },
+    {
+        "name": "My other page",
+        "run_url": "http://localhost:5000/static/dummy/index.html",
+        "run_config": {
+            "viewportSize": {
+                "width": 1024,
+                "height": 768
+            },
+            "injectCss": "#foobar { background-color: lime; }",
+            "injectJs": "document.getElementById('foobar').innerText = 'x';"
+        },
+        "ref_url": "http://localhost:5000/static/dummy/index.html",
+        "ref_config": {
+            "viewportSize": {
+                "width": 1024,
+                "height": 768
+            },
+            "injectCss": "#foobar { background-color: goldenrod; }",
+            "injectJs": "document.getElementById('foobar').innerText = 'y';"
+        }
+    }
+]

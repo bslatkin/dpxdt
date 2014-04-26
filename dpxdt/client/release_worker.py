@@ -217,7 +217,7 @@ class RequestRunWorkflow(workers.WorkflowItem):
     """
 
     def run(self, build_id, release_name, release_number, run_name,
-            url, config_data, ref_url=None, ref_config_data=None):
+            url=None, config_data=None, ref_url=None, ref_config_data=None):
         post = {
             'build_id': build_id,
             'release_name': release_name,
