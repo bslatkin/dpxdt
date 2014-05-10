@@ -39,7 +39,7 @@ from dpxdt.client import workers
 
 
 gflags.DEFINE_integer(
-    'capture_threads', 1, 'Number of website screenshot threads to run')
+    'capture_threads', 5, 'Number of website screenshot threads to run')
 
 gflags.DEFINE_integer(
     'capture_task_max_attempts', 3,

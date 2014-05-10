@@ -60,7 +60,8 @@ def setUpModule():
     FLAGS.fetch_threads = 1
     FLAGS.phantomjs_timeout = 60
     FLAGS.polltime = 1
-    FLAGS.queue_poll_seconds = 1
+    FLAGS.queue_idle_poll_seconds = 1
+    FLAGS.queue_busy_poll_seconds = 1
     FLAGS.queue_server_prefix = (
         'http://localhost:%d/api/work_queue' % server_port)
     FLAGS.release_server_prefix = 'http://localhost:%d/api' % server_port
