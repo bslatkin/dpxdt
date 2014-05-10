@@ -21,6 +21,7 @@ import json
 import logging
 import shutil
 import socket
+import ssl
 import time
 import urllib
 import urllib2
@@ -134,7 +135,7 @@ class FetchThread(workers.WorkerThread):
                 conn = urllib2.urlopen(request, timeout=item.timeout_seconds)
             except urllib2.HTTPError, e:
                 conn = e
-            except urllib2.URLError, e:
+            except (urllib2.URLError, ssl.SSLError), e:
                 # TODO: Make this status more clear
                 item.status_code = 400
                 return item
