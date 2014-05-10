@@ -144,7 +144,6 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
                 image_path = None
 
             yield heartbeat('Reporting capture status to server')
-
             yield release_worker.ReportRunWorkflow(
                 build_id, release_name, release_number, run_name,
                 image_path=image_path, log_path=log_path, baseline=baseline,

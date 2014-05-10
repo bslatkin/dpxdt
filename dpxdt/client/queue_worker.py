@@ -61,9 +61,6 @@ class HeartbeatError(Error):
     """Reporting the status of a task in progress failed for some reason."""
 
 
-# TODO: Split heartbeats out into a separate FetchItem thread so we don't
-# gum-up the important workflows with messages that aren't critical.
-
 class HeartbeatWorkflow(workers.WorkflowItem):
     """Reports the status of a RemoteQueueWorkflow to the API server.
 
@@ -74,8 +71,6 @@ class HeartbeatWorkflow(workers.WorkflowItem):
         index: Index for the heartbeat message. Should be at least one
             higher than the last heartbeat message.
     """
-
-    fire_and_forget = True
 
     def run(self, queue_url, task_id, message, index):
         call = yield fetch_worker.FetchItem(

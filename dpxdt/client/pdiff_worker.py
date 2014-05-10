@@ -209,7 +209,7 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
                         diff_failed = False
                         distortion = r[0]
 
-            yield heartbeat('Reporting diff status to server')
+            yield heartbeat('Reporting diff result to server')
             yield release_worker.ReportPdiffWorkflow(
                 build_id, release_name, release_number, run_name,
                 diff_path, log_path, diff_failed, distortion)
