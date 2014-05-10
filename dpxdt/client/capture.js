@@ -114,16 +114,25 @@ var resourceStatusMap = {};
 // We don't necessarily want to load every resource a page asks for.
 page.onResourceRequested = function(requestData, networkRequest) {
     var url = requestData.url;
-    if (!resourceStatusMap[url]) {
-        resourceStatusMap[url] = ResourceStatus.PENDING;
-    }
-    config.resourcesToIgnore.forEach(function(bad) {
-        if (url.match(new RegExp(bad))) {
-            console.log('Blocking resource: ' + url);
-            networkRequest.abort();
-            return;
+
+    if (url.indexOf('data:') == 0) {
+        console.log('Requested data URI');
+    } else {
+        for (var i = 0; i < config.resourcesToIgnore.length; i++) {
+            var bad = config.resourcesToIgnore[i];
+            if (bad == url || url.match(new RegExp(bad))) {
+                console.log('Blocking resource: ' + url);
+                networkRequest.abort();
+                return;
+            }
         }
-    });
+        console.log('Requested: ' + url);
+    }
+
+    // Always reset the status to pending each time a new request happens.
+    // This handles the case where the page or JS causes a resource to reload
+    // for some reason, expecting a different result.
+    resourceStatusMap[url] = ResourceStatus.PENDING;
 };
 
 
@@ -135,6 +144,8 @@ page.onResourceReceived = function(response) {
     var url = response.url;
     if (url.indexOf('data:') == 0) {
         console.log('Loaded data URI');
+    } else if (response.redirectURL) {
+        console.log('Loaded redirect: ' + url + ' -> ' + response.redirectURL);
     } else {
         console.log('Loaded: ' + url);
     }
@@ -175,6 +186,21 @@ page.onInitialized = function() {
 // Dumps out any error logs.
 page.onError = function(msg, trace) {
     console.log('page.onError', msg, trace);
+};
+
+
+// Just for debug logging.
+page.onNavigationRequested = function(url, type, willNavigate, main) {
+    if (!main) {
+        return;
+    }
+    console.log('page.onNavigationRequested: ' + url);
+};
+
+
+// Just for debug logging.
+page.onLoadStarted = function() {
+    console.log('page.onLoadStarted');
 };
 
 
@@ -259,6 +285,12 @@ page.waitForReady = function(func) {
         console.log('No more resources are pending!');
         func();
         return;
+    } else {
+        for (var url in resourceStatusMap) {
+            if (resourceStatusMap[url] == ResourceStatus.PENDING) {
+                console.log('Still waiting for: ' + url);
+            }
+        }
     }
 
     window.setTimeout(function() {
