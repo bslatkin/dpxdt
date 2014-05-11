@@ -75,8 +75,8 @@ class ProcessWorkflow(workers.WorkflowItem):
                 process._internal_poll(_deadstate=127)
                 if process.returncode is not None:
                     logging.info(
-                        'item=%r Subprocess finished with returncode %r',
-                        self, process.returncode)
+                        'item=%r Subprocess finished pid=%r, returncode=%r',
+                        self, process.pid, process.returncode)
                     raise workers.Return(process.returncode)
 
                 now = time.time()

@@ -63,10 +63,11 @@ class WorkItem(object):
         return self.__dict__
 
     def __repr__(self):
-        return '%s.%s(%s)' % (
+        return '%s.%s(%s)#%d' % (
             self.__class__.__module__,
             self.__class__.__name__,
-            self._print_tree(self._get_dict_for_repr()))
+            self._print_tree(self._get_dict_for_repr()),
+            id(self))
 
     def check_result(self):
         # TODO: For WorkflowItems, remove generator.throw(*item.error) from

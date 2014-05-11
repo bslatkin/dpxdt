@@ -238,3 +238,5 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
             yield timer_worker.TimerItem(poll_time)
 
             outstanding[:] = [x for x in outstanding if not x.done]
+            logging.debug('%d DoTaskWorkflow items still outstanding: %r',
+                          len(outstanding), outstanding)
