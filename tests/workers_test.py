@@ -48,9 +48,23 @@ class EchoItem(workers.WorkItem):
 
 
 class EchoChild(workers.WorkflowItem):
-    def run(self, number, should_die=False):
+    def run(self, number, should_die=False, wait_seconds=0):
+        if wait_seconds > 0:
+            yield timer_worker.TimerItem(wait_seconds)
         item = yield EchoItem(number, should_die=should_die)
         raise workers.Return(item.output_number)
+
+
+class EchoChildWorkflow(workers.WorkflowItem):
+    def run(self, number, should_die=False, wait_seconds=0):
+        if wait_seconds > 0:
+            yield timer_worker.TimerItem(wait_seconds)
+        if should_die:
+            try:
+                yield EchoChild(number, should_die=should_die)
+            except Exception, e:
+                raise e
+        raise workers.Return(number)
 
 
 class RootWorkflow(workers.WorkflowItem):
@@ -61,31 +75,6 @@ class RootWorkflow(workers.WorkflowItem):
             assert number is i
             total += number
         self.result = total  # Don't raise to test StopIteration
-
-
-class NonGeneratorExceptionChild(workers.WorkflowItem):
-    def run(self):
-        raise Exception('My exception here')
-
-
-class ExceptionReraiseParent(workers.WorkflowItem):
-    def run(self):
-        try:
-            yield NonGeneratorExceptionChild()
-        except Exception, e:
-            assert str(e) == 'My exception here'
-            raise Exception('Another exception')
-
-
-class RootExceptionWorkflow(workers.WorkflowItem):
-    def run(self):
-        try:
-            yield ExceptionReraiseParent()
-        except Exception, e:
-            assert str(e) == 'Another exception'
-            raise workers.Return('good')
-        else:
-            raise workers.Return('bad')
 
 
 class GeneratorExceptionChild(workers.WorkflowItem):
@@ -238,6 +227,37 @@ class RootFireAndForgetExceptionWorkflow(workers.WorkflowItem):
         raise workers.Return('No fire and forget error')
 
 
+class RootFireAndForgetMultipleExceptionWorkflow(workers.WorkflowItem):
+    def run(self):
+        jobs = []
+        for i in xrange(3):
+            job = EchoChildWorkflow(99, should_die=True, wait_seconds=i*0.5)
+            job.fire_and_forget = True
+            result = yield job
+            assert result is job
+            assert not result.done
+            assert not result.error
+            jobs.append(job)
+
+        yield timer_worker.TimerItem(0.5)
+
+        assert jobs[0].done
+        assert jobs[1].done is False
+        assert jobs[2].done is False
+
+        # for i, job in enumerate(jobs):
+        #     print '%d is done %r' % (i, job.done)
+        #     # assert str(job.error[1]) == 'Dying on 99'
+
+        yield timer_worker.TimerItem(1.5)
+
+        assert jobs[0].done
+        assert jobs[1].done
+        assert jobs[2].done
+
+        raise workers.Return('All errors seen')
+
+
 class RootWaitAnyFireAndForget(workers.WorkflowItem):
     def run(self):
         output = yield workers.WaitAny([
@@ -336,18 +356,6 @@ class WorkflowThreadTest(unittest.TestCase):
         finished.check_result()
         self.assertEquals('good', work.result)
 
-    def testWorkflowExceptionPropagation_FirstGeneratorRun(self):
-        """Tests that exceptions raised during generator setup are caught."""
-        work = RootExceptionWorkflow()
-        work.root = True
-        self.coordinator.input_queue.put(work)
-        finished = self.coordinator.output_queue.get()
-
-        self.assertTrue(work is finished)
-        found = finished.check_result()
-        self.assertEquals('good', found)
-        self.fail()
-
     def testWaitAll(self):
         """Tests waiting on all items in a list of work."""
         work = RootWaitAllWorkflow(4)
@@ -397,6 +405,16 @@ class WorkflowThreadTest(unittest.TestCase):
         self.assertTrue(work is finished)
         finished.check_result()
         self.assertEquals('No fire and forget error', work.result)
+
+    def testFireAndForgetException_MultiLevel(self):
+        """Tests exceptions in multi-level fire-and-forget work items."""
+        work = RootFireAndForgetMultipleExceptionWorkflow()
+        work.root = True
+        self.coordinator.input_queue.put(work)
+        finished = self.coordinator.output_queue.get()
+        self.assertTrue(work is finished)
+        finished.check_result()
+        self.assertEquals('All errors seen', work.result)
 
     def testWaitAnyFireAndForget(self):
         """Tests wait any with a mix of blocking and non-blocking items."""

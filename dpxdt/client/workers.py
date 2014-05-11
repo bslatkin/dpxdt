@@ -404,7 +404,8 @@ class WorkflowThread(WorkerThread):
             try:
                 generator = item.run(*item.args, **item.kwargs)
             except TypeError, e:
-                raise TypeError('%s: item=%r', e, item)
+                raise TypeError('Bad workflow function item=%r error=%s' % (
+                                item, str(e)))
             item = None
         else:
             barrier = self.dequeue_barrier(item)
