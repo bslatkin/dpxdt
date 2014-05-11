@@ -63,6 +63,58 @@ class RootWorkflow(workers.WorkflowItem):
         self.result = total  # Don't raise to test StopIteration
 
 
+class NonGeneratorExceptionChild(workers.WorkflowItem):
+    def run(self):
+        raise Exception('My exception here')
+
+
+class ExceptionReraiseParent(workers.WorkflowItem):
+    def run(self):
+        try:
+            yield NonGeneratorExceptionChild()
+        except Exception, e:
+            assert str(e) == 'My exception here'
+            raise Exception('Another exception')
+
+
+class RootExceptionWorkflow(workers.WorkflowItem):
+    def run(self):
+        try:
+            yield ExceptionReraiseParent()
+        except Exception, e:
+            assert str(e) == 'Another exception'
+            raise workers.Return('good')
+        else:
+            raise workers.Return('bad')
+
+
+class GeneratorExceptionChild(workers.WorkflowItem):
+    def run(self):
+        number = yield EchoChild(4, should_die=False)
+        raise Exception('My exception here %d' % number)
+
+
+class GeneratorExceptionReraiseParent(workers.WorkflowItem):
+    def run(self):
+        try:
+            yield GeneratorExceptionChild()
+        except Exception, e:
+            assert str(e) == 'My exception here 4', str(e)
+            raise Exception('Another exception')
+
+
+class RootGeneratorExceptionWorkflow(workers.WorkflowItem):
+    def run(self):
+        try:
+            print 'up here'
+            yield GeneratorExceptionReraiseParent()
+        except Exception, e:
+            assert str(e) == 'Another exception', str(e)
+            raise workers.Return('good')
+        else:
+            raise workers.Return('bad')
+
+
 class RootWaitAllWorkflow(workers.WorkflowItem):
     def run(self, child_count):
         wait_all = [EchoItem(i) for i in xrange(child_count)]
@@ -272,6 +324,29 @@ class WorkflowThreadTest(unittest.TestCase):
             finished.check_result()
         except Exception, e:
             self.assertEquals('Dying on 3', str(e))
+
+    def testWorkflowExceptionPropagation(self):
+        """Tests when workflow items in a hierarchy re-raise exceptions."""
+        work = RootGeneratorExceptionWorkflow()
+        work.root = True
+        self.coordinator.input_queue.put(work)
+        finished = self.coordinator.output_queue.get()
+
+        self.assertTrue(work is finished)
+        finished.check_result()
+        self.assertEquals('good', work.result)
+
+    def testWorkflowExceptionPropagation_FirstGeneratorRun(self):
+        """Tests that exceptions raised during generator setup are caught."""
+        work = RootExceptionWorkflow()
+        work.root = True
+        self.coordinator.input_queue.put(work)
+        finished = self.coordinator.output_queue.get()
+
+        self.assertTrue(work is finished)
+        found = finished.check_result()
+        self.assertEquals('good', found)
+        self.fail()
 
     def testWaitAll(self):
         """Tests waiting on all items in a list of work."""

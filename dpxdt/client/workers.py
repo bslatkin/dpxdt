@@ -415,26 +415,33 @@ class WorkflowThread(WorkerThread):
             generator = barrier.generator
 
         while True:
-            logging.debug('Transitioning workflow=%r, generator=%r, item=%r',
-                          workflow, generator, item)
             try:
                 try:
                     error = item is not None and item.error
                     if error:
+                        logging.debug('Throwing workflow=%r error=%r',
+                                      workflow, error)
                         next_item = generator.throw(*error)
                     elif isinstance(item, WorkflowItem) and item.done:
+                        logging.debug('Sending workflow=%r item.result=%r',
+                                      workflow, item.result)
                         next_item = generator.send(item.result)
                     else:
+                        logging.debug('Sending workflow=%r item=%r',
+                                      workflow, item)
                         next_item = generator.send(item)
                 except StopIteration:
+                    logging.debug('Exhausted workflow=%r', workflow)
                     workflow.done = True
                 except Return, e:
+                    logging.debug('Return from workflow=%r result=%r',
+                                  workflow, e.result)
                     workflow.done = True
                     workflow.result = e.result
                 except Exception, e:
                     logging.exception(
-                        'error workflow=%r, generator=%r, item=%r',
-                        workflow, generator, item)
+                        'Error in workflow=%r from item=%r, error=%r',
+                        workflow, item, error)
                     workflow.done = True
                     workflow.error = sys.exc_info()
             finally:
