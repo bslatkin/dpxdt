@@ -50,7 +50,7 @@ class WorkItem(object):
         if isinstance(obj, dict):
             result = []
             for key, value in obj.iteritems():
-                result.append("%s: %s" % (key, WorkItem._print_tree(value)))
+                result.append('%s: %s' % (key, WorkItem._print_tree(value)))
             return '{%s}' % ', '.join(result)
         else:
             value_str = repr(obj)
@@ -432,8 +432,9 @@ class WorkflowThread(WorkerThread):
                     workflow.done = True
                     workflow.result = e.result
                 except Exception, e:
-                    logging.exception('%s error item=%r',
-                                      self.worker_name, item)
+                    logging.exception(
+                        'error workflow=%r, generator=%r, item=%r',
+                        workflow, generator, item)
                     workflow.done = True
                     workflow.error = sys.exc_info()
             finally:
