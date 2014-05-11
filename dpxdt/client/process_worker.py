@@ -69,7 +69,10 @@ class ProcessWorkflow(workers.WorkflowItem):
 
             while True:
                 logging.info('item=%r Polling pid=%r', self, process.pid)
-                process.poll()
+                # NOTE: Use undocumented polling method to work around a
+                # bug in subprocess for handling defunct zombie processes:
+                # http://bugs.python.org/issue2475
+                process._internal_poll(_deadstate=127)
                 if process.returncode is not None:
                     logging.info(
                         'item=%r Subprocess finished with returncode %r',
