@@ -68,19 +68,22 @@ class ProcessWorkflow(workers.WorkflowItem):
                 raise
 
             while True:
+                logging.info('item=%r Polling pid=%r', self, process.pid)
                 process.poll()
-                if process.returncode is None:
-                    now = time.time()
-                    run_time = now - start_time
-                    if run_time > timeout_seconds:
-                        process.kill()
-                        raise TimeoutError(
-                            'Sent SIGKILL to item=%r, pid=%s, run_time=%s' %
-                            (self, process.pid, run_time))
+                if process.returncode is not None:
+                    logging.info(
+                        'item=%r Subprocess finished with returncode %r',
+                        self, process.returncode)
+                    raise workers.Return(process.returncode)
 
-                    yield timer_worker.TimerItem(FLAGS.polltime)
-                    continue
+                now = time.time()
+                run_time = now - start_time
+                if run_time > timeout_seconds:
+                    logging.info('item=%r Subprocess timed out pid=%r',
+                                 self, process.pid)
+                    process.kill()
+                    raise TimeoutError(
+                        'Sent SIGKILL to item=%r, pid=%s, run_time=%s' %
+                        (self, process.pid, run_time))
 
-                logging.info('item=%r Subprocess finished with returncode %r',
-                             self, process.returncode)
-                raise workers.Return(process.returncode)
+                yield timer_worker.TimerItem(FLAGS.polltime)
