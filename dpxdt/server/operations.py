@@ -27,11 +27,12 @@ from . import cache
 from . import db
 from dpxdt.server import models
 from dpxdt.server import signals
+from dpxdt.server import utils
 from dpxdt.server import work_queue
 
 
 class UserOps(object):
-    """Cacheable operations for user-specified information."""
+    """Cacheable operations for user-specific information."""
 
     def __init__(self, user_id):
         self.user_id = user_id
@@ -88,6 +89,46 @@ class UserOps(object):
         cache.delete_memoized(self.load)
         cache.delete_memoized(self.get_builds)
         cache.delete_memoized(self.owns_build)
+
+
+class ApiKeyOps(object):
+    """Cacheable operations for API key-specific information."""
+
+    def __init__(self, client_id, client_secret):
+        self.client_id = client_id
+        self.client_secret = client_secret
+
+    # For Flask-Cache keys
+    def __repr__(self):
+        return 'caching.ApiKeyOps(client_id=%r)' % self.client_id
+
+    @cache.memoize(per_instance=True)
+    def get(self):
+        api_key = models.ApiKey.query.get(self.client_id)
+        utils.jsonify_assert(api_key, 'API key must exist', 403)
+        utils.jsonify_assert(api_key.active, 'API key must be active', 403)
+        utils.jsonify_assert(api_key.secret == self.client_secret,
+                             'Must have good credentials', 403)
+        return api_key
+
+    @cache.memoize(per_instance=True)
+    def can_access_build(self, build_id):
+        api_key = self.get()
+
+        build = models.Build.query.get(build_id)
+        utils.jsonify_assert(build is not None, 'build must exist', 404)
+
+        if not api_key.superuser:
+            utils.jsonify_assert(api_key.build_id == build_id,
+                                 'API key must have access', 404)
+
+        return api_key, build
+
+    def evict(self):
+        """Evict all caches related to this API key."""
+        logging.debug('Evicting cache for %r', self)
+        cache.delete_memoized(self.get)
+        cache.delete_memoized(self.can_access_build)
 
 
 class BuildOps(object):
@@ -260,26 +301,6 @@ class BuildOps(object):
                     .first())
 
         return next_run, previous_run
-
-    @cache.memoize(per_instance=True)
-    def get_all_runs(self, release_name, release_number):
-        run_list = (
-            models.Run.query
-            .join(models.Release)
-            .filter(models.Release.name == release_name)
-            .filter(models.Release.number == release_number)
-            .filter(models.Run.name == test_name)
-            .all())
-        run_list.sort(key=BuildOps.sort_run)
-
-        run_ids = [run.id for run in run_list]
-        approval_log_list = (
-            models.AdminLog.query
-            .filter(models.AdminLog.run_id.in_(run_ids))
-            .filter_by(log_type=models.AdminLog.RUN_APPROVED)
-            .group_by(models.AdminLog.run_id)
-            .order_by(models.AdminLog.created.desc())
-            .first())
 
     @cache.memoize(per_instance=True)
     def get_run(self, release_name, release_number, test_name):

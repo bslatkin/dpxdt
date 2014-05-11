@@ -125,7 +125,7 @@ def add(queue_name, payload=None, content_type=None, source=None, task_id=None,
     else:
         task_id = uuid.uuid4().hex
 
-    if payload and not content_type    and not isinstance(payload, basestring):
+    if payload and not content_type and not isinstance(payload, basestring):
         payload = json.dumps(payload)
         content_type = 'application/json'
 
