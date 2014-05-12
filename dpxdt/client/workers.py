@@ -37,6 +37,7 @@ class WorkItem(object):
     # Instance variables. May be overridden by a sub-class @property.
     error = None
     done = False
+    parent = None
 
     # Set this to True for WorkItems that should never wait for their
     # return values.
@@ -220,6 +221,7 @@ class Barrier(list):
 
         for item in self:
             assert isinstance(item, WorkItem)
+            item.parent = workflow
 
     @property
     def outstanding(self):
@@ -411,6 +413,8 @@ class WorkflowThread(WorkerThread):
         else:
             barrier = self.dequeue_barrier(item)
             if not barrier:
+                logging.debug('Could not find barrier for finished item=%r',
+                              item)
                 return
             item = barrier.get_item()
             workflow = barrier.workflow
@@ -425,12 +429,14 @@ class WorkflowThread(WorkerThread):
                                       workflow, error)
                         next_item = generator.throw(*error)
                     elif isinstance(item, WorkflowItem) and item.done:
-                        logging.debug('Sending workflow=%r item.result=%r',
-                                      workflow, item.result)
+                        logging.debug(
+                            'Sending workflow=%r finished item=%r',
+                            workflow, item)
                         next_item = generator.send(item.result)
                     else:
-                        logging.debug('Sending workflow=%r item=%r',
-                                      workflow, item)
+                        logging.debug(
+                            'Sending workflow=%r finished item=%r',
+                            workflow, item)
                         next_item = generator.send(item)
                 except StopIteration:
                     logging.debug('Exhausted workflow=%r', workflow)
