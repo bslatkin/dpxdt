@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Terminate immediately with an error if any child command fails.
+set -e
+
 source common.sh
 
 ./tests/site_diff_test.py \

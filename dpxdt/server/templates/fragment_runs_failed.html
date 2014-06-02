@@ -9,7 +9,7 @@
 {% endif %}
 
 {% if alert_wrapper %}
-    <div class="alert alert-{{ run_status }}">
+    <div class="row-fluid status-panel status-panel-{{ run_status }} no-min-height">
         <strong>
 {% else %}
     <span {% if inline_style -%}

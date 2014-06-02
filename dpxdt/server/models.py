@@ -162,12 +162,13 @@ class Run(db.Model):
     DIFF_APPROVED = 'diff_approved'
     DIFF_FOUND = 'diff_found'
     DIFF_NOT_FOUND = 'diff_not_found'
+    FAILED = 'failed'
     NEEDS_DIFF = 'needs_diff'
     NO_DIFF_NEEDED = 'no_diff_needed'
 
     STATES = frozenset([
         DATA_PENDING, DIFF_APPROVED, DIFF_FOUND, DIFF_NOT_FOUND,
-        NEEDS_DIFF, NO_DIFF_NEEDED])
+        FAILED, NEEDS_DIFF, NO_DIFF_NEEDED])
 
     DIFF_NEEDED_STATES = frozenset([DIFF_FOUND, DIFF_APPROVED])
 
@@ -197,6 +198,13 @@ class Run(db.Model):
 
     diff_image = db.Column(db.String(100), db.ForeignKey('artifact.id'))
     diff_log = db.Column(db.String(100), db.ForeignKey('artifact.id'))
+    distortion = db.Column(db.Float())
+
+    tasks = db.relationship('WorkQueue',
+                            backref=db.backref('runs', lazy='select'),
+                            lazy='joined',
+                            join_depth=1,
+                            order_by='WorkQueue.created')
 
     # For flask-cache memoize key.
     def __repr__(self):

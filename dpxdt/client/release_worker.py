@@ -217,7 +217,7 @@ class RequestRunWorkflow(workers.WorkflowItem):
     """
 
     def run(self, build_id, release_name, release_number, run_name,
-            url, config_data, ref_url=None, ref_config_data=None):
+            url=None, config_data=None, ref_url=None, ref_config_data=None):
         post = {
             'build_id': build_id,
             'release_name': release_name,
@@ -264,6 +264,11 @@ class ReportRunWorkflow(workers.WorkflowItem):
             and image_path are for the reference baseline of the specified
             run, not the new capture. If this is True, the ref_* parameters
             must not be provided.
+        run_failed: Optional. When specified and True it means that this run
+            has failed for some reason. The run may be tried again in the
+            future but this will cause this run to immediately show up as
+            failing. When not specified or False the run will be assumed to
+            have been successful.
 
     Raises:
         ReportRunError if the run could not be reported.
@@ -272,7 +277,7 @@ class ReportRunWorkflow(workers.WorkflowItem):
     def run(self, build_id, release_name, release_number, run_name,
             image_path=None, log_path=None, url=None, config_path=None,
             ref_url=None, ref_image=None, ref_log=None, ref_config=None,
-            baseline=None):
+            baseline=None, run_failed=False):
         if baseline and (ref_url or ref_image or ref_log or ref_config):
             raise ReportRunError(
                 'Cannot specify "baseline" along with any "ref_*" arguments.')
@@ -323,6 +328,9 @@ class ReportRunWorkflow(workers.WorkflowItem):
         if config_id:
             post.update(config=config_id)
 
+        if run_failed:
+            post.update(run_failed='yes')
+
         if ref_url:
             post.update(ref_url=ref_url)
         if ref_image:
@@ -355,15 +363,15 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
         run_name: Name of the pdiff being uploaded.
         diff_path: Path to the diff to upload.
         log_path: Path to the diff log to upload.
-        diff_success: True when the diff was computed successfully. False when
-            there was a problem computing the diff. Defaults to False.
+        diff_failed: True when there was a problem computing the diff. False
+            when the diff was computed successfully. Defaults to False.
 
     Raises:
         ReportPdiffError if the pdiff status could not be reported.
     """
 
     def run(self, build_id, release_name, release_number, run_name,
-            diff_path=None, log_path=None, diff_success=False):
+            diff_path=None, log_path=None, diff_failed=False, distortion=None):
         diff_id = None
         log_id = None
         if (isinstance(diff_path, basestring) and
@@ -387,8 +395,10 @@ class ReportPdiffWorkflow(workers.WorkflowItem):
             post.update(diff_image=diff_id)
         if log_id:
             post.update(diff_log=log_id)
-        if diff_success:
-            post.update(diff_success='yes')
+        if diff_failed:
+            post.update(diff_failed='yes')
+        if distortion:
+            post.update(distortion=distortion)
 
         call = yield fetch_worker.FetchItem(
             FLAGS.release_server_prefix + '/report_run',

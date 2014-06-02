@@ -37,6 +37,7 @@ class WorkItem(object):
     # Instance variables. May be overridden by a sub-class @property.
     error = None
     done = False
+    parent = None
 
     # Set this to True for WorkItems that should never wait for their
     # return values.
@@ -50,7 +51,7 @@ class WorkItem(object):
         if isinstance(obj, dict):
             result = []
             for key, value in obj.iteritems():
-                result.append("%s: %s" % (key, WorkItem._print_tree(value)))
+                result.append('%s: %s' % (key, WorkItem._print_tree(value)))
             return '{%s}' % ', '.join(result)
         else:
             value_str = repr(obj)
@@ -63,10 +64,11 @@ class WorkItem(object):
         return self.__dict__
 
     def __repr__(self):
-        return '%s.%s(%s)' % (
+        return '%s.%s(%s)#%d' % (
             self.__class__.__module__,
             self.__class__.__name__,
-            self._print_tree(self._get_dict_for_repr()))
+            self._print_tree(self._get_dict_for_repr()),
+            id(self))
 
     def check_result(self):
         # TODO: For WorkflowItems, remove generator.throw(*item.error) from
@@ -219,6 +221,7 @@ class Barrier(list):
 
         for item in self:
             assert isinstance(item, WorkItem)
+            item.parent = workflow
 
     @property
     def outstanding(self):
@@ -404,36 +407,49 @@ class WorkflowThread(WorkerThread):
             try:
                 generator = item.run(*item.args, **item.kwargs)
             except TypeError, e:
-                raise TypeError('%s: item=%r', e, item)
+                raise TypeError('Bad workflow function item=%r error=%s' % (
+                                item, str(e)))
             item = None
         else:
             barrier = self.dequeue_barrier(item)
             if not barrier:
+                logging.debug('Could not find barrier for finished item=%r',
+                              item)
                 return
             item = barrier.get_item()
             workflow = barrier.workflow
             generator = barrier.generator
 
         while True:
-            logging.debug('Transitioning workflow=%r, generator=%r, item=%r',
-                          workflow, generator, item)
             try:
                 try:
                     error = item is not None and item.error
                     if error:
+                        logging.debug('Throwing workflow=%r error=%r',
+                                      workflow, error)
                         next_item = generator.throw(*error)
                     elif isinstance(item, WorkflowItem) and item.done:
+                        logging.debug(
+                            'Sending workflow=%r finished item=%r',
+                            workflow, item)
                         next_item = generator.send(item.result)
                     else:
+                        logging.debug(
+                            'Sending workflow=%r finished item=%r',
+                            workflow, item)
                         next_item = generator.send(item)
                 except StopIteration:
+                    logging.debug('Exhausted workflow=%r', workflow)
                     workflow.done = True
                 except Return, e:
+                    logging.debug('Return from workflow=%r result=%r',
+                                  workflow, e.result)
                     workflow.done = True
                     workflow.result = e.result
                 except Exception, e:
-                    logging.exception('%s error item=%r',
-                                      self.worker_name, item)
+                    logging.exception(
+                        'Error in workflow=%r from item=%r, error=%r',
+                        workflow, item, error)
                     workflow.done = True
                     workflow.error = sys.exc_info()
             finally:
@@ -456,6 +472,14 @@ class WorkflowThread(WorkerThread):
             # If a returned barrier has no oustanding parts, immediately
             # progress the workflow.
             item = barrier.get_item()
+
+
+class PrintWorkflow(WorkflowItem):
+    """Prints a message to stdout."""
+
+    def run(self, message):
+        yield []  # Make this into a generator
+        print message
 
 
 def get_coordinator():

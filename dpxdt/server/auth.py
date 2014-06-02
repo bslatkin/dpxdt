@@ -40,7 +40,6 @@ from dpxdt.server import models
 from dpxdt.server import operations
 from dpxdt.server import utils
 
-
 GOOGLE_OAUTH2_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth'
 GOOGLE_OAUTH2_TOKEN_URL = 'https://accounts.google.com/o/oauth2/token'
 GOOGLE_OAUTH2_USERINFO_URL = 'https://www.googleapis.com/oauth2/v1/userinfo'
@@ -74,7 +73,7 @@ def login_view():
                 id=fake_id,
                 email_address='superuser@example.com',
                 superuser=1)
-            db.session.add(anonymous_superuser);
+            db.session.add(anonymous_superuser)
             db.session.commit()
         login_user(anonymous_superuser)
         confirm_login()
@@ -206,17 +205,21 @@ def can_user_access_build(param_name):
         abort(404)
 
     if current_user.is_authenticated() and not user_is_owner:
+        # Assume the user should be able to access the build but can't because
+        # the cache is out of date. This forces the cache to repopulate, any
+        # outstanding user invitations to be completed, hopefully resulting in
+        # the user having access to the build.
         ops.evict()
         claim_invitations(current_user)
         build, user_is_owner = ops.owns_build(build_id)
 
     if not user_is_owner:
-        if request.method != 'GET':
+        if current_user.is_authenticated() and current_user.superuser:
+            pass
+        elif request.method != 'GET':
             logging.debug('No way to log in user via modifying request')
             abort(403)
         elif build.public:
-            pass
-        elif current_user.is_authenticated() and current_user.superuser:
             pass
         elif current_user.is_authenticated():
             logging.debug('User does not have access to this build')
@@ -263,18 +266,8 @@ def build_access_required(function_or_param_name):
         return get_wrapper('id', function_or_param_name)
 
 
-def current_api_key():
-    """Determines the API key for the current request.
-
-    Returns:
-        The API key.
-    """
-    if app.config.get('IGNORE_AUTH'):
-        return models.ApiKey(
-            id='anonymous_superuser',
-            secret='',
-            superuser=True)
-
+def _get_api_key_ops():
+    """Gets the operations.ApiKeyOps instance for the current request."""
     auth_header = request.authorization
     if not auth_header:
         logging.debug('API request lacks authorization header')
@@ -282,12 +275,23 @@ def current_api_key():
             'API key required', 401,
             {'WWW-Authenticate': 'Basic realm="API key required"'}))
 
-    api_key = models.ApiKey.query.get(auth_header.username)
-    utils.jsonify_assert(api_key, 'API key must exist', 403)
-    utils.jsonify_assert(api_key.active, 'API key must be active', 403)
-    utils.jsonify_assert(api_key.secret == auth_header.password,
-                         'Must have good credentials', 403)
+    return operations.ApiKeyOps(auth_header.username, auth_header.password)
 
+
+def current_api_key():
+    """Determines the API key for the current request.
+
+    Returns:
+        The ApiKey instance.
+    """
+    if app.config.get('IGNORE_AUTH'):
+        return models.ApiKey(
+            id='anonymous_superuser',
+            secret='',
+            superuser=True)
+
+    ops = _get_api_key_ops()
+    api_key = ops.get()
     logging.debug('Authenticated as API key=%r', api_key.id)
 
     return api_key
@@ -303,18 +307,21 @@ def can_api_key_access_build(param_name):
     Returns:
         (api_key, build) The API Key and the Build it has access to.
     """
-    api_key = current_api_key()
     build_id = (
         request.args.get(param_name, type=int) or
         request.form.get(param_name, type=int))
     utils.jsonify_assert(build_id, 'build_id required')
 
-    build = models.Build.query.get(build_id)
-    utils.jsonify_assert(build is not None, 'build must exist', 404)
-
-    if not api_key.superuser:
-        utils.jsonify_assert(api_key.build_id == build_id,
-                             'API key must have access', 404)
+    if app.config.get('IGNORE_AUTH'):
+        api_key = models.ApiKey(
+            id='anonymous_superuser',
+            secret='',
+            superuser=True)
+        build = models.Build.query.get(build_id)
+        utils.jsonify_assert(build is not None, 'build must exist', 404)
+    else:
+        ops = _get_api_key_ops()
+        api_key, build = ops.can_access_build(build_id)
 
     return api_key, build
 
@@ -413,6 +420,9 @@ def revoke_api_key():
 
         db.session.add(api_key)
         db.session.commit()
+
+        ops = operations.ApiKeyOps(api_key.id, api_key.secret)
+        ops.evict()
 
     return redirect(url_for('manage_api_keys', build_id=build.id))
 

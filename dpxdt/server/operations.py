@@ -27,11 +27,12 @@ from . import cache
 from . import db
 from dpxdt.server import models
 from dpxdt.server import signals
+from dpxdt.server import utils
 from dpxdt.server import work_queue
 
 
 class UserOps(object):
-    """Cacheable operations for user-specified information."""
+    """Cacheable operations for user-specific information."""
 
     def __init__(self, user_id):
         self.user_id = user_id
@@ -90,6 +91,46 @@ class UserOps(object):
         cache.delete_memoized(self.owns_build)
 
 
+class ApiKeyOps(object):
+    """Cacheable operations for API key-specific information."""
+
+    def __init__(self, client_id, client_secret):
+        self.client_id = client_id
+        self.client_secret = client_secret
+
+    # For Flask-Cache keys
+    def __repr__(self):
+        return 'caching.ApiKeyOps(client_id=%r)' % self.client_id
+
+    @cache.memoize(per_instance=True)
+    def get(self):
+        api_key = models.ApiKey.query.get(self.client_id)
+        utils.jsonify_assert(api_key, 'API key must exist', 403)
+        utils.jsonify_assert(api_key.active, 'API key must be active', 403)
+        utils.jsonify_assert(api_key.secret == self.client_secret,
+                             'Must have good credentials', 403)
+        return api_key
+
+    @cache.memoize(per_instance=True)
+    def can_access_build(self, build_id):
+        api_key = self.get()
+
+        build = models.Build.query.get(build_id)
+        utils.jsonify_assert(build is not None, 'build must exist', 404)
+
+        if not api_key.superuser:
+            utils.jsonify_assert(api_key.build_id == build_id,
+                                 'API key must have access', 404)
+
+        return api_key, build
+
+    def evict(self):
+        """Evict all caches related to this API key."""
+        logging.debug('Evicting cache for %r', self)
+        cache.delete_memoized(self.get)
+        cache.delete_memoized(self.can_access_build)
+
+
 class BuildOps(object):
     """Cacheable operations for build-specific operations."""
 
@@ -115,12 +156,14 @@ class BuildOps(object):
         if status in (models.Run.DIFF_APPROVED,
                       models.Run.DIFF_NOT_FOUND):
             return ('runs_successful', 'runs_complete', 'runs_total')
-        elif status == models.Run.DIFF_FOUND:
+        elif status in models.Run.DIFF_FOUND:
             return ('runs_failed', 'runs_complete', 'runs_total')
         elif status == models.Run.NO_DIFF_NEEDED:
             return ('runs_baseline',)
         elif status == models.Run.NEEDS_DIFF:
-            return ('runs_total',)
+            return ('runs_total', 'runs_pending')
+        elif status == models.Run.FAILED:
+            return ('runs_failed',)
         return ('runs_pending',)
 
     @cache.memoize(per_instance=True)
@@ -167,7 +210,7 @@ class BuildOps(object):
             .first())
 
         if not release:
-            return None, None, None
+            return None, None, None, None
 
         run_list = list(release.runs)
         run_list.sort(key=BuildOps.sort_run)
@@ -260,26 +303,6 @@ class BuildOps(object):
         return next_run, previous_run
 
     @cache.memoize(per_instance=True)
-    def get_all_runs(self, release_name, release_number):
-        run_list = (
-            models.Run.query
-            .join(models.Release)
-            .filter(models.Release.name == release_name)
-            .filter(models.Release.number == release_number)
-            .filter(models.Run.name == test_name)
-            .all())
-        run_list.sort(key=BuildOps.sort_run)
-
-        run_ids = [run.id for run in run_list]
-        approval_log_list = (
-            models.AdminLog.query
-            .filter(models.AdminLog.run_id.in_(run_ids))
-            .filter_by(log_type=models.AdminLog.RUN_APPROVED)
-            .group_by(models.AdminLog.run_id)
-            .order_by(models.AdminLog.created.desc())
-            .first())
-
-    @cache.memoize(per_instance=True)
     def get_run(self, release_name, release_number, test_name):
         run = (
             models.Run.query
@@ -302,8 +325,6 @@ class BuildOps(object):
                 .order_by(models.AdminLog.created.desc())
                 .first())
 
-        last_task = work_queue.query(run_id=run.id, count=1)
-
         if run:
             db.session.expunge(run)
         if next_run:
@@ -313,7 +334,7 @@ class BuildOps(object):
         if approval_log:
             db.session.expunge(approval_log)
 
-        return run, next_run, previous_run, approval_log, last_task
+        return run, next_run, previous_run, approval_log
 
     def evict(self):
         """Evict all caches relating to this build."""
@@ -335,7 +356,7 @@ def _evict_build_cache(sender, build=None, release=None, run=None):
     BuildOps(build.id).evict()
 
 
-def _evict_task_cache(sender, task):
+def _evict_task_cache(sender, task=None):
     if not task.run_id:
         return
     run = models.Run.query.get(task.run_id)
@@ -347,4 +368,4 @@ def _evict_task_cache(sender, task):
 signals.build_updated.connect(_evict_user_cache, app)
 signals.release_updated_via_api.connect(_evict_build_cache, app)
 signals.run_updated_via_api.connect(_evict_build_cache, app)
-signals.task_heartbeat_updated.connect(_evict_task_cache, app)
+signals.task_updated.connect(_evict_task_cache, app)

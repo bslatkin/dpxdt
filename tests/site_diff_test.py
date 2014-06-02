@@ -18,23 +18,277 @@
 import BaseHTTPServer
 import logging
 import os
+import socket
 import sys
 import tempfile
 import threading
+import time
 import unittest
+import uuid
 
 # Local libraries
 import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
+from dpxdt import runworker
+from dpxdt import server
+from dpxdt.client import capture_worker
 from dpxdt.client import workers
+from dpxdt.server import db
+from dpxdt.server import models
 from dpxdt.tools import site_diff
 
 
-# For convenience
-exists = os.path.exists
-join = os.path.join
+def get_free_port():
+    sock = socket.socket()
+    sock.bind(('', 0))
+    return sock.getsockname()[1]
+
+
+# Will be set by one-time setUp
+server_thread = None
+
+
+def setUpModule():
+    """Sets up the environment for testing."""
+    global server_thread
+
+    server_port = get_free_port()
+
+    FLAGS.fetch_frequency = 100
+    FLAGS.fetch_threads = 1
+    FLAGS.phantomjs_timeout = 60
+    FLAGS.polltime = 1
+    FLAGS.queue_idle_poll_seconds = 1
+    FLAGS.queue_busy_poll_seconds = 1
+    FLAGS.queue_server_prefix = (
+        'http://localhost:%d/api/work_queue' % server_port)
+    FLAGS.release_server_prefix = 'http://localhost:%d/api' % server_port
+
+    db_path = tempfile.mktemp(suffix='.db')
+    logging.info('sqlite path used in tests: %s', db_path)
+    server.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
+    db.drop_all()
+    db.create_all()
+
+    server.app.config['CSRF_ENABLED'] = False
+    server.app.config['IGNORE_AUTH'] = True
+    server.app.config['TESTING'] = True
+    run = lambda: server.app.run(debug=False, host='0.0.0.0', port=server_port)
+
+    server_thread = threading.Thread(target=run)
+    server_thread.setDaemon(True)
+    server_thread.start()
+
+    runworker.run_workers()
+
+
+def create_build():
+    """Creates a new build and returns its ID."""
+    build = models.Build(name='My build')
+    db.session.add(build)
+    db.session.commit()
+    return build.id
+
+
+def wait_for_release(build_id, release_name, timeout_seconds=60):
+    """Waits for a release to enter a terminal state."""
+    start = time.time()
+    while True:
+        release = (models.Release.query
+            .filter_by(build_id=build_id, name=release_name)
+            .order_by(models.Release.number.desc())
+            .first())
+        db.session.refresh(release)
+        if release.status == models.Release.REVIEWING:
+            return release
+        else:
+            print 'Release status: %s' % release.status
+
+        assert time.time() - start < timeout_seconds, (
+            'Timing out waiting for release to enter terminal state')
+        time.sleep(1)
+
+        self.assertEquals(None, test('ftp://bob@www.example.com/'))
+
+        self.assertEquals(None, test('mailto:bob@example.com'))
+
+        self.assertEquals(None, test('javascript:runme()'))
+
+        self.assertEquals(None, test('tel:1-555-555-5555'))
+
+        self.assertEquals('http://www.example.com/test.js',
+                          test('/test.js'))
+
+        # Escaped sources (e.g. inside inline JavaScript) should not be scraped
+        scriptTag = ('<script type=\"text\/javascript\"'
+            ' src=\"\/\/platform.twitter.com\/widgets.js\"><\/script>')
+        self.assertEquals(set([]), site_diff.extract_urls(base_url, scriptTag))
+
+        spacesInTag = "<a href = 'spaced.html'>"
+        self.assertEquals(
+            set(['http://www.example.com/my-url/spaced.html']),
+            site_diff.extract_urls(base_url, spacesInTag))
+
+        jsText = "var src = true;"
+        self.assertEquals(set([]), site_diff.extract_urls(base_url, jsText))
+
+
+def webserver(func):
+    """Runs the given function as a webserver.
+
+    Function should take one argument, the path of the request. Should
+    return tuple (status, content_type, content) or Nothing if there is no
+    response.
+    """
+    class HandlerClass(BaseHTTPServer.BaseHTTPRequestHandler):
+        def do_GET(self):
+            output = func(self.path)
+            if output:
+                code, content_type, result = output
+            else:
+                code, content_type, result = 404, 'text/plain', 'Not found!'
+
+            self.send_response(code)
+            self.send_header('Content-Type', content_type)
+            self.end_headers()
+            if result:
+                self.wfile.write(result)
+
+    server = BaseHTTPServer.HTTPServer(('', 0), HandlerClass)
+    thread = threading.Thread(target=server.serve_forever)
+    thread.daemon = True
+    thread.start()
+    server.server_prefix = 'http://localhost:%d' % server.server_address[1]
+    print 'Test server started on %s' % server.server_prefix
+    return server
+
+
+class SiteDiffTest(unittest.TestCase):
+    """Tests for the SiteDiff workflow."""
+
+    def setUp(self):
+        """Sets up the test harness."""
+        self.coordinator = workers.get_coordinator()
+        self.build_id = create_build()
+        self.release_name = uuid.uuid4().hex
+        self.client = server.app.test_client()
+
+    def testEndToEnd(self):
+        """Tests doing a site diff from end to end."""
+        # Create the first release.
+        @webserver
+        def test1(path):
+            if path == '/':
+                return 200, 'text/html', '<h1>Hello world!</h1>'
+
+        site_diff.real_main(
+            start_url=test1.server_prefix + '/',
+            upload_build_id=self.build_id,
+            upload_release_name=self.release_name)
+
+        release = wait_for_release(self.build_id, self.release_name)
+
+        # Verify the first screenshot worked and its status can load.
+        resp = self.client.get(
+            '/release?id=%d&name=%s&number=%d' % (
+                self.build_id, release.name, release.number),
+            follow_redirects=True)
+        self.assertEquals('200 OK', resp.status)
+        self.assertIn('Nothing to test', resp.data)
+        self.assertIn('Diff not required', resp.data)
+
+        # Mark the release as good.
+        resp = self.client.post(
+            '/release',
+            data=dict(
+                id=self.build_id,
+                name=release.name,
+                number=release.number,
+                good=True),
+            follow_redirects=True)
+        self.assertEquals('200 OK', resp.status)
+
+        # Create the second release.
+        @webserver
+        def test2(path):
+            if path == '/':
+                return 200, 'text/html', '<h1>Hello again!</h1>'
+
+        site_diff.real_main(
+            start_url=test2.server_prefix + '/',
+            upload_build_id=self.build_id,
+            upload_release_name=self.release_name)
+
+        release = wait_for_release(self.build_id, self.release_name)
+
+        # Verify a diff was computed and found.
+        resp = self.client.get(
+            '/release?id=%d&name=%s&number=%d' % (
+                self.build_id, release.name, release.number),
+            follow_redirects=True)
+        self.assertEquals('200 OK', resp.status)
+        self.assertIn('1 tested', resp.data)
+        self.assertIn('1 failure', resp.data)
+        self.assertIn('Diff found', resp.data)
+
+        # Create the second release.
+        site_diff.real_main(
+            start_url=test1.server_prefix + '/',
+            upload_build_id=self.build_id,
+            upload_release_name=self.release_name)
+
+        release = wait_for_release(self.build_id, self.release_name)
+        test1.shutdown()
+        test2.shutdown()
+
+        # No diff found.
+        resp = self.client.get(
+            '/release?id=%d&name=%s&number=%d' % (
+                self.build_id, release.name, release.number),
+            follow_redirects=True)
+        self.assertEquals('200 OK', resp.status)
+        self.assertIn('1 tested', resp.data)
+        self.assertIn('All passing', resp.data)
+
+    def testCrawler(self):
+        """Tests that the crawler behaves well.
+
+        Specifically:
+            - Finds new links in HTML data
+            - Avoids non-HTML pages
+            - Respects ignore patterns specified on flags
+            - Properly handles 404s
+        """
+        @webserver
+        def test(path):
+            if path == '/':
+                return 200, 'text/html', (
+                    'Hello world! <a href="/stuff">x</a> '
+                    '<a href="/ignore">y</a> and also '
+                    '<a href="/missing">z</a>')
+            elif path == '/stuff':
+                return 200, 'text/html', 'Stuff page <a href="/avoid">x</a>'
+            elif path == '/missing':
+                return 404, 'text/plain', 'Nope'
+            elif path == '/avoid':
+                return 200, 'text/plain', 'Ignore me!'
+
+        site_diff.real_main(
+            start_url=test.server_prefix + '/',
+            upload_build_id=self.build_id,
+            upload_release_name=self.release_name,
+            ignore_prefixes=['/ignore'])
+
+        release = wait_for_release(self.build_id, self.release_name)
+        run_list = models.Run.query.all()
+        found = set(run.name for run in run_list)
+
+        expected = set(['/', '/stuff'])
+        self.assertEquals(expected, found)
+
+        test.shutdown()
 
 
 class HtmlRewritingTest(unittest.TestCase):
@@ -106,254 +360,6 @@ class HtmlRewritingTest(unittest.TestCase):
             'http://www.example.com/relative-with/some-(parenthesis%20here)',
             test('http://www.example.com/relative-with/some-'
                  '(parenthesis%20here)'))
-
-        self.assertEquals(None, test('ftp://bob@www.example.com/'))
-
-        self.assertEquals(None, test('mailto:bob@example.com'))
-
-        self.assertEquals(None, test('javascript:runme()'))
-
-        self.assertEquals(None, test('tel:1-555-555-5555'))
-
-        self.assertEquals('http://www.example.com/test.js',
-                          test('/test.js'))
-
-        # Escaped sources (e.g. inside inline JavaScript) should not be scraped
-        scriptTag = ('<script type=\"text\/javascript\"'
-            ' src=\"\/\/platform.twitter.com\/widgets.js\"><\/script>')
-        self.assertEquals(set([]), site_diff.extract_urls(base_url, scriptTag))
-
-        spacesInTag = "<a href = 'spaced.html'>"
-        self.assertEquals(
-            set(['http://www.example.com/my-url/spaced.html']),
-            site_diff.extract_urls(base_url, spacesInTag))
-
-        jsText = "var src = true;"
-        self.assertEquals(set([]), site_diff.extract_urls(base_url, jsText))
-
-
-def webserver(func):
-    """Runs the given function as a webserver.
-
-    Function should take one argument, the path of the request. Should
-    return tuple (status, content_type, content) or Nothing if there is no
-    response.
-    """
-    class HandlerClass(BaseHTTPServer.BaseHTTPRequestHandler):
-        def do_GET(self):
-            output = func(self.path)
-            if output:
-                code, content_type, result = output
-            else:
-                code, content_type, result = 404, 'text/plain', 'Not found!'
-
-            self.send_response(code)
-            self.send_header('Content-Type', content_type)
-            self.end_headers()
-            if result:
-                self.wfile.write(result)
-
-    server = BaseHTTPServer.HTTPServer(('', 0), HandlerClass)
-    thread = threading.Thread(target=server.serve_forever)
-    thread.daemon = True
-    thread.start()
-    return server
-
-
-class SiteDiffTest(unittest.TestCase):
-    """Tests for the SiteDiff workflow."""
-
-    def setUp(self):
-        """Sets up the test harness."""
-        FLAGS.fetch_frequency = 100
-        FLAGS.polltime = 0.01
-        self.test_dir = tempfile.mkdtemp('site_diff_test')
-        self.output_dir = join(self.test_dir, 'output')
-        self.reference_dir = join(self.test_dir, 'reference')
-        self.coordinator = workers.get_coordinator()
-
-    def output_readlines(self, path):
-        """Reads the lines of an output file, stripping newlines."""
-        return [
-            x.strip() for x in open(join(self.output_dir, path)).xreadlines()]
-
-    def testFirstSnapshot(self):
-        """Tests taking the very first snapshot."""
-        @webserver
-        def test(path):
-            if path == '/':
-                return 200, 'text/html', 'Hello world!'
-
-        site_diff.real_main(
-            start_url='http://%s:%d/' % test.server_address,
-            output_dir=self.output_dir,
-            coordinator=self.coordinator)
-        test.shutdown()
-
-        self.assertTrue(exists(join(self.output_dir, '__run.log')))
-        self.assertTrue(exists(join(self.output_dir, '__run.png')))
-        self.assertTrue(exists(join(self.output_dir, '__config.js')))
-        self.assertTrue(exists(join(self.output_dir, 'url_paths.txt')))
-
-        self.assertEquals(
-            ['/'],
-            self.output_readlines('url_paths.txt'))
-
-    def testNoDifferences(self):
-        """Tests crawling the site end-to-end."""
-        @webserver
-        def test(path):
-            if path == '/':
-                return 200, 'text/html', 'Hello world!'
-
-        site_diff.real_main(
-            start_url='http://%s:%d/' % test.server_address,
-            output_dir=self.reference_dir,
-            coordinator=self.coordinator)
-
-        self.coordinator = workers.get_coordinator()
-        site_diff.real_main(
-            start_url='http://%s:%d/' % test.server_address,
-            output_dir=self.output_dir,
-            reference_dir=self.reference_dir,
-            coordinator=self.coordinator)
-        test.shutdown()
-
-        self.assertTrue(exists(join(self.reference_dir, '__run.log')))
-        self.assertTrue(exists(join(self.reference_dir, '__run.png')))
-        self.assertTrue(exists(join(self.reference_dir, '__config.js')))
-        self.assertTrue(exists(join(self.reference_dir, 'url_paths.txt')))
-
-        self.assertTrue(exists(join(self.output_dir, '__run.log')))
-        self.assertTrue(exists(join(self.output_dir, '__run.png')))
-        self.assertTrue(exists(join(self.output_dir, '__ref.log')))
-        self.assertTrue(exists(join(self.output_dir, '__ref.png')))
-        self.assertFalse(exists(join(self.output_dir, '__diff.png'))) # No diff
-        self.assertTrue(exists(join(self.output_dir, '__diff.log')))
-        self.assertTrue(exists(join(self.output_dir, '__config.js')))
-        self.assertTrue(exists(join(self.output_dir, 'url_paths.txt')))
-
-    def testOneDifference(self):
-        """Tests when there is one found difference."""
-        @webserver
-        def test(path):
-            if path == '/':
-                return 200, 'text/html', 'Hello world!'
-
-        site_diff.real_main(
-            start_url='http://%s:%d/' % test.server_address,
-            output_dir=self.reference_dir,
-            coordinator=self.coordinator)
-        test.shutdown()
-
-        @webserver
-        def test(path):
-            if path == '/':
-                return 200, 'text/html', 'Hello world a little different!'
-
-        self.coordinator = workers.get_coordinator()
-        site_diff.real_main(
-            start_url='http://%s:%d/' % test.server_address,
-            output_dir=self.output_dir,
-            reference_dir=self.reference_dir,
-            coordinator=self.coordinator)
-        test.shutdown()
-
-        self.assertTrue(exists(join(self.reference_dir, '__run.log')))
-        self.assertTrue(exists(join(self.reference_dir, '__run.png')))
-        self.assertTrue(exists(join(self.reference_dir, '__config.js')))
-        self.assertTrue(exists(join(self.reference_dir, 'url_paths.txt')))
-
-        self.assertTrue(exists(join(self.output_dir, '__run.log')))
-        self.assertTrue(exists(join(self.output_dir, '__run.png')))
-        self.assertTrue(exists(join(self.output_dir, '__ref.log')))
-        self.assertTrue(exists(join(self.output_dir, '__ref.png')))
-        self.assertTrue(exists(join(self.output_dir, '__diff.png'))) # Diff!!
-        self.assertTrue(exists(join(self.output_dir, '__diff.log')))
-        self.assertTrue(exists(join(self.output_dir, '__config.js')))
-        self.assertTrue(exists(join(self.output_dir, 'url_paths.txt')))
-
-    def testCrawler(self):
-        """Tests that the crawler behaves well.
-
-        Specifically:
-            - Finds new links in HTML data
-            - Avoids non-HTML pages
-            - Respects ignore patterns specified on flags
-        """
-        @webserver
-        def test(path):
-            if path == '/':
-                return 200, 'text/html', (
-                    'Hello world! <a href="/stuff">x</a> '
-                    '<a href="/ignore">y</a>')
-            elif path == '/stuff':
-                return 200, 'text/html', 'Stuff page <a href="/avoid">x</a>'
-            elif path == '/avoid':
-                return 200, 'text/plain', 'Ignore me!'
-
-        site_diff.real_main(
-            start_url='http://%s:%d/' % test.server_address,
-            ignore_prefixes=['/ignore'],
-            output_dir=self.output_dir,
-            coordinator=self.coordinator)
-        test.shutdown()
-
-        self.assertTrue(exists(join(self.output_dir, '__run.log')))
-        self.assertTrue(exists(join(self.output_dir, '__run.png')))
-        self.assertTrue(exists(join(self.output_dir, '__config.js')))
-        self.assertTrue(exists(join(self.output_dir, 'url_paths.txt')))
-        self.assertFalse(exists(join(self.output_dir, '_ignore_run.log')))
-        self.assertFalse(exists(join(self.output_dir, '_ignore_run.png')))
-        self.assertFalse(exists(join(self.output_dir, '_ignore_config.js')))
-
-        self.assertEquals(
-            ['/', '/stuff'],
-            self.output_readlines('url_paths.txt'))
-
-    def testNotFound(self):
-        """Tests when a URL in the crawl is not found."""
-        @webserver
-        def test(path):
-            if path == '/':
-                return 200, 'text/html', (
-                    'Hello world! <a href="/missing">x</a>')
-            elif path == '/missing':
-                return 404, 'text/plain', 'Nope'
-
-        site_diff.real_main(
-            start_url='http://%s:%d/' % test.server_address,
-            ignore_prefixes=['/ignore'],
-            output_dir=self.output_dir,
-            coordinator=self.coordinator)
-        test.shutdown()
-
-        self.assertTrue(exists(join(self.output_dir, '__run.log')))
-        self.assertTrue(exists(join(self.output_dir, '__run.png')))
-        self.assertTrue(exists(join(self.output_dir, '__config.js')))
-        self.assertTrue(exists(join(self.output_dir, 'url_paths.txt')))
-
-        self.assertEquals(
-            ['/'],
-            self.output_readlines('url_paths.txt'))
-
-        self.fail()
-
-    def testDiffNotLinkedUrlsFound(self):
-        """Tests when a URL in the old set exists but is not linked."""
-        self.fail()
-
-    def testDiffNotFound(self):
-        """Tests when a URL in the old set is a 404 in the new set."""
-        self.fail()
-
-    def testSuccessAfterRetry(self):
-        """Tests that URLs that return errors will be retried."""
-        self.fail()
-
-    def testFailureAfterRetry(self):
-        """Tests when repeated retries of a URL fail."""
-        self.fail()
 
 
 def main(argv):

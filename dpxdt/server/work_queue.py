@@ -82,6 +82,7 @@ class WorkQueue(db.Model):
     content_type = db.Column(db.String(100))
 
     __table_args__ = (
+        db.Index('created_index', 'queue_name', 'status', 'created'),
         db.Index('lease_index', 'queue_name', 'status', 'eta'),
         db.Index('reap_index', 'status', 'created'),
     )
@@ -124,7 +125,7 @@ def add(queue_name, payload=None, content_type=None, source=None, task_id=None,
     else:
         task_id = uuid.uuid4().hex
 
-    if payload and not content_type    and not isinstance(payload, basestring):
+    if payload and not content_type and not isinstance(payload, basestring):
         payload = json.dumps(payload)
         content_type = 'application/json'
 
@@ -222,10 +223,6 @@ def _get_task_with_policy(queue_name, task_id, owner):
         queue_name: Name of the queue the work item is on.
         task_id: ID of the task that is finished.
         owner: Who or what has the current lease on the task.
-        before_expiration: When True, assert that we are before the task lease
-            has expired. When False, assert that we are after the lease
-            has expired. Use False when acquiring a new lease, and True
-            when asserting an existing lease.
 
     Returns:
         The valid WorkQueue task that is currently owned.
@@ -260,7 +257,11 @@ def _get_task_with_policy(queue_name, task_id, owner):
 
 
 def heartbeat(queue_name, task_id, owner, message, index):
-    """Sets the heartbeat status of the task.
+    """Sets the heartbeat status of the task and extends its lease.
+
+    The task's lease is extended by the same amount as its last lease to
+    ensure that any operations following the heartbeat will still hold the
+    lock for the original lock period.
 
     Args:
         queue_name: Name of the queue the work item is on.
@@ -288,9 +289,16 @@ def heartbeat(queue_name, task_id, owner, message, index):
 
     task.heartbeat = message
     task.heartbeat_number = index
+
+    # Extend the lease by the time of the last lease.
+    now = datetime.datetime.utcnow()
+    timeout_delta = task.eta - task.last_lease
+    task.eta = now + timeout_delta
+    task.last_lease = now
+
     db.session.add(task)
 
-    signals.task_heartbeat_updated.send(task)
+    signals.task_updated.send(app, task=task)
 
     return True
 
@@ -328,6 +336,9 @@ def finish(queue_name, task_id, owner, error=False):
 
     task.finished = datetime.datetime.utcnow()
     db.session.add(task)
+
+    signals.task_updated.send(app, task=task)
+
     return True
 
 

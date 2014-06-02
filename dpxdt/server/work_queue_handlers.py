@@ -20,6 +20,7 @@ import logging
 # Local libraries
 import flask
 from flask import Flask, redirect, render_template, request, url_for
+from sqlalchemy import func
 
 # Local modules
 from . import app
@@ -120,7 +121,52 @@ def handle_finish(queue_name):
     return flask.jsonify(success=True)
 
 
-# TODO: Add an index page that shows all possible work queues
+@app.route('/api/work_queue')
+@auth.superuser_required
+def view_all_work_queues():
+    """Page for viewing the index of all active work queues."""
+    count_list = list(
+        db.session.query(
+            work_queue.WorkQueue.queue_name,
+            work_queue.WorkQueue.status,
+            func.count(work_queue.WorkQueue.task_id))
+        .group_by(work_queue.WorkQueue.queue_name,
+                  work_queue.WorkQueue.status))
+
+    queue_dict = {}
+    for name, status, count in count_list:
+        queue_dict[(name, status)] = dict(
+            name=name, status=status, count=count)
+
+    max_created_list = list(
+        db.session.query(
+            work_queue.WorkQueue.queue_name,
+            work_queue.WorkQueue.status,
+            func.max(work_queue.WorkQueue.created))
+        .group_by(work_queue.WorkQueue.queue_name,
+                  work_queue.WorkQueue.status))
+
+    for name, status, newest_created in max_created_list:
+        queue_dict[(name, status)]['newest_created'] = newest_created
+
+    min_eta_list = list(
+        db.session.query(
+            work_queue.WorkQueue.queue_name,
+            work_queue.WorkQueue.status,
+            func.min(work_queue.WorkQueue.eta))
+        .group_by(work_queue.WorkQueue.queue_name,
+                  work_queue.WorkQueue.status))
+
+    for name, status, oldest_eta in min_eta_list:
+        queue_dict[(name, status)]['oldest_eta'] = oldest_eta
+
+    queue_list = list(queue_dict.values())
+    queue_list.sort(key=lambda x: (x['name'], x['status']))
+
+    context = dict(
+        queue_list=queue_list,
+    )
+    return render_template('view_work_queue_index.html', **context)
 
 
 @app.route('/api/work_queue/<string:queue_name>', methods=['GET', 'POST'])
@@ -147,12 +193,18 @@ def manage_work_queue(queue_name):
                             modify_form.task_id.data)
         return redirect(url_for('manage_work_queue', queue_name=queue_name))
 
-    item_list = list(
+    query = (
         work_queue.WorkQueue.query
         .filter_by(queue_name=queue_name)
-        .order_by(work_queue.WorkQueue.created.desc())
-        .limit(1000))
+        .order_by(work_queue.WorkQueue.created.desc()))
 
+    status = request.args.get('status', '', type=str).lower()
+    if status in work_queue.WorkQueue.STATES:
+        query = query.filter_by(status=status)
+    else:
+        status = None
+
+    item_list = list(query.limit(100))
     work_list = []
     for item in item_list:
         form = forms.ModifyWorkQueueTaskForm()
@@ -162,6 +214,7 @@ def manage_work_queue(queue_name):
 
     context = dict(
         queue_name=queue_name,
+        status=status,
         work_list=work_list,
     )
     return render_template('view_work_queue.html', **context)

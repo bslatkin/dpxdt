@@ -36,7 +36,6 @@ Test run '{{ run.name }}'
 <div class="row body-section">
     <div class="span12">
         {% set alert_wrapper=True %}
-        {% set run_detail=last_task.heartbeat %}
         {% include 'fragment_run_status.html' with context %}
     </div>
 </div>
@@ -128,6 +127,9 @@ Test run '{{ run.name }}'
                         <a class="run-image-link" href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='before') }}"><img src="{{ url_for('download', sha1sum=run.ref_image, build_id=build.id) }}" class="run-image"></a>
                     {% else %}
                         No image
+                        {%- if run.ref_log -%}
+                            : See log
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -151,6 +153,9 @@ Test run '{{ run.name }}'
                         <a class="run-image-link" href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='diff') }}"><img src="{{ url_for('download', sha1sum=run.diff_image, build_id=build.id) }}" class="run-image"></a>
                     {% else %}
                         No image
+                        {%- if run.diff_log -%}
+                            : See log
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -186,6 +191,9 @@ Test run '{{ run.name }}'
                         <a class="run-image-link" href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='after') }}"><img src="{{ url_for('download', sha1sum=run.image, build_id=build.id) }}" class="run-image"></a>
                     {% else %}
                         No image
+                        {%- if run.log -%}
+                            : See log
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>

@@ -35,7 +35,11 @@ app = Flask(__name__)
 app.config.from_object(config)
 
 
-db = SQLAlchemy(app)
+db = SQLAlchemy(
+    app,
+    # Don't expire model instances on commit. Let functions continue to
+    # quickly read properties from their last known-good state.
+    session_options=dict(expire_on_commit=False))
 
 
 login = LoginManager(app)

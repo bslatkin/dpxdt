@@ -70,6 +70,12 @@ Notes:
   lets the API establish a "baseline" release easily for first-time users.
 
 - Only one release candidate may be receiving runs for a build at a time.
+
+- Failure status can be indicated for a run at the capture phase or the
+  diff phase. The API assumes that the same user that indicated the failure
+  will also provide a log for the failing process so it can be inspected
+  manually for a root cause. Uploading image artifacts for failed runs is
+  not supported.
 """
 
 import datetime
@@ -151,6 +157,10 @@ def create_release():
 def _check_release_done_processing(release):
     """Moves a release candidate to reviewing if all runs are done."""
     if release.status != models.Release.PROCESSING:
+        # NOTE: This statement also guards for situations where the user has
+        # prematurely specified that the release is good or bad. Once the user
+        # has done that, the system will not automatically move the release
+        # back into the 'reviewing' state or send the email notification below.
         logging.info('Release not in processing state yet: build_id=%r, '
                      'name=%r, number=%d', release.build_id, release.name,
                      release.number)
@@ -159,8 +169,13 @@ def _check_release_done_processing(release):
     query = models.Run.query.filter_by(release_id=release.id)
     for run in query:
         if run.status == models.Run.NEEDS_DIFF:
+            # Still waiting for the diff to finish.
             return False
-        if not run.image:
+        if run.ref_config and not run.ref_image:
+            # Still waiting for the ref capture to process.
+            return False
+        if run.config and not run.image:
+            # Still waiting for the run capture to process.
             return False
 
     logging.info('Release done processing, now reviewing: build_id=%r, '
@@ -401,9 +416,12 @@ def report_run():
     ref_log = request.form.get('ref_log', type=str)
     ref_config = request.form.get('ref_config', type=str)
 
-    diff_success = request.form.get('diff_success', type=str)
+    diff_failed = request.form.get('diff_failed', type=str)
     diff_image = request.form.get('diff_image', type=str)
     diff_log = request.form.get('diff_log', type=str)
+
+    distortion = request.form.get('distortion', default=None, type=float)
+    run_failed = request.form.get('run_failed', type=str)
 
     if current_url:
         run.url = current_url
@@ -414,11 +432,11 @@ def report_run():
     if current_config:
         run.config = current_config
     if current_image or current_log or current_config:
-        logging.info('Saved run data: build_id=%r, release_name=%r, '
+        logging.info('Saving run data: build_id=%r, release_name=%r, '
                      'release_number=%d, run_name=%r, url=%r, '
-                     'image=%r, log=%r, config=%r',
+                     'image=%r, log=%r, config=%r, run_failed=%r',
                      build.id, release.name, release.number, run.name,
-                     run.url, run.image, run.log, run.config)
+                     run.url, run.image, run.log, run.config, run_failed)
 
     if ref_url:
         run.ref_url = ref_url
@@ -439,25 +457,31 @@ def report_run():
         run.diff_image = diff_image
     if diff_log:
         run.diff_log = diff_log
+    if distortion:
+        run.distortion = distortion
 
     if diff_image or diff_log:
         logging.info('Saved pdiff: build_id=%r, release_name=%r, '
-                     'release_number=%d, run_name=%r, '
-                     'diff_image=%r, diff_log=%r',
+                     'release_number=%d, run_name=%r, diff_image=%r, '
+                     'diff_log=%r, diff_failed=%r, distortion=%r',
                      build.id, release.name, release.number, run.name,
-                     run.diff_image, run.diff_log)
+                     run.diff_image, run.diff_log, diff_failed, distortion)
 
     if run.image and run.diff_image:
         run.status = models.Run.DIFF_FOUND
     elif run.image and run.ref_image and not run.diff_log:
         run.status = models.Run.NEEDS_DIFF
-    elif run.image and run.ref_image and diff_success:
+    elif run.image and run.ref_image and not diff_failed:
         run.status = models.Run.DIFF_NOT_FOUND
     elif run.image and not run.ref_config:
         run.status = models.Run.NO_DIFF_NEEDED
-
-    # TODO: Consider adding another status of "diff failed" or capture
-    # failed for situations where it couldn't finish.
+    elif run_failed or diff_failed:
+        run.status = models.Run.FAILED
+    else:
+        # NOTE: Intentionally do not transition state here in the default case.
+        # We allow multiple background workers to be writing to the same Run in
+        # parallel updating its various properties.
+        pass
 
     # TODO: Verify the build has access to both the current_image and
     # the reference_sha1sum so they can't make a diff from a black image
@@ -616,9 +640,14 @@ def download():
     try:
         build = auth.can_user_access_build('build_id')
     except HTTPException:
+        logging.debug('User access to artifact failed. Trying API key.')
         _, build = auth.can_api_key_access_build('build_id')
 
     sha1sum = request.args.get('sha1sum', type=str)
+    if not sha1sum:
+        logging.debug('Artifact sha1sum=%r not supplied', sha1sum)
+        abort(404)
+
     artifact = models.Artifact.query.get(sha1sum)
     if not artifact:
         logging.debug('Artifact sha1sum=%r does not exist', sha1sum)

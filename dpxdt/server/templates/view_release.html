@@ -50,7 +50,7 @@ Release '{{ release.name }}' attempt #{{ release.number }}
 
 <div class="row">
     <div class="span12">
-        {% if release.status in ('reviewing', 'receiving') %}
+        {% if release.status in ('reviewing', 'receiving', 'processing') %}
             <form action="{{ url_for(request.endpoint) }}" method="post" class="inline-block">
                 {{ release_form.csrf_token }}
                 {{ release_form.id }}

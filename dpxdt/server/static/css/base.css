@@ -19,11 +19,6 @@ h4 a:hover {
 .force-wrap {
     word-wrap: break-word;
 }
-.alert-normal {
-    color: #999999;
-    background-color: #eeeeee;
-    border-color: #cccccc;
-}
 .inline-form {
     margin: 0;
 }
@@ -121,6 +116,35 @@ a.big-link {
     text-align: left;
     display: inline-block;
 }
+.status-panel {
+    margin-bottom: 20px;
+    margin-left: -10px;
+    padding: 10px;
+    border: 1px solid;
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+}
+.status-panel-normal {
+    color: #999999;
+    background-color: #eeeeee;
+    border-color: #cccccc;
+}
+.status-panel-info {
+    color: #3a87ad;
+    background-color: #d9edf7;
+    border-color: #bce8f1;
+}
+.status-panel-error {
+    color: #b94a48;
+    background-color: #f2dede;
+    border-color: #eed3d7;
+}
+.status-panel-warning {
+    color: #c09853;
+    background-color: #fcf8e3;
+    border-color: #fbeed5;
+}
 .run-image-link {
     min-height: 200px;
     display: block;
@@ -138,7 +162,7 @@ a.big-link {
     right: 0;
     bottom: 5px;
 }
-.artifact-iframe {
+#artifact-iframe {
     width: 100%;
     height: 100%;
     border: 0;
@@ -193,11 +217,20 @@ a.big-link {
 }
 
 /* For internal consoles and debug pages. */
+.workqueue-index-first-row {
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 5px;
+    margin-top: 15px;
+}
+
 .workqueue-task-row {
     margin-top: 10px;
     margin-bottom: 10px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #ccc;
+}
+
+.workqueue-task-row + .workqueue-task-row {
+    padding-top: 10px;
+    border-top: 1px solid #ccc;
 }
 
 .debug-email-body {

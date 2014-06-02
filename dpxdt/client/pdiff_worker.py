@@ -25,6 +25,7 @@ import tempfile
 import threading
 import time
 import urllib2
+import re
 
 # Local Libraries
 import gflags
@@ -47,12 +48,22 @@ gflags.DEFINE_integer(
     'Wait this many seconds between repeated invocations of pdiff '
     'subprocesses. Can be used to spread out load on the server.')
 
+gflags.DEFINE_string(
+    'pdiff_compare_binary', 'compare',
+    'Path to the compare binary used for generating perceptual diffs.')
+
+gflags.DEFINE_string(
+    'pdiff_composite_binary', 'composite',
+    'Path to the composite binary used for resizing images.')
+
 gflags.DEFINE_integer(
     'pdiff_threads', 1, 'Number of perceptual diff threads to run')
 
 gflags.DEFINE_integer(
     'pdiff_timeout', 60,
     'Seconds until we should give up on a pdiff sub-process and try again.')
+
+DIFF_REGEX = re.compile(".*all:.*\(([0-9e\-\.]*)\).*")
 
 
 class PdiffFailedError(queue_worker.GiveUpAfterAttemptsError):
@@ -79,7 +90,7 @@ class ResizeWorkflow(process_worker.ProcessWorkflow):
 
     def get_args(self):
         return [
-            'composite',
+            FLAGS.pdiff_composite_binary,
             '-compose',
             'src',
             '-gravity',
@@ -111,7 +122,7 @@ class PdiffWorkflow(process_worker.ProcessWorkflow):
     def get_args(self):
         # Method from http://www.imagemagick.org/Usage/compare/
         return [
-            'compare',
+            FLAGS.pdiff_compare_binary,
             '-verbose',
             '-metric',
             'RMSE',
@@ -174,23 +185,36 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
             returncode = yield PdiffWorkflow(
                 log_path, ref_resized_path, run_path, diff_path)
 
-            diff_success = returncode == 0
+            # ImageMagick returns 1 if the images are different and 0 if
+            # they are the same, so the return code is a bad judge of
+            # successfully running the diff command. Instead we need to check
+            # the output text.
+            diff_failed = True
 
             # Check for a successful run or a known failure.
+            distortion = None
             if os.path.isfile(log_path):
                 log_data = open(log_path).read()
                 if 'all: 0 (0)' in log_data:
                     diff_path = None
+                    diff_failed = False
                 elif 'image widths or heights differ' in log_data:
                     # Give up immediately
                     max_attempts = 1
+                else:
+                    # Try to find the image magic normalized root square
+                    # mean and grab the first one.
+                    r = DIFF_REGEX.findall(log_data)
+                    if len(r) > 0:
+                        diff_failed = False
+                        distortion = r[0]
 
-            yield heartbeat('Reporting diff status to server')
+            yield heartbeat('Reporting diff result to server')
             yield release_worker.ReportPdiffWorkflow(
                 build_id, release_name, release_number, run_name,
-                diff_path, log_path, diff_success)
+                diff_path, log_path, diff_failed, distortion)
 
-            if not diff_success:
+            if diff_failed:
                 raise PdiffFailedError(
                     max_attempts,
                     'Comparison failed. returncode=%r' % returncode)

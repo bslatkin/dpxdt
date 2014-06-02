@@ -8,11 +8,11 @@
         <meta property="og:image" content="{{ url_for('static', filename='img/logo_big.png', _external=True) }}">
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap-responsive.min.css') }}">
-        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/base.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/base.css') }}?buster={{ cache_buster }}">
         <link rel="icon shortcut" href="{{ url_for('static', filename='img/favicon.ico') }}">
         <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo_big.png') }}">
         <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-        <script src="{{ url_for('static', filename='js/run_page.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/run_page.js') }}?buster={{ cache_buster }}"></script>
     </head>
     <body>
         <div class="endpoint-{{ request.endpoint }}" id="root-container">

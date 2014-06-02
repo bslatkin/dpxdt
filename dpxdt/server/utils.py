@@ -156,6 +156,19 @@ def is_production():
         os.environ.get('SERVER_SOFTWARE', '').startswith('Google App Engine'))
 
 
+def get_deployment_timestamp():
+    """Returns a unique string represeting the current deployment.
+
+    Used for busting caches.
+    """
+    # TODO: Support other deployment situations.
+    if os.environ.get('SERVER_SOFTWARE', '').startswith('Google App Engine'):
+        version_id = os.environ.get('CURRENT_VERSION_ID')
+        major_version, timestamp = version_id.split('.', 1)
+        return timestamp
+    return 'test'
+
+
 # From http://flask.pocoo.org/snippets/53/
 def after_this_request(func):
     if not hasattr(g, 'call_after_request'):

@@ -36,6 +36,13 @@ from dpxdt.server import forms
 from dpxdt.server import models
 from dpxdt.server import operations
 from dpxdt.server import signals
+from dpxdt.server import utils
+
+
+@app.context_processor
+def frontend_context():
+    """Adds extra default context for rendered templates."""
+    return dict(cache_buster=utils.get_deployment_timestamp())
 
 
 @app.route('/')
@@ -161,7 +168,9 @@ def view_release():
 
     if request.method == 'POST':
         decision_states = (
-            models.Release.REVIEWING, models.Release.RECEIVING)
+            models.Release.REVIEWING,
+            models.Release.RECEIVING,
+            models.Release.PROCESSING)
 
         if form.good.data and release.status in decision_states:
             release.status = models.Release.GOOD
@@ -260,7 +269,7 @@ def view_run():
     form.validate()
 
     ops = operations.BuildOps(build.id)
-    run, next_run, previous_run, approval_log, last_task = ops.get_run(
+    run, next_run, previous_run, approval_log = ops.get_run(
         form.name.data, form.number.data, form.test.data)
 
     if not run:
@@ -309,8 +318,7 @@ def view_run():
         log_file=log_file,
         config_file=config_file,
         sha1sum=sha1sum,
-        approval_log=approval_log,
-        last_task=last_task)
+        approval_log=approval_log)
 
     if file_type:
         template_name = 'view_artifact.html'

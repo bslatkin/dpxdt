@@ -8,15 +8,16 @@
     {% set run_status='info' %}
 {% elif run.status == 'no_diff_needed' %}
     {% set run_status='normal' %}
+{% elif run.status == 'failed' %}
+    {% set run_status='error' %}
 {% else %}
     {% set run_status='normal' %}
 {% endif %}
 
 {% if alert_wrapper %}
-<div class="alert alert-{{ run_status }}">
-    <div class="row-fluid no-min-height">
-        <div class="span4">
-            <strong>
+<div class="row-fluid status-panel status-panel-{{ run_status }} no-min-height">
+    <div class="span3">
+        <strong>
 {% endif %}
 
 <span class="text-{{ run_status }} test-result-mark" {% if inline_style -%}
@@ -27,7 +28,7 @@
     {%- endif -%}
 {%- endif -%}
 >
-    {% if run.status == 'diff_found' %}
+    {% if run.status in ('diff_found', 'failed') %}
         X
     {% elif run.status == 'diff_not_found' %}
         &#x2713;
@@ -43,6 +44,9 @@
 <span>
     {% if run.status == 'diff_found' %}
         Diff found
+        {%- if run.distortion %}:
+            {{ '%.1f' % (run.distortion*100) + '%' }}
+        {% endif %}
     {% elif run.status == 'diff_not_found' %}
         Same
     {% elif run.status == 'diff_approved' %}
@@ -51,19 +55,30 @@
         Diff pending
     {% elif run.status == 'no_diff_needed' %}
         Diff not required
+    {% elif run.status == 'failed' %}
+        Run failed
     {% else %}
         Data pending
     {% endif %}
 </span>
 
 {% if alert_wrapper %}
-            </strong>
-        </div>
-    {% if run.status in ('data_pending', 'needs_diff') and run_detail %}
-        <div class="span4 text-center">
-            {{ run_detail }}
-        </div>
-    {% endif %}
+        </strong>
+    </div>
+    <div class="span9 text-right ellipsis-overflow">
+        {% if run.tasks %}
+            {% set last_task=run.tasks[-1] %}
+            {% if last_task.status == 'error' %}
+                Failed after max attempts:
+            {% elif last_task.status != 'done' and run.status == 'failed' %}
+                Needs retry:
+            {% elif last_task.status != 'done' and last_task.heartbeat %}
+                Last status:
+            {% endif %}
+            {% if last_task.status != 'done' %}
+                {{ last_task.heartbeat|default('', true) }}
+            {% endif %}
+        {% endif %}
     </div>
 </div>
 {% endif %}

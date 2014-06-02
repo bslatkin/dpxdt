@@ -41,3 +41,12 @@ gflags.DEFINE_string(
 gflags.DEFINE_string(
     'cookies', None,
     'Filename containing a JSON array of cookies to set.')
+
+gflags.DEFINE_string(
+    'release_cut_url', None,
+    'URL that describes the release that you are testing. Usually a link to '
+    'the commit or branch that was built.')
+
+gflags.DEFINE_string(
+    'tests_json_path', None,
+    'Path to the JSON file containing the list of tests to diff.')

@@ -35,3 +35,9 @@
 [submodule "dependencies/flask-mail"]
 	path = dependencies/flask-mail
 	url = https://github.com/bslatkin/flask-mail.git
+[submodule "dependencies/alembic"]
+	path = dependencies/alembic
+	url = https://bitbucket.org/zzzeek/alembic.git
+[submodule "dependencies/mako"]
+	path = dependencies/mako
+	url = https://github.com/zzzeek/mako

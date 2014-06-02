@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title -%}
+
+Work queue index
+
+{%- endblock title %}
+
+
+{% block page_title %}
+
+Work queue index
+
+{% endblock page_title %}
+
+
+{% block body %}
+
+<div class="row body-section">
+    {% if queue_list %}
+        <div class="span12">
+            <div class="row">
+                <div class="span2">
+                    <strong>Queue name</strong>
+                </div>
+                <div class="span2">
+                    <strong>Status</strong>
+                </div>
+                <div class="span2">
+                    <strong>Count</strong>
+                </div>
+                <div class="span2">
+                    <strong>Newest created</strong>
+                </div>
+                <div class="span2">
+                    <strong>Oldest ETA</strong>
+                </div>
+            </div>
+            {% for group in queue_list|groupby('name') %}
+                <div class="row">
+                    <div class="span12 workqueue-index-first-row">
+                        <a class="big-link" href="{{ url_for('manage_work_queue', queue_name=group.grouper) }}">{{ group.grouper|title }}</a>
+                    </div>
+                </div>
+                {% for queue_dict in group.list %}
+                    <div class="row">
+                        <div class="span2 offset2">
+                            <a href="{{ url_for('manage_work_queue', queue_name=group.grouper, status=queue_dict.status) }}">{{ queue_dict.status|title }}</a>
+                        </div>
+                        <div class="span2">
+                            {{ queue_dict.count }}
+                        </div>
+                        <div class="span2">
+                            <abbr title="Created {{ queue_dict.newest_created.strftime('%Y-%m-%dT%H:%MZ') }}">
+                                {{ queue_dict.newest_created|timesince }}
+                            </abbr>
+                        </div>
+                        <div class="span2">
+                            <abbr title="Oldest ETA {{ queue_dict.oldest_eta.strftime('%Y-%m-%dT%H:%MZ') }}">
+                                {{ queue_dict.oldest_eta|timesince }}
+                            </abbr>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="row">
+            <div class="span12">
+                All queues are empty.
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock body %}

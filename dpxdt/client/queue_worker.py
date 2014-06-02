@@ -34,8 +34,14 @@ gflags.DEFINE_string(
     'possible, since API requests send credentials using HTTP basic auth.')
 
 gflags.DEFINE_integer(
-    'queue_poll_seconds', 60,
-    'How often to poll an empty work queue for new tasks.')
+    'queue_idle_poll_seconds', 60,
+    'How often to poll the work queue for new tasks when the worker is '
+    'currently not processing any tasks.')
+
+gflags.DEFINE_integer(
+    'queue_busy_poll_seconds', 1,
+    'How often to poll tasks running locally to see if they have completed '
+    'and then go back to the server to look for more work.')
 
 
 class Error(Exception):
@@ -61,9 +67,6 @@ class HeartbeatError(Error):
     """Reporting the status of a task in progress failed for some reason."""
 
 
-# TODO: Split heartbeats out into a separate FetchItem thread so we don't
-# gum-up the important workflows with messages that aren't critical.
-
 class HeartbeatWorkflow(workers.WorkflowItem):
     """Reports the status of a RemoteQueueWorkflow to the API server.
 
@@ -74,8 +77,6 @@ class HeartbeatWorkflow(workers.WorkflowItem):
         index: Index for the heartbeat message. Should be at least one
             higher than the last heartbeat message.
     """
-
-    fire_and_forget = True
 
     def run(self, queue_url, task_id, message, index):
         call = yield fetch_worker.FetchItem(
@@ -138,8 +139,7 @@ class DoTaskWorkflow(workers.WorkflowItem):
         except Exception, e:
             logging.exception('Exception while processing work from '
                               'queue_url=%r, task=%r', queue_url, task)
-            yield heartbeat('Task failed. %s: %s' %
-                            (e.__class__.__name__, str(e)))
+            yield heartbeat('%s: %s' % (e.__class__.__name__, str(e)))
 
             if (isinstance(e, GiveUpAfterAttemptsError) and
                     task['lease_attempts'] >= e.max_attempts):
@@ -228,5 +228,15 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
                     wait_seconds=index * wait_seconds)
                 outstanding.append(item)
 
-            yield timer_worker.TimerItem(FLAGS.queue_poll_seconds)
+            # Poll for new tasks frequently when we're currently handling
+            # task load. Poll infrequently when there hasn't been anything
+            # to do recently.
+            poll_time = FLAGS.queue_idle_poll_seconds
+            if outstanding:
+                poll_time = FLAGS.queue_busy_poll_seconds
+
+            yield timer_worker.TimerItem(poll_time)
+
             outstanding[:] = [x for x in outstanding if not x.done]
+            logging.debug('%d items for %r still outstanding: %r',
+                          len(outstanding), local_queue_workflow, outstanding)

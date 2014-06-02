@@ -54,17 +54,20 @@
     </div>
 {% elif log_file or config_file %}
     <div id="artifact-iframe-container" class="container">
-        <iframe src="{{ url_for('download', sha1sum=sha1sum, build_id=build.id) }}" class="artifact-iframe"></iframe>
+        <iframe src="{{ url_for('download', sha1sum=sha1sum, build_id=build.id) }}" id="artifact-iframe"></iframe>
     </div>
     <script>
         function handleResize() {
             var body = $('#body-container');
             var bodyOffset = body.offset();
-            var iframe = $('#artifact-iframe-container');
-            iframe.css('top', bodyOffset.top + body.outerHeight(true));
+            var container = $('#artifact-iframe-container');
+            container.css('top', bodyOffset.top + body.outerHeight(true));
+            var iframe = $('#artifact-iframe');
+            iframe.css('height', container.outerHeight(true));
         }
         $(window).resize(handleResize);
         $(document).ready(handleResize);
+        $('#artifact-iframe').load(handleResize);
     </script>
 {% endif %}
 

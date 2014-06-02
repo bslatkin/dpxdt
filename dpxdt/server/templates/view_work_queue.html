@@ -2,17 +2,29 @@
 
 {% block title -%}
 
-Work queue: {{ queue_name }}
+Work queue: {{ queue_name|title }}
+{%- if status %}: {{ status|title }}{% endif %}
 
 {%- endblock title %}
 
 
 {% block page_title %}
 
-Work queue: {{ queue_name }}
+Work queue: {{ queue_name|title }}
+{%- if status %}: {{ status|title }}{% endif %}
 
 {% endblock page_title %}
 
+
+{% block body %}
+
+<div class="row body-section">
+    <div class="span12">
+        <a href="{{ url_for('view_all_work_queues') }}">&laquo; Back to all queues</a>
+    </div>
+</div>
+
+{% endblock body %}
 
 {% block belowbody %}
 

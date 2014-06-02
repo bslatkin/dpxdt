@@ -79,6 +79,13 @@ def send_ready_for_review(build_id, release_name, release_number):
         for user in build.owners:
             recipients.append(user.email_address)
 
+    if not recipients:
+        logging.debug(
+            'Not sending ready for review email because there are no '
+            'recipients. build_id=%r, release_name=%r, release_number=%d',
+            build.id, release.name, release.number)
+        return
+
     message = Message(title, recipients=recipients)
     message.html = email_body
 
