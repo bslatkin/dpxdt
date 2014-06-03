@@ -337,6 +337,30 @@ class HtmlRewritingTest(unittest.TestCase):
             test('http://www.example.com/relative-with/some-'
                  '(parenthesis%20here)'))
 
+        self.assertEquals(None, test('ftp://bob@www.example.com/'))
+
+        self.assertEquals(None, test('mailto:bob@example.com'))
+
+        self.assertEquals(None, test('javascript:runme()'))
+
+        self.assertEquals(None, test('tel:1-555-555-5555'))
+
+        self.assertEquals('http://www.example.com/test.js',
+                          test('/test.js'))
+
+        # Escaped sources (e.g. inside inline JavaScript) should not be scraped
+        scriptTag = ('<script type=\"text\/javascript\"'
+            ' src=\"\/\/platform.twitter.com\/widgets.js\"><\/script>')
+        self.assertEquals(set([]), site_diff.extract_urls(base_url, scriptTag))
+
+        spacesInTag = "<a href = 'spaced.html'>"
+        self.assertEquals(
+            set(['http://www.example.com/my-url/spaced.html']),
+            site_diff.extract_urls(base_url, spacesInTag))
+
+        jsText = "var src = true;"
+        self.assertEquals(set([]), site_diff.extract_urls(base_url, jsText))
+
 
 def main(argv):
     gflags.MarkFlagAsRequired('phantomjs_binary')
