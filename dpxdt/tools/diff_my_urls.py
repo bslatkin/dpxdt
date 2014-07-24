@@ -161,6 +161,8 @@ def real_main(release_url=None,
 
     coordinator.input_queue.put(item)
     coordinator.wait_one()
+    coordinator.stop()
+    coordinator.join()
 
 
 def main(argv):

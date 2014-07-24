@@ -31,13 +31,6 @@ gflags.DEFINE_float(
     'a subprocess, or a waiting timer.')
 
 
-# NOTE: Hold a reference to Queue.Empty so at shutdown time it continues
-# being defined. Otherwise it's garbage collected and the daemon threads
-# raise exceptions when Empty is equal to None at process termination.
-# See https://github.com/bslatkin/dpxdt/issues/88
-unused_Empty = Queue.Empty
-
-
 class WorkItem(object):
     """Base work item that can be handled by a worker thread."""
 

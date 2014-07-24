@@ -61,6 +61,8 @@ def main(argv):
 
     coordinator = run_workers()
     coordinator.wait_one()
+    coordinator.stop()
+    coordinator.join()
 
 
 if __name__ == '__main__':

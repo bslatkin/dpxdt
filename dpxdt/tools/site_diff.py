@@ -321,6 +321,8 @@ def real_main(start_url=None,
 
     coordinator.input_queue.put(item)
     coordinator.wait_one()
+    coordinator.stop()
+    coordinator.join()
 
 
 def main(argv):
