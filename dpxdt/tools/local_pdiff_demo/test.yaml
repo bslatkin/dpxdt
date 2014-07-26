@@ -1,0 +1,22 @@
+setup: |
+    cd dpxdt/tools/local_pdiff_demo
+    python -m SimpleHTTPServer
+
+# Base configuration shared by all tests
+standard-config: &stdconfig
+    viewportSize:
+      width: 800
+      height: 600
+    injectCss: |
+      body {
+        background-color: white;
+      }
+
+tests:
+  - name: homepage
+    url: http://localhost:8000/
+    config: *stdconfig
+
+  - name: different-text
+    url: http://localhost:8000/?lorem%20ipsum%20dolor
+    config: *stdconfig
