@@ -1,8 +1,11 @@
+# This is run once before any individual test.
+# It's a good place to start your demo server.
 setup: |
     cd dpxdt/tools/local_pdiff_demo
     python -m SimpleHTTPServer
 
 # Base configuration shared by all tests
+# This is shared via YAML references, not anything dpxdt-specific.
 standard-config: &stdconfig
     viewportSize:
       width: 800

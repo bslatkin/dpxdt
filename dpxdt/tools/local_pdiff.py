@@ -1,9 +1,12 @@
 #!/usr/bin/env python
-'''Playground for local fetch & diff workflow.
+'''Run a perceptual diff test locally.
 
 To run:
     source ./common.sh
-    ./dpxdt/test.py
+    ./dpxdt/tools/local_pdiff.py test dpxdt/tools/local_pdiff_demo
+
+This will run the tests described in dpxdt/tools/local_pdiff_demo/*.yaml.
+See those files for details.
 '''
 
 import copy
@@ -65,7 +68,8 @@ class OneTestWorkflowItem(workers.WorkflowItem):
 
         ref_path = os.path.join(ref_dir, '%s.png' % name)
         if mode == 'test':
-            assert os.path.exists(ref_path), ('Reference image %s does not exist. '
+            assert os.path.exists(ref_path), (
+                'Reference image %s does not exist. '
                 'Try running in update mode.' % ref_path)
         elif mode == 'update':
             output_path = ref_path
@@ -191,7 +195,8 @@ class RunTestsWorkflowItem(workers.WorkflowItem):
                         close_fds=True)
 
             for test in config['tests']:
-                yield OneTestWorkflowItem(test, config_dir, tmp_dir, mode, heartbeat=workers.PrintWorkflow)
+                yield OneTestWorkflowItem(test, config_dir, tmp_dir, mode,
+                    heartbeat=workers.PrintWorkflow)
 
 
 def usage(short=False):
