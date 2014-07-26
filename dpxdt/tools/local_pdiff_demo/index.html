@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<body>
+<style>
+p {
+  font-size: large;
+  max-width: 300px;
+  border: 1px solid gray;
+  padding: 20px;
+}
+</style>
+
+<h2>dpxdt local demo</h2>
+
+<p>
+  dpxdt can be used to spot changes on local web servers.
+  <span id=url-string></span>
+</p>
+
+<script type="text/javascript">
+  document.getElementById("url-string").textContent =
+      unescape(document.location.search.substring(1));
+</script>
+
+</body>
+</html>

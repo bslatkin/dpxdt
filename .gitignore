@@ -10,3 +10,5 @@ CVS
 *.pyc
 secrets.py
 templates_compiled.zip
+dist
+*.egg-info
