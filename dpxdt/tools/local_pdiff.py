@@ -10,10 +10,12 @@ See those files for details.
 '''
 
 import copy
+import fnmatch
 import glob
 import json
 import logging
 import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -25,8 +27,6 @@ FLAGS = gflags.FLAGS
 import yaml
 
 # Local modules
-from dpxdt import runworker
-from dpxdt import server
 from dpxdt.client import capture_worker
 from dpxdt.client import fetch_worker
 from dpxdt.client import pdiff_worker
@@ -35,11 +35,61 @@ from dpxdt.client import timer_worker
 from dpxdt.client import workers
 
 FLAGS.phantomjs_binary = 'phantomjs'
-FLAGS.phantomjs_script = 'dpxdt/client/capture.js'
 FLAGS.phantomjs_timeout = 20
 
+gflags.DEFINE_boolean(
+        'list_tests', False,
+        'Set this to list the names of all tests instead of running them.')
+
+gflags.DEFINE_string(
+        'test_filter', '',
+        'Run a subset of tests. Pass a test name to run just that test, or '
+        'use a * to match a set of tests. See '
+        'https://code.google.com/p/googletest/wiki/AdvancedGuide'
+        '#Running_a_Subset_of_the_Tests for full syntax.')
 
 MODES = ['test', 'update']
+
+
+def kill_process_and_children(pid):
+    '''Kill all children of a process. This is suprisingly hard!'''
+    cmd = ['ps', '-eo', 'pid,ppid'] 
+    output = subprocess.Popen(cmd, stdout=subprocess.PIPE).communicate()[0] 
+    output = output.split('\n')[1:] # skip the header 
+    pids = set([pid])
+    for row in output: 
+        if not row: continue 
+        child_pid, parent_pid = map(int, row.split())
+        if parent_pid in pids:
+            pids.add(child_pid)
+    
+    for child_pid in pids:
+        os.kill(child_pid, signal.SIGTERM) 
+
+
+def should_run_test(name, pattern):
+    '''Given a test_filter pattern and a test name, should the test be run?'''
+    if pattern == '': return True
+    
+    def matches_any(name, parts):
+        for part in parts:
+            if fnmatch.fnmatch(name, part):
+                return True
+        return False
+
+    positive_negative = pattern.split('-')
+    positive = positive_negative[0]
+    if positive:
+        # There's something here -- have to match it!
+        parts = positive.split(':')
+        if not matches_any(name, parts): return False
+
+    if len(positive_negative) > 1:
+        negative = positive_negative[1]
+        parts = negative.split(':')
+        if matches_any(name, parts): return False
+
+    return True
 
 
 class OneTestWorkflowItem(workers.WorkflowItem):
@@ -53,13 +103,25 @@ class OneTestWorkflowItem(workers.WorkflowItem):
         Returns: A CaptureAndDiffWorkflowItem
         '''
         assert 'name' in test_config
-        assert 'url' in test_config
-
         name = test_config['name']
+
+        if 'ref' in test_config:
+            # This test has different ref/run arms.
+            assert 'run' in test_config
+            arm_config = { 'name': name }
+            if mode == 'test':
+                arm_config.update(test_config['run'])
+            elif mode == 'update':
+                arm_config.update(test_config['ref'])
+            test_config = arm_config
+
+        assert 'url' in test_config
 
         test_dir = tempfile.mkdtemp(dir=tmp_dir)
         log_file = os.path.join(test_dir, 'log.txt')
         output_path = os.path.join(test_dir, 'screenshot.png')
+
+        logging.info('Test config:\n%s', json.dumps(test_config, indent=2))
 
         capture_config = copy.deepcopy(test_config['config'])
         capture_config['targetUrl'] = test_config['url']
@@ -161,7 +223,16 @@ class CaptureAndDiffWorkflowItem(workers.WorkflowItem):
             if distortion:
                 print '%s failed' % name
                 print '  %s distortion' % distortion
-                print '  See %s' % diff_path
+                print '  Ref:  %s' % ref_resized_path
+                print '  Run:  %s' % output_path
+                print '  Diff: %s' % diff_path
+
+                # convenience line for copy/pasting
+                print ' (all): %s/{%s}' % (
+                        os.path.dirname(output_path),
+                        ','.join(map(os.path.basename,
+                            [ref_resized_path, output_path, diff_path])))
+
             else:
                 print '%s passed (no diff)' % name
 
@@ -176,27 +247,46 @@ class RunTestsWorkflowItem(workers.WorkflowItem):
         if not configs:
             raise ValueError('No yaml files found in %s' % config_dir)
 
+        heartbeat=workers.PrintWorkflow
+
         for config_file in configs:
             config = yaml.load(open(config_file))
             assert 'tests' in config
 
+            if FLAGS.list_tests:
+                print '%s:' % config_file
+                for test in config['tests']:
+                    assert 'name' in test
+                    print '  %s' % test['name']
+                return
+
             tmp_dir = tempfile.mkdtemp()
 
             setup = config.get('setup')
+            setup_proc = None
             if setup:
                 setup_file = os.path.join(tmp_dir, 'setup.sh')
                 log_file = os.path.join(tmp_dir, 'setup.log')
                 logging.info('Executing setup step: %s', setup_file)
                 open(setup_file, 'w').write(setup)
                 with open(log_file, 'a') as output_file:
-                    subprocess.Popen(['bash', setup_file],
+                    setup_proc = subprocess.Popen(['bash', setup_file],
                         stderr=subprocess.STDOUT,
                         stdout=output_file,
                         close_fds=True)
 
             for test in config['tests']:
-                yield OneTestWorkflowItem(test, config_dir, tmp_dir, mode,
-                    heartbeat=workers.PrintWorkflow)
+                assert 'name' in test
+                name = test['name']
+                if should_run_test(name, FLAGS.test_filter):
+                    yield OneTestWorkflowItem(test, config_dir, tmp_dir, mode,
+                        heartbeat=heartbeat)
+                else:
+                    logging.info('Skipping %s due to --test_filter=%s', name, FLAGS.test_filter)
+
+            if setup_proc and setup_proc.pid > 0:
+                logging.info("Sending TERM to setup script")
+                kill_process_and_children(setup_proc.pid)
 
 
 def usage(short=False):
@@ -224,6 +314,8 @@ def main(argv):
     config_dir = argv[2]
     assert os.path.isdir(config_dir), 'Expected directory, got %s' % config_dir
 
+    assert os.path.exists(FLAGS.phantomjs_script)
+
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
@@ -236,9 +328,20 @@ def main(argv):
 
     coordinator.start()
     coordinator.wait_one()
+    coordinator.stop()
+    coordinator.join()
 
     # TODO: return appropriate exit code
 
 
-if __name__ == '__main__':
+def run():
+    # (intended to be run from package)
+
+    FLAGS.phantomjs_script = os.path.join(
+            os.path.dirname(__file__), '..', 'client', 'capture.js')
+
     main(sys.argv)
+
+
+if __name__ == '__main__':
+    run()
