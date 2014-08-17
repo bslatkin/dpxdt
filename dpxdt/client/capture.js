@@ -58,6 +58,10 @@ if (config.viewportSize) {
     };
 }
 
+if (config.userAgent) {
+    page.settings.userAgent = config.userAgent;
+}
+
 if (config.clipRect) {
     page.clipRect = {
         left: 0,
