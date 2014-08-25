@@ -13,7 +13,6 @@ waitFor: |
       sleep 1
     done
     echo 'Server started!' 1>&2
-    exit 1
 
 # Base configuration shared by all tests
 # This is shared via YAML references, not anything dpxdt-specific.

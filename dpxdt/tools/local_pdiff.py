@@ -95,7 +95,7 @@ def should_run_test(name, pattern):
 class OneTestWorkflowItem(workers.WorkflowItem):
     '''Runs an individual capture & pdiff (or update) based on a config.'''
 
-    def run(self, test_config, ref_dir, tmp_dir, mode, heartbeat=None):
+    def run(self, test_config, ref_dir, tmp_dir, mode, heartbeat=None, num_attempts=0):
         '''Build a CaptureAndDiffWorkflowItem for a test.
         
         Args:
@@ -143,9 +143,19 @@ class OneTestWorkflowItem(workers.WorkflowItem):
             def run(self, message):
                 yield heartbeat('%s: %s' % (name, message))
 
-        yield CaptureAndDiffWorkflowItem(
-                name, log_file, config_file, output_path, ref_path,
-                heartbeat=NamedHeartbeat)
+        try:
+            yield CaptureAndDiffWorkflowItem(
+                    name, log_file, config_file, output_path, ref_path,
+                    heartbeat=NamedHeartbeat)
+        except capture_worker.CaptureFailedError, e:
+            if num_attempts >= e.max_attempts:
+                yield heartbeat('Unable to capture screenshot after %d tries.' % num_attempts)
+                raise
+            else:
+                num_attempts += 1
+                yield heartbeat('Capture failed, retrying (%d)' % num_attempts)
+                yield OneTestWorkflowItem(test_config, ref_dir, tmp_dir, mode,
+                        heartbeat=heartbeat, num_attempts=num_attempts)
 
 
 class CaptureAndDiffWorkflowItem(workers.WorkflowItem):
