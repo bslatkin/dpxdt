@@ -262,6 +262,7 @@ class RunTestsWorkflowItem(workers.WorkflowItem):
 
             tmp_dir = tempfile.mkdtemp()
 
+            # TODO: Use process_worker instead of Popen?
             setup = config.get('setup')
             setup_proc = None
             if setup:
@@ -274,6 +275,23 @@ class RunTestsWorkflowItem(workers.WorkflowItem):
                         stderr=subprocess.STDOUT,
                         stdout=output_file,
                         close_fds=True)
+
+            waitfor = config.get('waitFor')
+            waitfor_proc = None
+            if waitfor:
+                waitfor_file = os.path.join(tmp_dir, 'waitfor.sh')
+                log_file = os.path.join(tmp_dir, 'waitfor.log')
+                logging.info('Executing waitfor step: %s', waitfor_file)
+                open(waitfor_file, 'w').write(waitfor)
+                with open(log_file, 'a') as output_file:
+                    try:
+                        subprocess.check_call(['bash', waitfor_file],
+                            stderr=subprocess.STDOUT,
+                            stdout=output_file,
+                            close_fds=True)
+                    except subprocess.CalledProcessError:
+                        yield heartbeat('waitFor returned error code\nSee %s' % log_file)
+                        continue
 
             for test in config['tests']:
                 assert 'name' in test

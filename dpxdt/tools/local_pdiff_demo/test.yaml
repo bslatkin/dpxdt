@@ -2,7 +2,18 @@
 # It's a good place to start your demo server.
 setup: |
     cd dpxdt/tools/local_pdiff_demo
+    sleep 2
     python -m SimpleHTTPServer
+
+# This runs after the setup script and must terminate with a zero exit code
+# before any tests are run. It's a great place to wait for server startup.
+waitFor: |
+    until curl --silent -I 'http://localhost:8000/' | grep '200 OK'; do
+      echo 'Waiting for server to start up...' 1>&2
+      sleep 1
+    done
+    echo 'Server started!' 1>&2
+    exit 1
 
 # Base configuration shared by all tests
 # This is shared via YAML references, not anything dpxdt-specific.
