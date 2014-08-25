@@ -95,7 +95,7 @@ def should_run_test(name, pattern):
 class OneTestWorkflowItem(workers.WorkflowItem):
     '''Runs an individual capture & pdiff (or update) based on a config.'''
 
-    def run(self, test_config, ref_dir, tmp_dir, mode, heartbeat=None):
+    def run(self, test_config, ref_dir, tmp_dir, mode, heartbeat=None, num_attempts=0):
         '''Build a CaptureAndDiffWorkflowItem for a test.
         
         Args:
@@ -143,9 +143,19 @@ class OneTestWorkflowItem(workers.WorkflowItem):
             def run(self, message):
                 yield heartbeat('%s: %s' % (name, message))
 
-        yield CaptureAndDiffWorkflowItem(
-                name, log_file, config_file, output_path, ref_path,
-                heartbeat=NamedHeartbeat)
+        try:
+            yield CaptureAndDiffWorkflowItem(
+                    name, log_file, config_file, output_path, ref_path,
+                    heartbeat=NamedHeartbeat)
+        except capture_worker.CaptureFailedError, e:
+            if num_attempts >= e.max_attempts:
+                yield heartbeat('Unable to capture screenshot after %d tries.' % num_attempts)
+                raise
+            else:
+                num_attempts += 1
+                yield heartbeat('Capture failed, retrying (%d)' % num_attempts)
+                yield OneTestWorkflowItem(test_config, ref_dir, tmp_dir, mode,
+                        heartbeat=heartbeat, num_attempts=num_attempts)
 
 
 class CaptureAndDiffWorkflowItem(workers.WorkflowItem):
@@ -262,6 +272,7 @@ class RunTestsWorkflowItem(workers.WorkflowItem):
 
             tmp_dir = tempfile.mkdtemp()
 
+            # TODO: Use process_worker instead of Popen?
             setup = config.get('setup')
             setup_proc = None
             if setup:
@@ -274,6 +285,23 @@ class RunTestsWorkflowItem(workers.WorkflowItem):
                         stderr=subprocess.STDOUT,
                         stdout=output_file,
                         close_fds=True)
+
+            waitfor = config.get('waitFor')
+            waitfor_proc = None
+            if waitfor:
+                waitfor_file = os.path.join(tmp_dir, 'waitfor.sh')
+                log_file = os.path.join(tmp_dir, 'waitfor.log')
+                logging.info('Executing waitfor step: %s', waitfor_file)
+                open(waitfor_file, 'w').write(waitfor)
+                with open(log_file, 'a') as output_file:
+                    try:
+                        subprocess.check_call(['bash', waitfor_file],
+                            stderr=subprocess.STDOUT,
+                            stdout=output_file,
+                            close_fds=True)
+                    except subprocess.CalledProcessError:
+                        yield heartbeat('waitFor returned error code\nSee %s' % log_file)
+                        continue
 
             for test in config['tests']:
                 assert 'name' in test
