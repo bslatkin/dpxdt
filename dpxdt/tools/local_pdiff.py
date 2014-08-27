@@ -50,6 +50,9 @@ gflags.DEFINE_string(
 
 MODES = ['test', 'update']
 
+# global tracker
+FAILED_TESTS = 0
+
 
 def kill_process_and_children(pid):
     '''Kill all children of a process. This is suprisingly hard!'''
@@ -242,6 +245,8 @@ class CaptureAndDiffWorkflowItem(workers.WorkflowItem):
                         os.path.dirname(output_path),
                         ','.join(map(os.path.basename,
                             [ref_resized_path, output_path, diff_path])))
+                global FAILED_TESTS
+                FAILED_TESTS += 1
 
             else:
                 print '%s passed (no diff)' % name
@@ -350,6 +355,8 @@ def main(argv):
     coordinator = workers.get_coordinator()
     timer_worker.register(coordinator)
 
+    global FAILED_TESTS
+    FAILED_TESTS = 0
     item = RunTestsWorkflowItem(config_dir, mode)
     item.root = True
     coordinator.input_queue.put(item, mode)
@@ -359,7 +366,13 @@ def main(argv):
     coordinator.stop()
     coordinator.join()
 
-    # TODO: return appropriate exit code
+    if mode == 'test':
+        if FAILED_TESTS > 0:
+            sys.stderr.write('%d test(s) failed.\n' % FAILED_TESTS)
+            sys.exit(1)
+        else:
+            sys.stderr.write('All tests passed!\n')
+            sys.exit(0)
 
 
 def run():
