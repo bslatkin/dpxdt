@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='dpxdt',
-      version='0.1.2',
+      version='0.1.3',
       description='Screenshot diff tool',
       author='Brett Slatkin',
       author_email='brett@haxor.com',
@@ -15,7 +15,8 @@ setup(name='dpxdt',
       install_requires=[
           'PyYAML',
           'python-gflags',
-          'poster'
+          'poster',
+          'pyimgur'
       ],
       include_package_data=True,
       classifiers=[
