@@ -24,6 +24,7 @@ import threading
 # Local Libraries
 import gflags
 FLAGS = gflags.FLAGS
+import pyimgur
 import yaml
 
 # Local modules
@@ -47,6 +48,13 @@ gflags.DEFINE_string(
         'use a * to match a set of tests. See '
         'https://code.google.com/p/googletest/wiki/AdvancedGuide'
         '#Running_a_Subset_of_the_Tests for full syntax.')
+
+gflags.DEFINE_string(
+        'imgur_client_id', '',
+        'When this is set, dpxdt will upload all screenshots from failing '
+        'tests to Imgur using their API. This is helpful when running tests '
+        'on a Travis-CI worker, for instance. You must register an app with '
+        'Imgur to use this.')
 
 MODES = ['test', 'update']
 
@@ -236,9 +244,9 @@ class CaptureAndDiffWorkflowItem(workers.WorkflowItem):
             if distortion:
                 print '%s failed' % name
                 print '  %s distortion' % distortion
-                print '  Ref:  %s' % ref_resized_path
-                print '  Run:  %s' % output_path
-                print '  Diff: %s' % diff_path
+                print '  Ref:  %s' % self.maybe_imgur(ref_resized_path)
+                print '  Run:  %s' % self.maybe_imgur(output_path)
+                print '  Diff: %s' % self.maybe_imgur(diff_path)
 
                 # convenience line for copy/pasting
                 print ' (all): %s/{%s}' % (
@@ -252,6 +260,18 @@ class CaptureAndDiffWorkflowItem(workers.WorkflowItem):
                 print '%s passed (no diff)' % name
 
         # TODO: delete temp files
+
+    def maybe_imgur(self, path):
+        '''Uploads a file to imgur if requested via command line flags.
+        
+        Returns either "path" or "path url" depending on the course of action.
+        '''
+        if not FLAGS.imgur_client_id:
+            return path
+
+        im = pyimgur.Imgur(FLAGS.imgur_client_id)
+        uploaded_image = im.upload_image(path)
+        return '%s %s' % (path, uploaded_image.link)
 
 
 class RunTestsWorkflowItem(workers.WorkflowItem):
