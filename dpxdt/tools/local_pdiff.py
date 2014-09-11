@@ -90,35 +90,6 @@ def should_run_test(name, pattern):
     return True
 
 
-class WaitForUrlWorkflowItem(workers.WorkflowItem):
-    '''Waits for an URL to resolve, with a timeout.'''
-
-    def run(self, tmp_dir, waitfor, heartbeat=None, start_time=None):
-        assert 'url' in waitfor
-        timeout = waitfor.get('timeout_secs', 10)
-        if not start_time:
-            start_time = time.time()
-
-        class NotReadyError(Exception):
-            pass
-
-        try:
-            url = waitfor['url']
-            r = requests.head(url)
-            if r.status_code != 200:
-                yield heartbeat('Request for %s failed (%d)' % (url, r.status_code))
-                raise NotReadyError()
-
-            yield heartbeat('Request for %s succeeded, continuing with tests...' % url)
-            return
-        except requests.ConnectionError, NotReadyError:
-            now = time.time()
-            if now - start_time >= timeout:
-                raise process_worker.TimeoutError()
-            yield timer_worker.TimerItem(0.5)  # wait 500ms between checks
-            yield WaitForUrlWorkflowItem(tmp_dir, waitfor, heartbeat, start_time)
-
-
 class OneTestWorkflowItem(workers.WorkflowItem):
     '''Runs an individual capture & pdiff (or update) based on a config.'''
 
@@ -329,7 +300,65 @@ class SetupStep(object):
             self._setup_proc.wait()
 
 
-class RunTestsWorkflowItem(workers.WorkflowItem):
+class WrappedProcessWorkflowItem(process_worker.ProcessWorkflow):
+    '''A ProcessWorkflow which can be yielded inline.'''
+    def __init__(self, log_path, args, timeout_seconds=30):
+        process_worker.ProcessWorkflow.__init__(
+            self, log_path, timeout_seconds=timeout_seconds)
+        self._args = args
+
+    def get_args(self):
+        return self._args
+
+
+class WaitForUrlWorkflowItem(workers.WorkflowItem):
+    '''Waits for an URL to resolve, with a timeout.'''
+
+    def run(self, tmp_dir, waitfor, heartbeat=None, start_time=None):
+        assert 'url' in waitfor
+        timeout = waitfor.get('timeout_secs', 10)
+        if not start_time:
+            start_time = time.time()
+
+        class NotReadyError(Exception):
+            pass
+
+        try:
+            url = waitfor['url']
+            r = requests.head(url)
+            if r.status_code != 200:
+                yield heartbeat('Request for %s failed (%d)' % (url, r.status_code))
+                raise NotReadyError()
+
+            yield heartbeat('Request for %s succeeded, continuing with tests...' % url)
+            return
+        except requests.ConnectionError, NotReadyError:
+            now = time.time()
+            if now - start_time >= timeout:
+                raise process_worker.TimeoutError()
+            yield timer_worker.TimerItem(0.5)  # wait 500ms between checks
+            yield WaitForUrlWorkflowItem(tmp_dir, waitfor, heartbeat, start_time)
+
+
+class WaitForWorkflowItem(workers.WorkflowItem):
+    '''This performs the "waitFor" step specified in a test config.'''
+    def run(self, config, tmp_dir, heartbeat):
+        waitfor = config.get('waitFor')
+        if isinstance(waitfor, basestring):
+            waitfor_file = os.path.join(tmp_dir, 'waitfor.sh')
+            log_file = os.path.join(tmp_dir, 'waitfor.log')
+            logging.info('Executing waitfor step: %s', waitfor_file)
+            try:
+                yield WrappedProcessWorkflowItem(log_file, ['bash', waitfor_file])
+            except subprocess.CalledProcessError:
+                yield heartbeat('waitFor returned error code\nSee %s' % log_file)
+                raise
+
+        elif 'url' in waitfor:
+            yield WaitForUrlWorkflowItem(tmp_dir, waitfor, heartbeat)
+
+
+class RunAllTestSuitesWorkflowItem(workers.WorkflowItem):
     '''Load test YAML files and add them to the work queue.'''
 
     def run(self, config_dir, mode):
@@ -348,33 +377,22 @@ class RunTestsWorkflowItem(workers.WorkflowItem):
                 for test in config['tests']:
                     assert 'name' in test
                     print '  %s' % test['name']
-                return
+            else:
+                yield RunTestSuiteWorkflowItem(config_dir, config, mode, heartbeat)
 
-            tmp_dir = tempfile.mkdtemp()
 
-            setup = SetupStep(config, tmp_dir)
-            setup.run()
+class RunTestSuiteWorkflowItem(workers.WorkflowItem):
+    '''Run a single YAML file's worth of tests.'''
 
-            # TODO: pull all of waitfor out into its own Worker.
-            waitfor = config.get('waitFor')
-            waitfor_proc = None
-            if waitfor and isinstance(waitfor, basestring):
-                waitfor_file = os.path.join(tmp_dir, 'waitfor.sh')
-                log_file = os.path.join(tmp_dir, 'waitfor.log')
-                logging.info('Executing waitfor step: %s', waitfor_file)
-                open(waitfor_file, 'w').write(waitfor)
-                with open(log_file, 'a') as output_file:
-                    try:
-                        subprocess.check_call(['bash', waitfor_file],
-                            stderr=subprocess.STDOUT,
-                            stdout=output_file,
-                            close_fds=True)
-                    except subprocess.CalledProcessError:
-                        yield heartbeat('waitFor returned error code\nSee %s' % log_file)
-                        continue
+    def run(self, config_dir, config, mode, heartbeat):
+        tmp_dir = tempfile.mkdtemp()
 
-            elif 'url' in waitfor:
-                yield WaitForUrlWorkflowItem(tmp_dir, waitfor, heartbeat)
+        setup = SetupStep(config, tmp_dir)
+        setup.run()
+
+        try:
+            if config.get('waitFor'):
+                yield WaitForWorkflowItem(config, tmp_dir, heartbeat)
 
             for test in config['tests']:
                 assert 'name' in test
@@ -383,8 +401,9 @@ class RunTestsWorkflowItem(workers.WorkflowItem):
                     yield OneTestWorkflowItem(test, config_dir, tmp_dir, mode,
                         heartbeat=heartbeat)
                 else:
-                    logging.info('Skipping %s due to --test_filter=%s', name, FLAGS.test_filter)
-
+                    logging.info('Skipping %s due to --test_filter=%s',
+                            name, FLAGS.test_filter)
+        finally:
             setup.terminate()  # kill server from the setup step.
 
 
@@ -423,7 +442,7 @@ def main(argv):
 
     global FAILED_TESTS
     FAILED_TESTS = 0
-    item = RunTestsWorkflowItem(config_dir, mode)
+    item = RunAllTestSuitesWorkflowItem(config_dir, mode)
     item.root = True
     coordinator.input_queue.put(item, mode)
 
