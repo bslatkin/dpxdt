@@ -15,11 +15,13 @@ import glob
 import json
 import logging
 import os
+import requests
 import signal
 import subprocess
 import sys
 import tempfile
 import threading
+import time
 
 # Local Libraries
 import gflags
@@ -101,6 +103,35 @@ def should_run_test(name, pattern):
         if matches_any(name, parts): return False
 
     return True
+
+
+class WaitForUrlWorkflowItem(workers.WorkflowItem):
+    '''Waits for an URL to resolve, with a timeout.'''
+
+    def run(self, tmp_dir, waitfor, heartbeat=None, start_time=None):
+        assert 'url' in waitfor
+        timeout = waitfor.get('timeout_secs', 10)
+        if not start_time:
+            start_time = time.time()
+
+        class NotReadyError(Exception):
+            pass
+
+        try:
+            url = waitfor['url']
+            r = requests.head(url)
+            if r.status_code != 200:
+                yield heartbeat('Request for %s failed (%d)' % (url, r.status_code))
+                raise NotReadyError()
+
+            yield heartbeat('Request for %s succeeded, continuing with tests...' % url)
+            return
+        except requests.ConnectionError, NotReadyError:
+            now = time.time()
+            if now - start_time >= timeout:
+                raise process_worker.TimeoutError()
+            yield timer_worker.TimerItem(0.5)  # wait 500ms between checks
+            yield WaitForUrlWorkflowItem(tmp_dir, waitfor, heartbeat, start_time)
 
 
 class OneTestWorkflowItem(workers.WorkflowItem):
@@ -311,9 +342,10 @@ class RunTestsWorkflowItem(workers.WorkflowItem):
                         stdout=output_file,
                         close_fds=True)
 
+            # TODO: pull all of waitfor out into its own Worker.
             waitfor = config.get('waitFor')
             waitfor_proc = None
-            if waitfor:
+            if waitfor and isinstance(waitfor, basestring):
                 waitfor_file = os.path.join(tmp_dir, 'waitfor.sh')
                 log_file = os.path.join(tmp_dir, 'waitfor.log')
                 logging.info('Executing waitfor step: %s', waitfor_file)
@@ -327,6 +359,9 @@ class RunTestsWorkflowItem(workers.WorkflowItem):
                     except subprocess.CalledProcessError:
                         yield heartbeat('waitFor returned error code\nSee %s' % log_file)
                         continue
+
+            elif 'url' in waitfor:
+                yield WaitForUrlWorkflowItem(tmp_dir, waitfor, heartbeat)
 
             for test in config['tests']:
                 assert 'name' in test

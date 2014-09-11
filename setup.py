@@ -16,7 +16,8 @@ setup(name='dpxdt',
           'PyYAML',
           'python-gflags',
           'poster',
-          'pyimgur'
+          'pyimgur',
+          'requests'
       ],
       include_package_data=True,
       classifiers=[
