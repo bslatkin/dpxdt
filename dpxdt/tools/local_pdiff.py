@@ -64,21 +64,6 @@ MODES = ['test', 'update']
 FAILED_TESTS = 0
 
 
-def kill_process_and_children(pid):
-    '''Kill all children of a process. This is suprisingly hard!'''
-    cmd = ['ps', '-eo', 'pid,ppid'] 
-    output = subprocess.Popen(cmd, stdout=subprocess.PIPE).communicate()[0] 
-    output = output.split('\n')[1:] # skip the header 
-    pids = set([pid])
-    for row in output: 
-        if not row: continue 
-        child_pid, parent_pid = map(int, row.split())
-        if parent_pid in pids:
-            pids.add(child_pid)
-    
-    for child_pid in pids:
-        os.kill(child_pid, signal.SIGTERM) 
-
 
 def should_run_test(name, pattern):
     '''Given a test_filter pattern and a test name, should the test be run?'''
@@ -305,6 +290,45 @@ class CaptureAndDiffWorkflowItem(workers.WorkflowItem):
         return '%s %s' % (path, uploaded_image.link)
 
 
+class SetupStep(object):
+    '''Logic for running and finishing the setup step of a pdiff test.'''
+
+    def __init__(self, config, tmp_dir):
+        '''Config is the top-level test config YAML object.'''
+        self._config = config
+        self._setup = config.get('setup')
+        self._tmp_dir = tmp_dir
+        self._setup_proc = None
+
+    def run(self):
+        if not self._setup: return
+
+        # Note: we cannot use ProcessWorkflow here because the setup script
+        # is not expected to terminate (it typically spawns a long-lived server).
+        setup_file = os.path.join(self._tmp_dir, 'setup.sh')
+        log_file = os.path.join(self._tmp_dir, 'setup.log')
+        logging.info('Executing setup step: %s', setup_file)
+        open(setup_file, 'w').write(self._setup)
+
+        # If the shell script launches its own subprocesses (e.g. servers),
+        # then these will become orphans if we send SIGTERM to setup_proc. In
+        # order to avoid this, we make the shell script its own process group.
+        # See http://stackoverflow.com/a/4791612/388951
+        with open(log_file, 'a') as output_file:
+            self._setup_proc = subprocess.Popen(['bash', setup_file],
+                stderr=subprocess.STDOUT,
+                stdout=output_file,
+                close_fds=True,
+                preexec_fn=os.setsid)
+
+    def terminate(self):
+        if not self._setup_proc: return
+        if self._setup_proc.pid > 0:
+            # TODO: send SIGKILL after 5 seconds?
+            os.killpg(self._setup_proc.pid, signal.SIGTERM)
+            self._setup_proc.wait()
+
+
 class RunTestsWorkflowItem(workers.WorkflowItem):
     '''Load test YAML files and add them to the work queue.'''
 
@@ -328,19 +352,8 @@ class RunTestsWorkflowItem(workers.WorkflowItem):
 
             tmp_dir = tempfile.mkdtemp()
 
-            # TODO: Use process_worker instead of Popen?
-            setup = config.get('setup')
-            setup_proc = None
-            if setup:
-                setup_file = os.path.join(tmp_dir, 'setup.sh')
-                log_file = os.path.join(tmp_dir, 'setup.log')
-                logging.info('Executing setup step: %s', setup_file)
-                open(setup_file, 'w').write(setup)
-                with open(log_file, 'a') as output_file:
-                    setup_proc = subprocess.Popen(['bash', setup_file],
-                        stderr=subprocess.STDOUT,
-                        stdout=output_file,
-                        close_fds=True)
+            setup = SetupStep(config, tmp_dir)
+            setup.run()
 
             # TODO: pull all of waitfor out into its own Worker.
             waitfor = config.get('waitFor')
@@ -372,9 +385,7 @@ class RunTestsWorkflowItem(workers.WorkflowItem):
                 else:
                     logging.info('Skipping %s due to --test_filter=%s', name, FLAGS.test_filter)
 
-            if setup_proc and setup_proc.pid > 0:
-                logging.info("Sending TERM to setup script")
-                kill_process_and_children(setup_proc.pid)
+            setup.terminate()  # kill server from the setup step.
 
 
 def usage(short=False):
