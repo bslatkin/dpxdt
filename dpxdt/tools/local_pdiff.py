@@ -15,11 +15,13 @@ import glob
 import json
 import logging
 import os
+import requests
 import signal
 import subprocess
 import sys
 import tempfile
 import threading
+import time
 
 # Local Libraries
 import gflags
@@ -61,21 +63,6 @@ MODES = ['test', 'update']
 # global tracker
 FAILED_TESTS = 0
 
-
-def kill_process_and_children(pid):
-    '''Kill all children of a process. This is suprisingly hard!'''
-    cmd = ['ps', '-eo', 'pid,ppid'] 
-    output = subprocess.Popen(cmd, stdout=subprocess.PIPE).communicate()[0] 
-    output = output.split('\n')[1:] # skip the header 
-    pids = set([pid])
-    for row in output: 
-        if not row: continue 
-        child_pid, parent_pid = map(int, row.split())
-        if parent_pid in pids:
-            pids.add(child_pid)
-    
-    for child_pid in pids:
-        os.kill(child_pid, signal.SIGTERM) 
 
 
 def should_run_test(name, pattern):
@@ -274,7 +261,104 @@ class CaptureAndDiffWorkflowItem(workers.WorkflowItem):
         return '%s %s' % (path, uploaded_image.link)
 
 
-class RunTestsWorkflowItem(workers.WorkflowItem):
+class SetupStep(object):
+    '''Logic for running and finishing the setup step of a pdiff test.'''
+
+    def __init__(self, config, tmp_dir):
+        '''Config is the top-level test config YAML object.'''
+        self._config = config
+        self._setup = config.get('setup')
+        self._tmp_dir = tmp_dir
+        self._setup_proc = None
+
+    def run(self):
+        if not self._setup: return
+
+        # Note: we cannot use ProcessWorkflow here because the setup script
+        # is not expected to terminate (it typically spawns a long-lived server).
+        setup_file = os.path.join(self._tmp_dir, 'setup.sh')
+        log_file = os.path.join(self._tmp_dir, 'setup.log')
+        logging.info('Executing setup step: %s', setup_file)
+        open(setup_file, 'w').write(self._setup)
+
+        # If the shell script launches its own subprocesses (e.g. servers),
+        # then these will become orphans if we send SIGTERM to setup_proc. In
+        # order to avoid this, we make the shell script its own process group.
+        # See http://stackoverflow.com/a/4791612/388951
+        with open(log_file, 'a') as output_file:
+            self._setup_proc = subprocess.Popen(['bash', setup_file],
+                stderr=subprocess.STDOUT,
+                stdout=output_file,
+                close_fds=True,
+                preexec_fn=os.setsid)
+
+    def terminate(self):
+        if not self._setup_proc: return
+        if self._setup_proc.pid > 0:
+            # TODO: send SIGKILL after 5 seconds?
+            os.killpg(self._setup_proc.pid, signal.SIGTERM)
+            self._setup_proc.wait()
+
+
+class WrappedProcessWorkflowItem(process_worker.ProcessWorkflow):
+    '''A ProcessWorkflow which can be yielded inline.'''
+    def __init__(self, log_path, args, timeout_seconds=30):
+        process_worker.ProcessWorkflow.__init__(
+            self, log_path, timeout_seconds=timeout_seconds)
+        self._args = args
+
+    def get_args(self):
+        return self._args
+
+
+class WaitForUrlWorkflowItem(workers.WorkflowItem):
+    '''Waits for an URL to resolve, with a timeout.'''
+
+    def run(self, tmp_dir, waitfor, heartbeat=None, start_time=None):
+        assert 'url' in waitfor
+        timeout = waitfor.get('timeout_secs', 10)
+        if not start_time:
+            start_time = time.time()
+
+        class NotReadyError(Exception):
+            pass
+
+        try:
+            url = waitfor['url']
+            r = requests.head(url)
+            if r.status_code != 200:
+                yield heartbeat('Request for %s failed (%d)' % (url, r.status_code))
+                raise NotReadyError()
+
+            yield heartbeat('Request for %s succeeded, continuing with tests...' % url)
+            return
+        except requests.ConnectionError, NotReadyError:
+            now = time.time()
+            if now - start_time >= timeout:
+                raise process_worker.TimeoutError()
+            yield timer_worker.TimerItem(0.5)  # wait 500ms between checks
+            yield WaitForUrlWorkflowItem(tmp_dir, waitfor, heartbeat, start_time)
+
+
+class WaitForWorkflowItem(workers.WorkflowItem):
+    '''This performs the "waitFor" step specified in a test config.'''
+    def run(self, config, tmp_dir, heartbeat):
+        waitfor = config.get('waitFor')
+        if isinstance(waitfor, basestring):
+            waitfor_file = os.path.join(tmp_dir, 'waitfor.sh')
+            log_file = os.path.join(tmp_dir, 'waitfor.log')
+            logging.info('Executing waitfor step: %s', waitfor_file)
+            try:
+                yield WrappedProcessWorkflowItem(log_file, ['bash', waitfor_file])
+            except subprocess.CalledProcessError:
+                yield heartbeat('waitFor returned error code\nSee %s' % log_file)
+                raise
+
+        elif 'url' in waitfor:
+            yield WaitForUrlWorkflowItem(tmp_dir, waitfor, heartbeat)
+
+
+class RunAllTestSuitesWorkflowItem(workers.WorkflowItem):
     '''Load test YAML files and add them to the work queue.'''
 
     def run(self, config_dir, mode):
@@ -293,40 +377,22 @@ class RunTestsWorkflowItem(workers.WorkflowItem):
                 for test in config['tests']:
                     assert 'name' in test
                     print '  %s' % test['name']
-                return
+            else:
+                yield RunTestSuiteWorkflowItem(config_dir, config, mode, heartbeat)
 
-            tmp_dir = tempfile.mkdtemp()
 
-            # TODO: Use process_worker instead of Popen?
-            setup = config.get('setup')
-            setup_proc = None
-            if setup:
-                setup_file = os.path.join(tmp_dir, 'setup.sh')
-                log_file = os.path.join(tmp_dir, 'setup.log')
-                logging.info('Executing setup step: %s', setup_file)
-                open(setup_file, 'w').write(setup)
-                with open(log_file, 'a') as output_file:
-                    setup_proc = subprocess.Popen(['bash', setup_file],
-                        stderr=subprocess.STDOUT,
-                        stdout=output_file,
-                        close_fds=True)
+class RunTestSuiteWorkflowItem(workers.WorkflowItem):
+    '''Run a single YAML file's worth of tests.'''
 
-            waitfor = config.get('waitFor')
-            waitfor_proc = None
-            if waitfor:
-                waitfor_file = os.path.join(tmp_dir, 'waitfor.sh')
-                log_file = os.path.join(tmp_dir, 'waitfor.log')
-                logging.info('Executing waitfor step: %s', waitfor_file)
-                open(waitfor_file, 'w').write(waitfor)
-                with open(log_file, 'a') as output_file:
-                    try:
-                        subprocess.check_call(['bash', waitfor_file],
-                            stderr=subprocess.STDOUT,
-                            stdout=output_file,
-                            close_fds=True)
-                    except subprocess.CalledProcessError:
-                        yield heartbeat('waitFor returned error code\nSee %s' % log_file)
-                        continue
+    def run(self, config_dir, config, mode, heartbeat):
+        tmp_dir = tempfile.mkdtemp()
+
+        setup = SetupStep(config, tmp_dir)
+        setup.run()
+
+        try:
+            if config.get('waitFor'):
+                yield WaitForWorkflowItem(config, tmp_dir, heartbeat)
 
             for test in config['tests']:
                 assert 'name' in test
@@ -335,11 +401,10 @@ class RunTestsWorkflowItem(workers.WorkflowItem):
                     yield OneTestWorkflowItem(test, config_dir, tmp_dir, mode,
                         heartbeat=heartbeat)
                 else:
-                    logging.info('Skipping %s due to --test_filter=%s', name, FLAGS.test_filter)
-
-            if setup_proc and setup_proc.pid > 0:
-                logging.info("Sending TERM to setup script")
-                kill_process_and_children(setup_proc.pid)
+                    logging.info('Skipping %s due to --test_filter=%s',
+                            name, FLAGS.test_filter)
+        finally:
+            setup.terminate()  # kill server from the setup step.
 
 
 def usage(short=False):
@@ -377,7 +442,7 @@ def main(argv):
 
     global FAILED_TESTS
     FAILED_TESTS = 0
-    item = RunTestsWorkflowItem(config_dir, mode)
+    item = RunAllTestSuitesWorkflowItem(config_dir, mode)
     item.root = True
     coordinator.input_queue.put(item, mode)
 
