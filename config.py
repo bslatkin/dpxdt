@@ -18,7 +18,7 @@
 import os
 from secrets import *
 
-SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/test.db'
+SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URI', 'sqlite:////tmp/test.db')
 
 SERVER_NAME = os.environ.get('SERVER_NAME', None)
 MAX_CONTENT_LENGTH = 16 * 1024 * 1024
