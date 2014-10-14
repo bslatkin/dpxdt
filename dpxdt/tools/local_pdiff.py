@@ -160,6 +160,7 @@ class CaptureAndDiffWorkflowItem(workers.WorkflowItem):
 
     def run(self, name, log_file, config_file, output_path, ref_path, heartbeat=None):
         yield heartbeat('Running webpage capture process')
+        yield heartbeat('  Logging to %s' % log_file)
 
         capture_failed = True
         failure_reason = None
@@ -292,6 +293,8 @@ class SetupStep(object):
                 close_fds=True,
                 preexec_fn=os.setsid)
 
+        return {'script': setup_file, 'log': log_file}
+
     def terminate(self):
         if not self._setup_proc: return
         if self._setup_proc.pid > 0:
@@ -387,12 +390,20 @@ class RunTestSuiteWorkflowItem(workers.WorkflowItem):
     def run(self, config_dir, config, mode, heartbeat):
         tmp_dir = tempfile.mkdtemp()
 
+        yield heartbeat('Running setup step')
         setup = SetupStep(config, tmp_dir)
-        setup.run()
+        setup_files = setup.run()
+        yield heartbeat('  logging to %s' % setup_files['log'])
 
         try:
             if config.get('waitFor'):
-                yield WaitForWorkflowItem(config, tmp_dir, heartbeat)
+                try:
+                    yield WaitForWorkflowItem(config, tmp_dir, heartbeat)
+                except process_worker.TimeoutError:
+                    # The raw exception has an excessively long stack trace.
+                    # This at least adds some helpful context to the end.
+                    sys.stderr.write('Timed out on waitFor step.\n')
+                    return
 
             for test in config['tests']:
                 assert 'name' in test
