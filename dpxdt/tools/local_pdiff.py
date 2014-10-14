@@ -22,6 +22,7 @@ import sys
 import tempfile
 import threading
 import time
+import traceback
 
 # Local Libraries
 import gflags
@@ -418,6 +419,31 @@ class RunTestSuiteWorkflowItem(workers.WorkflowItem):
             setup.terminate()  # kill server from the setup step.
 
 
+class RepetitiveLogFilterer(object):
+    '''Suppress repeated log entries from the same line in the same file.'''
+    def __init__(self):
+        self.last_source = None
+
+    def filter(self, record):
+        if FLAGS.verbose:
+            return True
+        source = '%s:%s' % (record.filename, record.lineno)
+        if source == self.last_source:
+            return False
+        self.last_source = source
+
+        return True
+
+
+class CompactExceptionLogger(logging.Formatter):
+    def formatException(self, ei):
+        # Like logging.Formatter.formatException, but without the stack trace.
+        if FLAGS.verbose:
+            return super(CompactExceptionLogger, self).formatException(ei)
+        else:
+            return '\n'.join(traceback.format_exception_only(ei[0], ei[1]))
+
+
 def usage(short=False):
     sys.stderr.write('Usage: %s [update|test] <testdir>\n' % sys.argv[0])
     if not short:
@@ -445,6 +471,9 @@ def main(argv):
 
     assert os.path.exists(FLAGS.phantomjs_script)
 
+    logging.basicConfig()
+    logging.getLogger().addFilter(RepetitiveLogFilterer())
+    logging.getLogger().handlers[0].setFormatter(CompactExceptionLogger())
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
