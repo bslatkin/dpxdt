@@ -189,7 +189,16 @@ page.onInitialized = function() {
 
 // Dumps out any error logs.
 page.onError = function(msg, trace) {
-    console.log('page.onError', msg, trace);
+    var msgStack = [msg];
+    if (trace && trace.length) {
+        trace.forEach(function(t) {
+            msgStack.push(
+                ' -> ' + (t.file || t.sourceURL) + ': ' + t.line +
+                (t.function ? ' (in function ' + t.function + ')' : ''));
+        });
+    }
+
+    console.log('page.onError', msgStack.join('\n'));
 };
 
 

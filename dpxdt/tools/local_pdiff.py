@@ -22,6 +22,7 @@ import sys
 import tempfile
 import threading
 import time
+import traceback
 
 # Local Libraries
 import gflags
@@ -160,6 +161,7 @@ class CaptureAndDiffWorkflowItem(workers.WorkflowItem):
 
     def run(self, name, log_file, config_file, output_path, ref_path, heartbeat=None):
         yield heartbeat('Running webpage capture process')
+        yield heartbeat('  Logging to %s' % log_file)
 
         capture_failed = True
         failure_reason = None
@@ -292,6 +294,8 @@ class SetupStep(object):
                 close_fds=True,
                 preexec_fn=os.setsid)
 
+        return {'script': setup_file, 'log': log_file}
+
     def terminate(self):
         if not self._setup_proc: return
         if self._setup_proc.pid > 0:
@@ -387,12 +391,20 @@ class RunTestSuiteWorkflowItem(workers.WorkflowItem):
     def run(self, config_dir, config, mode, heartbeat):
         tmp_dir = tempfile.mkdtemp()
 
+        yield heartbeat('Running setup step')
         setup = SetupStep(config, tmp_dir)
-        setup.run()
+        setup_files = setup.run()
+        yield heartbeat('  logging to %s' % setup_files['log'])
 
         try:
             if config.get('waitFor'):
-                yield WaitForWorkflowItem(config, tmp_dir, heartbeat)
+                try:
+                    yield WaitForWorkflowItem(config, tmp_dir, heartbeat)
+                except process_worker.TimeoutError:
+                    # The raw exception has an excessively long stack trace.
+                    # This at least adds some helpful context to the end.
+                    sys.stderr.write('Timed out on waitFor step.\n')
+                    return
 
             for test in config['tests']:
                 assert 'name' in test
@@ -405,6 +417,31 @@ class RunTestSuiteWorkflowItem(workers.WorkflowItem):
                             name, FLAGS.test_filter)
         finally:
             setup.terminate()  # kill server from the setup step.
+
+
+class RepetitiveLogFilterer(object):
+    '''Suppress repeated log entries from the same line in the same file.'''
+    def __init__(self):
+        self.last_source = None
+
+    def filter(self, record):
+        if FLAGS.verbose:
+            return True
+        source = '%s:%s' % (record.filename, record.lineno)
+        if source == self.last_source:
+            return False
+        self.last_source = source
+
+        return True
+
+
+class CompactExceptionLogger(logging.Formatter):
+    def formatException(self, ei):
+        # Like logging.Formatter.formatException, but without the stack trace.
+        if FLAGS.verbose:
+            return super(CompactExceptionLogger, self).formatException(ei)
+        else:
+            return '\n'.join(traceback.format_exception_only(ei[0], ei[1]))
 
 
 def usage(short=False):
@@ -434,6 +471,9 @@ def main(argv):
 
     assert os.path.exists(FLAGS.phantomjs_script)
 
+    logging.basicConfig()
+    logging.getLogger().addFilter(RepetitiveLogFilterer())
+    logging.getLogger().handlers[0].setFormatter(CompactExceptionLogger())
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
