@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='dpxdt',
-      version='0.1.4',
+      version='0.1.5',
       description='Screenshot diff tool',
       author='Brett Slatkin',
       author_email='brett@haxor.com',
