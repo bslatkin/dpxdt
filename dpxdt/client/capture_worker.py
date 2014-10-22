@@ -90,6 +90,7 @@ class CaptureWorkflow(process_worker.ProcessWorkflow):
             '--disk-cache=false',
             '--debug=true',
             '--ignore-ssl-errors=true',
+            '--ssl-protocol=TLSv1', # https://github.com/ariya/phantomjs/issues/11239
             FLAGS.phantomjs_script,
             self.config_path,
             self.output_path,
