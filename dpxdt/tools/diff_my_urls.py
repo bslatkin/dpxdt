@@ -79,9 +79,9 @@ class Test(object):
                  ref_url=None, ref_config=None):
         self.name = name
         self.run_url = run_url
-        self.run_config_data = json.dumps(run_config)
+        self.run_config_data = json.dumps(run_config) if run_config else None
         self.ref_url = ref_url
-        self.ref_config_data = json.dumps(ref_config)
+        self.ref_config_data = json.dumps(ref_config) if ref_config else None
 
 
 def load_tests(data):
