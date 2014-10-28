@@ -149,11 +149,17 @@ def extract_urls(url, data, unescape=HTMLParser.HTMLParser().unescape):
         # Ignore JavaScript variable assignments
         if 'var' == link['tag'] and '' == link['quote']:
             continue
-        found_url = unescape(link['absurl'])
-        found_url = clean_url(
-            found_url,
-            force_scheme=parts[0])  # Use the main page's scheme
-        result.add(found_url)
+
+        try:
+            found_url = unescape(link['absurl'])
+            found_url = clean_url(
+                found_url,
+                force_scheme=parts[0])  # Use the main page's scheme
+        except ValueError as e:
+            logging.warning('Error decoding url: %s. %s: %s', link['absurl'], e.__class__.__name__, e)
+        else:
+            result.add(found_url)
+            
 
     return result
 
