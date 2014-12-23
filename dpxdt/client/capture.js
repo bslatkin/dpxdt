@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// TODO: Username/password using HTTP basic auth
 // TODO: Header key/value pairs
 // TODO: User agent spoofing shortcut
 
@@ -75,6 +74,12 @@ if (config.cookies) {
     config.cookies.forEach(function(cookie) {
         phantom.addCookie(cookie);
     });
+}
+
+// Add username and password as a parameter for HTTP basic auth
+if (config.httpUserName && config.httpPassword) {
+    page.settings.userName = config.httpUserName;
+    page.settings.password = config.httpPassword;
 }
 
 page.settings.resourceTimeout = config.resourceTimeoutMs || 10000;

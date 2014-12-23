@@ -50,3 +50,11 @@ gflags.DEFINE_string(
 gflags.DEFINE_string(
     'tests_json_path', None,
     'Path to the JSON file containing the list of tests to diff.')
+
+gflags.DEFINE_string(
+    'http_username', None,
+    'Username if site is protected by an HTTP basic authentication.')
+
+gflags.DEFINE_string(
+    'http_password', None,
+    'Password if site is protected by an HTTP basic authentication')

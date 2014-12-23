@@ -228,6 +228,12 @@ class SiteDiff(workers.WorkflowItem):
         good_urls = set()
 
         yield heartbeat('Scanning for content')
+        
+        http_username=None
+        http_password=None
+        if FLAGS.http_username and FLAGS.http_password:
+            http_username = FLAGS.http_username
+            http_password = FLAGS.http_password
 
         limit_depth = FLAGS.crawl_depth >= 0
         depth = 0
@@ -238,7 +244,7 @@ class SiteDiff(workers.WorkflowItem):
             seen_urls.update(pending_urls)
             yield heartbeat(
                 'Scanning %d pages for good urls' % len(pending_urls))
-            output = yield [fetch_worker.FetchItem(u) for u in pending_urls]
+            output = yield [fetch_worker.FetchItem(u,username=http_username,password=http_password) for u in pending_urls]
             pending_urls.clear()
 
             for item in output:
@@ -293,6 +299,11 @@ class SiteDiff(workers.WorkflowItem):
             if FLAGS.cookies:
                 config_dict['cookies'] = json.loads(
                     open(FLAGS.cookies).read())
+            if http_username and http_password:
+                config_dict['httpUserName'] = http_username
+                config_dict['httpPassword'] = http_password
+                
+
             config_data = json.dumps(config_dict)
 
             run_requests.append(release_worker.RequestRunWorkflow(
