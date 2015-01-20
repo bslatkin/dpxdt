@@ -23,6 +23,8 @@ Example usage:
     --release_client_id=<your api key> \
     --release_client_secret=<your api secret> \
     --crawl_depth=1 \
+    --width=320
+    --height=480
     http://www.example.com/my/website/here
 """
 
@@ -57,6 +59,14 @@ gflags.DEFINE_spaceseplist(
     'ignore_prefixes', [],
     'URL prefixes that should not be crawled.')
 
+
+gflags.DEFINE_integer(
+    'width', 1280,
+    'The viewport width, in pixels')
+
+gflags.DEFINE_integer(
+    'height', 1024,
+    'The viewport height, in pixels')
 
 # URL regex rewriting code originally from mirrorrr
 # http://code.google.com/p/mirrorrr/source/browse/trunk/transform_content.py
@@ -293,6 +303,10 @@ class SiteDiff(workers.WorkflowItem):
             if FLAGS.cookies:
                 config_dict['cookies'] = json.loads(
                     open(FLAGS.cookies).read())
+            if FLAGS.width:
+                config_dict['viewportSize']['width'] = FLAGS.width
+            if FLAGS.height:
+                config_dict['viewportSize']['height'] = FLAGS.height
             config_data = json.dumps(config_dict)
 
             run_requests.append(release_worker.RequestRunWorkflow(
