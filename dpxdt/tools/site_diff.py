@@ -60,14 +60,6 @@ gflags.DEFINE_spaceseplist(
     'URL prefixes that should not be crawled.')
 
 
-gflags.DEFINE_integer(
-    'width', 1280,
-    'The viewport width, in pixels')
-
-gflags.DEFINE_integer(
-    'height', 1024,
-    'The viewport height, in pixels')
-
 # URL regex rewriting code originally from mirrorrr
 # http://code.google.com/p/mirrorrr/source/browse/trunk/transform_content.py
 
