@@ -65,10 +65,17 @@ Build '{{ build.name }}'
                                         </div>
                                     {% endwith %}
                                     <div class="span2" title="Current status">
-                                       {% set class_name = 'text-success' if candidate.status == 'good' else 'text-error' %}
-                                        <span class='{{ class_name }}'>
+                                        {% if candidate.status == 'good' %}
+                                            <span class="text-good">
+                                                {{ candidate.status|title }}
+                                            </span>
+                                        {% elif candidate.status == 'bad' %}
+                                            <span class="text-error">
+                                                {{ candidate.status|title }}
+                                            </span>
+                                        {% else %}
                                             {{ candidate.status|title }}
-                                        </span>
+                                        {% endif %}
                                     </div>
                                 </div>
                             {% endfor %}
