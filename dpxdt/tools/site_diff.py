@@ -23,8 +23,8 @@ Example usage:
     --release_client_id=<your api key> \
     --release_client_secret=<your api secret> \
     --crawl_depth=1 \
-    --width=320
-    --height=480
+    --width=320 \
+    --height=480 \
     http://www.example.com/my/website/here
 """
 
