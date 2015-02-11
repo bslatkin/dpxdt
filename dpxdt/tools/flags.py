@@ -50,3 +50,11 @@ gflags.DEFINE_string(
 gflags.DEFINE_string(
     'tests_json_path', None,
     'Path to the JSON file containing the list of tests to diff.')
+
+gflags.DEFINE_integer(
+    'width', 1280,
+    'The viewport width, in pixels')
+
+gflags.DEFINE_integer(
+    'height', 1024,
+    'The viewport height, in pixels')
