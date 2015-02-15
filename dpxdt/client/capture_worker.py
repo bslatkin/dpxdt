@@ -19,9 +19,6 @@ import Queue
 import json
 import os
 import shutil
-import subprocess
-import sys
-import threading
 import tempfile
 import time
 import urllib2
@@ -35,6 +32,7 @@ from dpxdt import constants
 from dpxdt.client import process_worker
 from dpxdt.client import queue_worker
 from dpxdt.client import release_worker
+from dpxdt.client import utils
 from dpxdt.client import workers
 
 
@@ -160,8 +158,11 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
 
 def register(coordinator):
     """Registers this module as a worker with the given coordinator."""
-    assert FLAGS.phantomjs_binary
+    utils.verify_binary('phantomjs_binary', ['--version'])
+
     assert FLAGS.phantomjs_script
+    assert os.path.exists(FLAGS.phantomjs_script)
+
     assert FLAGS.capture_threads > 0
     assert FLAGS.queue_server_prefix
 
