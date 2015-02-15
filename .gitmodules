@@ -1,43 +1,9 @@
-[submodule "dependencies/flask"]
-	path = dependencies/flask
-	url = https://github.com/mitsuhiko/flask
-[submodule "dependencies/werkzeug"]
-	path = dependencies/werkzeug
-	url = https://github.com/mitsuhiko/werkzeug.git
-[submodule "dependencies/jinja2"]
-	path = dependencies/jinja2
-	url = https://github.com/mitsuhiko/jinja2.git
-[submodule "dependencies/itsdangerous"]
-	path = dependencies/itsdangerous
-	url = https://github.com/mitsuhiko/itsdangerous
-[submodule "dependencies/flask-wtf"]
-	path = dependencies/flask-wtf
-	url = https://github.com/ajford/flask-wtf.git
-[submodule "dependencies/flask-sqlalchemy"]
-	path = dependencies/flask-sqlalchemy
-	url = https://github.com/mitsuhiko/flask-sqlalchemy
-[submodule "dependencies/sqlalchemy"]
-	path = dependencies/sqlalchemy
-	url = https://github.com/zzzeek/sqlalchemy
-[submodule "dependencies/flask-login"]
-	path = dependencies/flask-login
-	url = https://github.com/maxcountryman/flask-login
 [submodule "dependencies/flask-cache"]
 	path = dependencies/flask-cache
 	url = https://github.com/bslatkin/flask-cache.git
-[submodule "dependencies/blinker"]
-	path = dependencies/blinker
-	url = https://github.com/jek/blinker.git
-	ignore = dirty
 [submodule "dependencies/gae_mini_profiler"]
 	path = dependencies/gae_mini_profiler
 	url = https://github.com/kamens/gae_mini_profiler
 [submodule "dependencies/flask-mail"]
 	path = dependencies/flask-mail
 	url = https://github.com/mattupstate/flask-mail.git
-[submodule "dependencies/alembic"]
-	path = dependencies/alembic
-	url = https://bitbucket.org/zzzeek/alembic.git
-[submodule "dependencies/mako"]
-	path = dependencies/mako
-	url = https://github.com/zzzeek/mako
