@@ -89,8 +89,9 @@ class UrlPairDiff(workers.WorkflowItem):
         if FLAGS.inject_js:
             config_dict['injectJs'] = FLAGS.inject_js
 
-	if FLAGS.http_username and FLAGS.http_password:
+        if FLAGS.http_username:
             config_dict['httpUserName'] = FLAGS.http_username
+        if FLAGS.http_password:
             config_dict['httpPassword'] = FLAGS.http_password
 
         config_data = json.dumps(config_dict)
