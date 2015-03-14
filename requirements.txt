@@ -17,3 +17,4 @@ pyimgur==0.5.2
 python-gflags==2.0
 requests==2.5.1
 wsgiref==0.1.2
+-e git+https://github.com/bslatkin/flask-mail.git@86fd27bb065e36fd5651344e280ad90dba12dc3c#egg=Flask_Mail-master

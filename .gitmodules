@@ -1,6 +1,3 @@
-[submodule "dependencies/flask-cache"]
-	path = dependencies/flask-cache
-	url = https://github.com/bslatkin/flask-cache.git
 [submodule "dependencies/gae_mini_profiler"]
 	path = dependencies/gae_mini_profiler
 	url = https://github.com/kamens/gae_mini_profiler
