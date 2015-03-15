@@ -1,23 +1,40 @@
 from setuptools import setup, find_packages
 
 setup(name='dpxdt',
-      version='0.1.5',
+      version='0.1.6',
       description='Screenshot diff tool',
       author='Brett Slatkin',
       author_email='brett@haxor.com',
-      url='https://github.com/bslatkin/dpxdt/',
+      url='https://github.com/bslatkin/dpxdt',
       entry_points={
           'console_scripts': [
               'dpxdt = dpxdt.tools.local_pdiff:run',
+              'dpxdt_server = dpxdt.tools.run_server:run',
           ],
       },
-      packages=find_packages(exclude=['tests*','dependencies*']),
-      install_requires=[
+      packages=find_packages(exclude=['tests*']),
+      install_requires=[  # Keep in sync with requirements.txt
+          'Flask',
+          'Flask-Cache',
+          'Flask-Login',
+          'Flask-Mail',
+          'Flask-SQLAlchemy',
+          'Flask-WTF',
+          'Jinja2',
+          'Mako',
+          'MarkupSafe',
           'PyYAML',
-          'python-gflags',
+          'SQLAlchemy',
+          'WTForms',
+          'Werkzeug',
+          'alembic',
+          'blinker',
+          'itsdangerous',
           'poster',
           'pyimgur',
-          'requests'
+          'python-gflags',
+          'requests',
+          'wsgiref',
       ],
       include_package_data=True,
       classifiers=[

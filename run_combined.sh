@@ -2,8 +2,9 @@
 
 source common.sh
 
-./dpxdt/runserver.py \
-    --local_queue_workers \
+./dpxdt/tools/run_server.py \
+    --enable_api_server \
+    --enable_queue_workers \
     --phantomjs_binary=$PHANTOMJS_BINARY \
     --phantomjs_script=$CAPTURE_SCRIPT \
     --phantomjs_timeout=20 \

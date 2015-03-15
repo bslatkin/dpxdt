@@ -13,7 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Runs the dpxdt API server, optionally with local queue workers."""
+"""Runs the dpxdt server.
+
+May provide the API server, queue workers, both together, or queue workers in
+a local mode where they connect directly to the database instead of using
+the API over HTTP.
+"""
 
 import logging
 import os
@@ -25,14 +30,26 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-from dpxdt import runworker
+from dpxdt.client import capture_worker
+from dpxdt.client import fetch_worker
+from dpxdt.client import pdiff_worker
+from dpxdt.client import timer_worker
+from dpxdt.client import workers
 from dpxdt import server
 
 
 gflags.DEFINE_bool(
-    'local_queue_workers', False,
-    'When true, run queue worker threads locally in the same process '
-    'as the server.')
+    'enable_api_server', False,
+    'When true, run an API server on the local host.')
+
+gflags.DEFINE_bool(
+    'enable_queue_workers', False,
+    'When true, run queue worker threads.')
+
+gflags.DEFINE_bool(
+    'local_workers', False,
+    'When true, queue workers that are running locally will directly talk '
+    'to the Database instead of accessing the API over HTTP.')
 
 gflags.DEFINE_bool(
     'reload_code', False,
@@ -48,6 +65,17 @@ gflags.DEFINE_integer('port', 5000, 'Port to run the HTTP server on.')
 gflags.DEFINE_string('host', '0.0.0.0', 'Host argument for the server.')
 
 
+def run_workers():
+    coordinator = workers.get_coordinator()
+    capture_worker.register(coordinator)
+    fetch_worker.register(coordinator)
+    pdiff_worker.register(coordinator)
+    timer_worker.register(coordinator)
+    coordinator.start()
+    return coordinator
+    logging.info('Workers started')
+
+
 def main(argv):
     try:
         argv = FLAGS(argv)
@@ -57,6 +85,7 @@ def main(argv):
 
     logging.basicConfig(
         format='%(levelname)s %(filename)s:%(lineno)s] %(message)s')
+
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
     else:
@@ -65,8 +94,8 @@ def main(argv):
     if FLAGS.verbose_queries:
         logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
 
-    if FLAGS.local_queue_workers:
-        coordinator = runworker.run_workers()
+    if FLAGS.enable_queue_workers:
+        coordinator = run_workers()
 
         # If the babysitter thread dies, the whole process goes down.
         def worker_babysitter():
@@ -82,8 +111,22 @@ def main(argv):
     if FLAGS.ignore_auth:
         server.app.config['IGNORE_AUTH'] = True
 
-    server.app.run(debug=FLAGS.reload_code, host=FLAGS.host, port=FLAGS.port)
+    if FLAGS.enable_api_server:
+        server.app.run(
+            debug=FLAGS.reload_code,
+            host=FLAGS.host,
+            port=FLAGS.port)
+    elif FLAGS.enable_queue_workers:
+        coordinator.join()
+    else:
+        sys.exit('Must specify at least --enable_api_server or '
+                 '--enable_queue_workers')
+
+
+def run():
+    # (intended to be run from package)
+    main(sys.argv)
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    run()
