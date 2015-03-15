@@ -15,56 +15,50 @@
 
 """Hook overrides for the App Engine environment."""
 
-import datetime
-import os
 import logging
 
-from google.appengine.api import files
-from google.appengine.ext import blobstore
-
 # Local libraries
+import cloudstorage
 import flask
 
 # Local modules
 from dpxdt.server import app
-from dpxdt.server import models
+from dpxdt.server import config
 
 
-GOOGLE_CLOUD_STORAGE_BUCKET = os.environ.get('GOOGLE_CLOUD_STORAGE_BUCKET')
+# TODO: Merge these hooks into dpxdt/server/api.py so they can be used
+# in any deployment context, not just App Engine.
 
 
 def _artifact_created(artifact):
     """Override for saving an artifact to google storage."""
-    filename = '/gs/%s/sha1-%s' % (GOOGLE_CLOUD_STORAGE_BUCKET, artifact.id)
+    filename = '/%s/sha1-%s' % (
+        config.GOOGLE_CLOUD_STORAGE_BUCKET, artifact.id)
 
-    # TODO: Move to the new cloudstorage module once it works with
-    # dev_appserver and the BLOB_KEY_HEADER.
-    writable_filename = files.gs.create(
-        filename, mime_type=artifact.content_type)
-
-    with files.open(writable_filename, 'a') as handle:
+    with cloudstorage.open(
+            filename, 'w', content_type=artifact.content_type) as handle:
         handle.write(artifact.data)
-
-    files.finalize(writable_filename)
 
     artifact.data = None
     artifact.alternate = filename
-    logging.debug('Saved file=%r', artifact.alternate)
+    logging.debug('Saved artifact_id=%r, alternate=%r',
+                  artifact.id, artifact.alternate)
 
 
 def _get_artifact_response(artifact):
     """Override for serving an artifact from Google Cloud Storage."""
     if artifact.alternate:
-        blob_key = blobstore.create_gs_key(artifact.alternate)
-        logging.debug('Serving file=%r, key=%r', artifact.alternate, blob_key)
-        response = flask.Response(
-            headers={blobstore.BLOB_KEY_HEADER: str(blob_key)},
-            mimetype=artifact.content_type)
+        # TODO: Issue a temporarily authorized redirect to cloud storage
+        # instead of proxying the data here. This is fully proxying the
+        # data so internal redirects within Flask will work correctly.
+        with cloudstorage.open(artifact.alternate, 'r') as handle:
+            data = handle.read()
+        logging.debug('Serving artifact_id=%r, alternate=%r',
+                      artifact.id, artifact.alternate)
     else:
-        response = flask.Response(
-            artifact.data,
-            mimetype=artifact.content_type)
+        data = artifact.data
 
+    response = flask.Response(data, mimetype=artifact.content_type)
     response.cache_control.public = True
     response.cache_control.max_age = 8640000
     response.set_etag(artifact.id)

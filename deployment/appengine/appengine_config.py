@@ -20,6 +20,7 @@ See:
 """
 
 import os
+import logging
 import sys
 
 # Load up our app and all its dependencies. Make the environment sane.
@@ -27,9 +28,7 @@ sys.path.insert(0, './lib/')
 from dpxdt.server import app
 
 
-# For debugging SQL queries.
-# import logging
-# logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
+# TODO: Initialize flags from flags file or enviornment.
 
 
 # When in production use precompiled templates. Sometimes templates break
@@ -58,6 +57,7 @@ appstats_MAX_STACK = 20
 appstats_MAX_DEPTH = 2
 
 
+# These are only used if gae_mini_profiler was properly installed
 def gae_mini_profiler_should_profile_production():
     from google.appengine.api import users
     return users.is_current_user_admin()

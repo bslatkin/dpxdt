@@ -33,6 +33,8 @@ SERVER_NAME = None
 
 MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
+SESSION_COOKIE_DOMAIN = os.environ.get('SESSION_COOKIE_DOMAIN', None)
+
 # Google OAuth2 login config for local development.
 GOOGLE_OAUTH2_EMAIL_ADDRESS = os.environ.get(
     'GOOGLE_OAUTH2_EMAIL_ADDRESS',
@@ -53,17 +55,23 @@ GOOGLE_OAUTH2_CLIENT_SECRET = os.environ.get(
     'GOOGLE_OAUTH2_CLIENT_SECRET',
     'EhiCP-PuQYN0OsWGAELTUHyl')
 
+# Caching
 CACHE_TYPE = os.environ.get('CACHE_TYPE', 'simple')
 CACHE_DEFAULT_TIMEOUT = 600
 
-SESSION_COOKIE_DOMAIN = os.environ.get('SESSION_COOKIE_DOMAIN', None)
-
+# Mail
 MAIL_DEFAULT_SENDER = os.environ.get(
     'MAIL_DEFAULT_SENDER',
     'Depicted <nobody@localhost>')
 
 MAIL_SUPPRESS_SEND = os.environ.get('MAIL_SUPPRESS_SEND', True)
+
 MAIL_USE_APPENGINE = os.environ.get('MAIL_USE_APPENGINE', False)
+
+# Cloud storage; currently only works in App Engine deployment
+GOOGLE_CLOUD_STORAGE_BUCKET = os.environ.get(
+    'GOOGLE_CLOUD_STORAGE_BUCKET',
+    None)
 
 # Secret key for CSRF key for WTForms, Login cookie. This will only last
 # for the duration of the currently running process.

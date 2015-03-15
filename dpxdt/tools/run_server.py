@@ -78,9 +78,6 @@ def main(argv):
         print '%s\nUsage: %s ARGS\n%s' % (e, sys.argv[0], FLAGS)
         sys.exit(1)
 
-    logging.basicConfig(
-        format='%(levelname)s %(filename)s:%(lineno)s] %(message)s')
-
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
         logging.getLogger('werkzeug').setLevel(logging.DEBUG)

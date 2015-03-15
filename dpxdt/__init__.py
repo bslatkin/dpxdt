@@ -15,6 +15,11 @@
 
 """Common module for dpxdt client and server pieces."""
 
+import logging
+logging.basicConfig(
+    format='%(levelname)s %(filename)s:%(lineno)s] %(message)s')
+
+
 # Local Libraries
 import gflags
 FLAGS = gflags.FLAGS
