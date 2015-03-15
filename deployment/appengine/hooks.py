@@ -16,6 +16,7 @@
 """Hook overrides for the App Engine environment."""
 
 import datetime
+import os
 import logging
 
 from google.appengine.api import files
@@ -27,13 +28,14 @@ import flask
 # Local modules
 from dpxdt.server import app
 from dpxdt.server import models
-import config
+
+
+GOOGLE_CLOUD_STORAGE_BUCKET = os.environ.get('GOOGLE_CLOUD_STORAGE_BUCKET')
 
 
 def _artifact_created(artifact):
     """Override for saving an artifact to google storage."""
-    filename = '/gs/%s/sha1-%s' % (
-        config.GOOGLE_CLOUD_STORAGE_BUCKET, artifact.id)
+    filename = '/gs/%s/sha1-%s' % (GOOGLE_CLOUD_STORAGE_BUCKET, artifact.id)
 
     # TODO: Move to the new cloudstorage module once it works with
     # dev_appserver and the BLOB_KEY_HEADER.

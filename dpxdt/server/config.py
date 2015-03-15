@@ -24,9 +24,12 @@ import os
 import uuid
 
 SQLALCHEMY_DATABASE_URI = os.environ.get(
-    'DATABASE_URI', 'sqlite:////tmp/test.db')
+    'SQLALCHEMY_DATABASE_URI',
+    'sqlite:////tmp/test.db')
 
-SERVER_NAME = os.environ.get('SERVER_NAME', None)
+# Always set to None or else Flask will return 404s unless the inbound
+# request perfectly matches this variable (including the port number).
+SERVER_NAME = None
 
 MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
@@ -50,7 +53,7 @@ GOOGLE_OAUTH2_CLIENT_SECRET = os.environ.get(
     'GOOGLE_OAUTH2_CLIENT_SECRET',
     'EhiCP-PuQYN0OsWGAELTUHyl')
 
-CACHE_TYPE = 'simple'
+CACHE_TYPE = os.environ.get('CACHE_TYPE', 'simple')
 CACHE_DEFAULT_TIMEOUT = 600
 
 SESSION_COOKIE_DOMAIN = os.environ.get('SESSION_COOKIE_DOMAIN', None)

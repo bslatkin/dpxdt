@@ -28,7 +28,7 @@ from flask.ext.sqlalchemy import SQLAlchemy
 import jinja2
 
 # Local modules required for app setup
-import config
+from . import config
 
 
 app = Flask(__name__)

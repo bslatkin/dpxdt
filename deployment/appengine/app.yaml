@@ -4,6 +4,12 @@ runtime: python27
 api_version: 1
 threadsafe: true
 
+env_variables:
+  SQLALCHEMY_DATABASE_URI: mysql+gaerdbms:///test?instance=foo:bar
+  CACHE_TYPE: memcached
+  GOOGLE_CLOUD_STORAGE_BUCKET: fake-bucket-name-here/artifacts
+  MAIL_USE_APPENGINE: True
+
 builtins:
 - appstats: on
 - remote_api: on
@@ -30,15 +36,16 @@ handlers:
   login: admin
   secure: always
 
-- url: /gae_mini_profiler/static
-  static_dir: lib/gae_mini_profiler/static
-  login: admin
-  secure: always
+# These only work if the gae_mini_profiler module is available
+# - url: /gae_mini_profiler/static
+#   static_dir: lib/gae_mini_profiler/static
+#   login: admin
+#   secure: always
 
-- url: /gae_mini_profiler/.*
-  script: gae_mini_profiler.main.application
-  login: admin
-  secure: always
+# - url: /gae_mini_profiler/.*
+#   script: gae_mini_profiler.main.application
+#   login: admin
+#   secure: always
 
 # General app handlers
 - url: /static
@@ -47,8 +54,7 @@ handlers:
   secure: always
 
 - url: .*
-  script: main.application
-  secure: always
+  script: main.app
 
 
 skip_files:

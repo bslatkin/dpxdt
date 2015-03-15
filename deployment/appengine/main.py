@@ -15,9 +15,8 @@
 
 """Entry point for the App Engine environment."""
 
-# Local Libraries
-import gae_mini_profiler.profiler
-import gae_mini_profiler.templatetags
+import logging
+import os
 
 # Local modules
 from dpxdt.server import app
@@ -28,10 +27,15 @@ def appengine_warmup():
     return 'OK'
 
 
-@app.context_processor
-def gae_mini_profiler_context():
-    return dict(
-        profiler_includes=gae_mini_profiler.templatetags.profiler_includes)
-
-
-application = gae_mini_profiler.profiler.ProfilerWSGIMiddleware(app)
+# Use the gae_mini_profiler module if it's importable.
+try:
+    import gae_mini_profiler.profiler
+    import gae_mini_profiler.templatetags
+except ImportError:
+    logging.debug('gae_mini_profiler middleware could not be imported')
+else:
+    @app.context_processor
+    def gae_mini_profiler_context():
+        return dict(
+            profiler_includes=gae_mini_profiler.templatetags.profiler_includes)
+    app = gae_mini_profiler.profiler.ProfilerWSGIMiddleware(app)
