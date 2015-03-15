@@ -1,6 +1,0 @@
-[submodule "dependencies/gae_mini_profiler"]
-	path = dependencies/gae_mini_profiler
-	url = https://github.com/kamens/gae_mini_profiler
-[submodule "dependencies/flask-mail"]
-	path = dependencies/flask-mail
-	url = https://github.com/mattupstate/flask-mail.git
