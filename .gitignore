@@ -16,3 +16,4 @@ dist
 bin
 include
 lib
+env.sh
