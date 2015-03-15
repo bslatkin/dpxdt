@@ -47,11 +47,6 @@ gflags.DEFINE_bool(
     'When true, run queue worker threads.')
 
 gflags.DEFINE_bool(
-    'local_workers', False,
-    'When true, queue workers that are running locally will directly talk '
-    'to the Database instead of accessing the API over HTTP.')
-
-gflags.DEFINE_bool(
     'reload_code', False,
     'Reload code on every request. Should only be used in local development.')
 
@@ -88,11 +83,16 @@ def main(argv):
 
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+        logging.getLogger('werkzeug').setLevel(logging.DEBUG)
     else:
         logging.getLogger().setLevel(logging.INFO)
+        logging.getLogger('werkzeug').setLevel(logging.INFO)
 
     if FLAGS.verbose_queries:
         logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
+
+    if FLAGS.verbose_workers:
+        logging.getLogger('dpxdt.client.workers').setLevel(logging.DEBUG)
 
     if FLAGS.enable_queue_workers:
         coordinator = run_workers()

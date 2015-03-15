@@ -25,6 +25,10 @@ import gflags
 FLAGS = gflags.FLAGS
 
 
+LOGGER = logging.getLogger('dpxdt.client.workers')
+LOGGER.setLevel(logging.INFO)
+
+
 gflags.DEFINE_float(
     'polltime', 1.0,
     'How long to sleep between polling for work from an input queue, '
@@ -113,10 +117,10 @@ class WorkerThread(threading.Thread):
                 next_item = self.handle_item(item)
             except Exception, e:
                 item.error = sys.exc_info()
-                logging.exception('%s error item=%r', self.worker_name, item)
+                LOGGER.exception('%s error item=%r', self.worker_name, item)
                 self.output_queue.put(item)
             else:
-                logging.debug('%s processed item=%r', self.worker_name, item)
+                LOGGER.debug('%s processed item=%r', self.worker_name, item)
                 if not isinstance(item, WorkflowItem):
                     item.done = True
                 if next_item:
@@ -339,7 +343,7 @@ class WorkflowThread(WorkerThread):
             except Queue.Empty:
                 continue
             except KeyboardInterrupt:
-                logging.debug('Exiting')
+                LOGGER.debug('Exiting')
                 return
             else:
                 item.check_result()
@@ -413,8 +417,8 @@ class WorkflowThread(WorkerThread):
         else:
             barrier = self.dequeue_barrier(item)
             if not barrier:
-                logging.debug('Could not find barrier for finished item=%r',
-                              item)
+                LOGGER.debug('Could not find barrier for finished item=%r',
+                             item)
                 return
             item = barrier.get_item()
             workflow = barrier.workflow
@@ -425,29 +429,29 @@ class WorkflowThread(WorkerThread):
                 try:
                     error = item is not None and item.error
                     if error:
-                        logging.debug('Throwing workflow=%r error=%r',
-                                      workflow, error)
+                        LOGGER.debug('Throwing workflow=%r error=%r',
+                                     workflow, error)
                         next_item = generator.throw(*error)
                     elif isinstance(item, WorkflowItem) and item.done:
-                        logging.debug(
+                        LOGGER.debug(
                             'Sending workflow=%r finished item=%r',
                             workflow, item)
                         next_item = generator.send(item.result)
                     else:
-                        logging.debug(
+                        LOGGER.debug(
                             'Sending workflow=%r finished item=%r',
                             workflow, item)
                         next_item = generator.send(item)
                 except StopIteration:
-                    logging.debug('Exhausted workflow=%r', workflow)
+                    LOGGER.debug('Exhausted workflow=%r', workflow)
                     workflow.done = True
                 except Return, e:
-                    logging.debug('Return from workflow=%r result=%r',
-                                  workflow, e.result)
+                    LOGGER.debug('Return from workflow=%r result=%r',
+                                 workflow, e.result)
                     workflow.done = True
                     workflow.result = e.result
                 except Exception, e:
-                    logging.exception(
+                    LOGGER.exception(
                         'Error in workflow=%r from item=%r, error=%r',
                         workflow, item, error)
                     workflow.done = True

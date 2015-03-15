@@ -29,6 +29,9 @@ from dpxdt.client import timer_worker
 from dpxdt.client import workers
 
 
+LOGGER = workers.LOGGER
+
+
 class Error(Exception):
     """Base class for exceptions in this module."""
 
@@ -55,7 +58,7 @@ class ProcessWorkflow(workers.WorkflowItem):
         start_time = time.time()
         with open(log_path, 'a') as output_file:
             args = self.get_args()
-            logging.info('item=%r Running subprocess: %r', self, args)
+            LOGGER.info('item=%r Running subprocess: %r', self, args)
             try:
                 process = subprocess.Popen(
                     args,
@@ -63,18 +66,18 @@ class ProcessWorkflow(workers.WorkflowItem):
                     stdout=output_file,
                     close_fds=True)
             except:
-                logging.error('item=%r Failed to run subprocess: %r',
-                              self, args)
+                LOGGER.error('item=%r Failed to run subprocess: %r',
+                             self, args)
                 raise
 
             while True:
-                logging.info('item=%r Polling pid=%r', self, process.pid)
+                LOGGER.info('item=%r Polling pid=%r', self, process.pid)
                 # NOTE: Use undocumented polling method to work around a
                 # bug in subprocess for handling defunct zombie processes:
                 # http://bugs.python.org/issue2475
                 process._internal_poll(_deadstate=127)
                 if process.returncode is not None:
-                    logging.info(
+                    LOGGER.info(
                         'item=%r Subprocess finished pid=%r, returncode=%r',
                         self, process.pid, process.returncode)
                     raise workers.Return(process.returncode)
@@ -82,8 +85,8 @@ class ProcessWorkflow(workers.WorkflowItem):
                 now = time.time()
                 run_time = now - start_time
                 if run_time > timeout_seconds:
-                    logging.info('item=%r Subprocess timed out pid=%r',
-                                 self, process.pid)
+                    LOGGER.info('item=%r Subprocess timed out pid=%r',
+                                self, process.pid)
                     process.kill()
                     raise TimeoutError(
                         'Sent SIGKILL to item=%r, pid=%s, run_time=%s' %

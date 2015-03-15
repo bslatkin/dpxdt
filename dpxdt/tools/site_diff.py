@@ -161,7 +161,7 @@ def extract_urls(url, data, unescape=HTMLParser.HTMLParser().unescape):
             logging.warning('Error decoding url: %s. %s: %s', link['absurl'], e.__class__.__name__, e)
         else:
             result.add(found_url)
-            
+
 
     return result
 
@@ -248,7 +248,7 @@ class SiteDiff(workers.WorkflowItem):
                     logging.debug('No data from url=%r', item.url)
                     continue
 
-                if item.headers.gettype() != 'text/html':
+                if item.content_type != 'text/html':
                     logging.debug('Skipping non-HTML document url=%r',
                                   item.url)
                     continue

@@ -28,3 +28,7 @@ gflags.DEFINE_bool(
 gflags.DEFINE_bool(
     'verbose_queries', False,
     'When set, do verbose logging of SQL queries.')
+
+gflags.DEFINE_bool(
+    'verbose_workers', False,
+    'When set, do verbose logging of background Worker progress.')
