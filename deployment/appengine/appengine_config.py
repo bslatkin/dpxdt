@@ -23,6 +23,15 @@ import os
 import logging
 import sys
 
+# Log to disk for managed VMs:
+# https://cloud.google.com/appengine/docs/managed-vms/custom-runtimes#logging
+if os.environ.get('LOG_TO_DISK'):
+    logging.basicConfig(
+        format='%(levelname)s %(filename)s:%(lineno)s] %(message)s',
+        file='/var/log/app_engine/custom_logs/applogs.log',
+        level=logging.DEBUG)
+
+
 # Load up our app and all its dependencies. Make the environment sane.
 sys.path.insert(0, './lib/')
 from dpxdt.server import app

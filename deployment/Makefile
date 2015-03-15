@@ -3,7 +3,7 @@ all:
 clean:
 	rm -Rf appengine_deploy
 
-combined_vm:
+appengine_deploy:
 	rm -Rf appengine_deploy
 	cp -R -L appengine appengine_deploy
 	python -c \

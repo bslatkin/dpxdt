@@ -1,4 +1,3 @@
-module: default
 runtime: python27
 vm: true
 api_version: 1
@@ -9,6 +8,7 @@ env_variables:
   CACHE_TYPE: memcached
   GOOGLE_CLOUD_STORAGE_BUCKET: fake-bucket-name-here/artifacts
   MAIL_USE_APPENGINE: True
+  LOG_TO_DISK: True
 
 automatic_scaling:
   min_num_instances: 1
