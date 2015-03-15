@@ -1,0 +1,36 @@
+application: your-app-id-here
+version: your-version-here
+runtime: python27
+api_version: 1
+threadsafe: true
+
+env_variables:
+  SQLALCHEMY_DATABASE_URI: mysql+gaerdbms:///test?instance=foo:bar
+  CACHE_TYPE: memcached
+  GOOGLE_CLOUD_STORAGE_BUCKET: fake-bucket-name-here/artifacts
+  MAIL_USE_APPENGINE: True
+
+libraries:
+- name: jinja2
+  version: "2.6"
+- name: markupsafe
+  version: "0.15"
+
+inbound_services:
+- warmup
+
+includes:
+- app_base.yaml
+
+skip_files:
+# These are default skip files values
+- ^(.*/)?#.*#
+- ^(.*/)?.*~
+- ^(.*/)?.*\.py[co]
+- ^(.*/)?.*/RCS/.*
+- ^(.*/)?\..*
+# NOTE: In production don't upload Jinja2. The built-in module (from
+# "libraries" above) has a c-extension that provides better debugging because
+# it can parse stack frames. For local testing with dev_appserver this must
+# be commented out.
+# - ^(.*/)?lib/jinja2(/.*)?

@@ -1,0 +1,37 @@
+builtins:
+- appstats: on
+- remote_api: on
+
+
+handlers:
+
+# Various admin handlers
+- url: /admin(/.*)?
+  script: google.appengine.ext.admin.application
+  login: admin
+  secure: always
+
+- url: /_ah/appstats(/.*)?
+  script: google.appengine.ext.appstats.ui.app
+  login: admin
+  secure: always
+
+# These only work if the gae_mini_profiler module is available
+- url: /gae_mini_profiler/static
+  static_dir: lib/gae_mini_profiler/static
+  login: admin
+  secure: always
+
+- url: /gae_mini_profiler/.*
+  script: gae_mini_profiler.main.application
+  login: admin
+  secure: always
+
+# General app handlers
+- url: /static
+  static_dir: dpxdt/server/static
+  expiration: 1h
+  secure: always
+
+- url: .*
+  script: main.app

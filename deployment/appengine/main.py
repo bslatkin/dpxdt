@@ -27,6 +27,11 @@ def appengine_warmup():
     return 'OK'
 
 
+@app.route('/_ah/start')
+def appengine_start():
+    return 'OK'
+
+
 # Use the gae_mini_profiler module if it's importable.
 try:
     import gae_mini_profiler.profiler

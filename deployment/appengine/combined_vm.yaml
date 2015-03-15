@@ -1,0 +1,28 @@
+module: default
+runtime: python27
+vm: true
+api_version: 1
+threadsafe: true
+
+env_variables:
+  SQLALCHEMY_DATABASE_URI: mysql+gaerdbms:///test?instance=foo:bar
+  CACHE_TYPE: memcached
+  GOOGLE_CLOUD_STORAGE_BUCKET: fake-bucket-name-here/artifacts
+  MAIL_USE_APPENGINE: True
+
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: 8
+  cool_down_period_sec: 120
+  cpu_utilization:
+    target_utilization: 0.5
+
+resources:
+  cpu: 1
+  memory_gb: 1.5
+
+inbound_services:
+- warmup
+
+includes:
+- app_base.yaml

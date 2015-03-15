@@ -10,4 +10,4 @@ dev_appserver.py \
     --log_level=debug \
     --require_indexes=yes \
     "$@" \
-    ./deployment/appengine/
+    api_server.yaml
