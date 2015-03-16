@@ -71,7 +71,7 @@ def run_workers():
     logging.info('Workers started')
 
 
-def main(argv):
+def main(block=True):
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
         logging.getLogger('werkzeug').setLevel(logging.DEBUG)
@@ -102,26 +102,27 @@ def main(argv):
     if FLAGS.ignore_auth:
         server.app.config['IGNORE_AUTH'] = True
 
-    if FLAGS.enable_api_server:
-        server.app.run(
-            debug=FLAGS.reload_code,
-            host=FLAGS.host,
-            port=FLAGS.port)
-    elif FLAGS.enable_queue_workers:
-        coordinator.join()
-    else:
-        sys.exit('Must specify at least --enable_api_server or '
-                 '--enable_queue_workers')
+    if block:
+        if FLAGS.enable_api_server:
+            server.app.run(
+                debug=FLAGS.reload_code,
+                host=FLAGS.host,
+                port=FLAGS.port)
+        elif FLAGS.enable_queue_workers:
+            coordinator.join()
+        else:
+            sys.exit('Must specify at least --enable_api_server or '
+                     '--enable_queue_workers')
 
 
 def run():
     try:
-        argv = FLAGS(sys.argv)
+        FLAGS(sys.argv)
     except gflags.FlagsError, e:
         print '%s\nUsage: %s ARGS\n%s' % (e, sys.argv[0], FLAGS)
         sys.exit(1)
 
-    main(argv)
+    main(block=True)
 
 
 if __name__ == '__main__':

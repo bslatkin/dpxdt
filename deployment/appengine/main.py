@@ -38,6 +38,7 @@ def appengine_warmup():
 def appengine_start():
     # TODO: Gracefully cancel this when /_ah/stop is received
     run_server.main([])
+    return 'OK'
 
 
 # Use the gae_mini_profiler module if it's importable.

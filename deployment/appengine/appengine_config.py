@@ -21,26 +21,38 @@ See:
 
 import os
 import logging
+import os
 import sys
 
 
 # Log to disk for managed VMs:
 # https://cloud.google.com/appengine/docs/managed-vms/custom-runtimes#logging
 if os.environ.get('LOG_TO_DISK'):
-    logging.basicConfig(
-        format='%(levelname)s %(filename)s:%(lineno)s] %(message)s',
-        file='/var/log/app_engine/custom_logs/applogs.log',
-        level=logging.DEBUG)
+    log_dir = '/var/log/app_engine/custom_logs'
+    try:
+        os.makedirs(log_dir)
+    except OSError:
+        pass  # Directory already exists
 
+    log_path = os.path.join(log_dir, 'app.log')
+    handler = logging.FileHandler(log_path)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(logging.Formatter(
+        '%(levelname)s %(filename)s:%(lineno)s] %(message)s'))
+    logging.getLogger().addHandler(handler)
+
+
+# Load up our app and all its dependencies. Make the environment sane.
+from dpxdt.tools import run_server
 
 
 # Initialize flags from flags file or enviornment.
 import gflags
-gflags.FLAGS(['--flagfile=flags.cfg'])
-
-
-# Load up our app and all its dependencies. Make the environment sane.
-from dpxdt.server import app
+gflags.FLAGS(['dpxdt_server', '--flagfile=flags.cfg'])
+logging.info('BEGIN Flags')
+for key, flag in gflags.FLAGS.FlagDict().iteritems():
+    logging.info('%s = %s', key, flag.value)
+logging.info('END Flags')
 
 
 # When in production use precompiled templates. Sometimes templates break

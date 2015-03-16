@@ -690,16 +690,17 @@ New readme stuff here
 
 For local development of managed VM:
 
-Have a mysql server running. You'll need to create a test user for the docker instance to access:
+Create a new service account, download the key as a pkcs12 file, convert it to PEM
 
-mysql -u root
-
-CREATE USER 'testuser'@'%' IDENTIFIED BY 'testpass';
-GRANT ALL PRIVILEGES ON test.* To 'testuser'@'%' IDENTIFIED BY 'testpass';
-FLUSH PRIVILEGES;
+https://cloud.google.com/storage/docs/authentication#service_accounts
 
 make appengine_deploy
-./run_combined_vm.sh
+
+update combined_vm.yaml with your variable values in the environment
+
+./run_combined_vm.sh \
+    --appidentity-email-address=your_account_name@developer.gserviceaccount.com \
+    --appidentity-private-key-path=path/to/pem_file.pem
 
 
 For deployment of managed VM:
@@ -707,4 +708,5 @@ For deployment of managed VM:
 Edit combined_vm.yaml with your various environment settings and passwords.
 
 ./deploy_combined_vm.sh --project=your_project_here
+
 

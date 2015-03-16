@@ -1,6 +1,3 @@
-IP_ADDRESS = $(shell python -c \
-	'import socket; print socket.gethostbyname(socket.gethostname())')
-
 all:
 
 clean:
@@ -14,4 +11,3 @@ appengine_deploy:
 	     app.jinja_env.compile_templates( \
 	         './appengine_deploy/templates_compiled.zip')"
 	echo "- ^(.*/)?lib/jinja2(/.*)?" >> appengine_deploy/api_server.yaml
-	sed -i '' 's/HOSTNAME/$(IP_ADDRESS)/g' appengine_deploy/combined_vm.yaml
