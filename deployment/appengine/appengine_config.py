@@ -59,7 +59,7 @@ logging.info('END Flags')
 # in production. To debug templates there, comment this out entirely.
 if os.environ.get('SERVER_SOFTWARE', '').startswith('Google App Engine'):
     import jinja2
-    from dpxdt.tools import app
+    from dpxdt.server import app
     app.jinja_env.auto_reload = False
     app.jinja_env.loader = jinja2.ModuleLoader('templates_compiled.zip')
 
