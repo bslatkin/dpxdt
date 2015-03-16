@@ -713,6 +713,16 @@ For deployment of managed VM:
 
 Edit combined_vm.yaml with your various environment settings and passwords.
 
-./deploy_combined_vm.sh --project=your_project_here
+gcloud --verbosity=debug --project=<your project> preview app deploy --version=<your version> combined_vm.yaml
 
 
+From /admin/interactive you can set a key to superuser
+
+from dpxdt.server import models
+from dpxdt.server import db
+
+a = models.ApiKey.query.get('user_id_here')
+a.superuser = True
+
+db.session.add(a)
+db.session.commit()
