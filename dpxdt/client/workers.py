@@ -339,7 +339,7 @@ class WorkflowThread(WorkerThread):
         """Waits until this worker has finished one work item or died."""
         while True:
             try:
-                item = self.output_queue.get(True, 1)
+                item = self.output_queue.get(True, self.polltime)
             except Queue.Empty:
                 continue
             except KeyboardInterrupt:
