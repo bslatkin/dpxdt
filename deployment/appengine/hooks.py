@@ -47,14 +47,20 @@ def _artifact_created(artifact):
 
 def _get_artifact_response(artifact):
     """Override for serving an artifact from Google Cloud Storage."""
-    if artifact.alternate:
+     if artifact.alternate:
+        filename = artifact.alternate
+
+        # Trim any old /gs prefixes that were there for the old files API.
+        if filename.startswith('/gs'):
+            filename = filename[len('/gs'):]
+
         # TODO: Issue a temporarily authorized redirect to cloud storage
         # instead of proxying the data here. This is fully proxying the
         # data so internal redirects within Flask will work correctly.
-        with cloudstorage.open(artifact.alternate, 'r') as handle:
+        with cloudstorage.open(filename, 'r') as handle:
             data = handle.read()
         logging.debug('Serving artifact_id=%r, alternate=%r',
-                      artifact.id, artifact.alternate)
+                      artifact.id, filename)
     else:
         data = artifact.data
 

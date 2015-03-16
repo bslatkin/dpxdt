@@ -1,16 +1,9 @@
 builtins:
 - appstats: on
-- remote_api: on
-
 
 handlers:
 
 # Various admin handlers
-- url: /admin(/.*)?
-  script: google.appengine.ext.admin.application
-  login: admin
-  secure: always
-
 - url: /_ah/appstats(/.*)?
   script: google.appengine.ext.appstats.ui.app
   login: admin
@@ -35,3 +28,4 @@ handlers:
 
 - url: .*
   script: main.app
+  secure: always

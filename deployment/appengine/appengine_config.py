@@ -81,6 +81,10 @@ appstats_MAX_STACK = 20
 # Use very shallow local variable reprs to reduce noise.
 appstats_MAX_DEPTH = 2
 
+# Enable the remote shell, since the old admin interactive console doesn't
+# work with managed VMs.
+appstats_SHELL_OK = True
+
 
 # These are only used if gae_mini_profiler was properly installed
 def gae_mini_profiler_should_profile_production():
