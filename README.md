@@ -690,13 +690,19 @@ New readme stuff here
 
 For local development of managed VM:
 
+Get your local MySQL running
+
+CREATE USER 'testuser'@'%' IDENTIFIED BY 'testpass';
+GRANT ALL PRIVILEGES ON test.* To 'testuser'@'%' IDENTIFIED BY 'testpass';
+FLUSH PRIVILEGES;
+
 Create a new service account, download the key as a pkcs12 file, convert it to PEM
 
 https://cloud.google.com/storage/docs/authentication#service_accounts
 
 make appengine_deploy
 
-update combined_vm.yaml with your variable values in the environment
+update combined_vm.yaml with your variable values in the environment. Use SQLALCHEMY_DATABASE_URI: mysql+mysqldb://user:pass@your_hostname/your_db for testing against the local mysql but with the remote bucket
 
 ./run_combined_vm.sh \
     --appidentity-email-address=your_account_name@developer.gserviceaccount.com \

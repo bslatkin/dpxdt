@@ -4,15 +4,16 @@ api_version: 1
 threadsafe: true
 
 env_variables:
-  SQLALCHEMY_DATABASE_URI: mysql+mysqldb://root:your_pass@your_ip/your_db'
-  GOOGLE_OAUTH2_REDIRECT_URI: https://dpxdt-test.appspot.com
-  GOOGLE_OAUTH2_EMAIL_ADDRESS: your_number@developer.gserviceaccount.com
-  GOOGLE_OAUTH2_CLIENT_ID: your_number.apps.googleusercontent.com
-  GOOGLE_OAUTH2_CLIENT_SECRET: my-random-secret-here
+  SQLALCHEMY_DATABASE_URI: mysql+mysqldb://root:your_pass@your_ip/your_db
   GOOGLE_CLOUD_STORAGE_BUCKET: dpxdt-cloud-test/artifacts
-  SESSION_COOKIE_DOMAIN: .dpxdt-test.appspot.com
-  SECRET_KEY: your-session-cookie-key-here
-  MAIL_DEFAULT_SENDER: Depicted <notify@dpxdt-test.appspotmail.com>
+  # GOOGLE_OAUTH2_REDIRECT_URI: https://dpxdt-test.appspot.com
+  # GOOGLE_OAUTH2_EMAIL_ADDRESS: your_number@developer.gserviceaccount.com
+  # GOOGLE_OAUTH2_CLIENT_ID: your_number.apps.googleusercontent.com
+  # GOOGLE_OAUTH2_CLIENT_SECRET: my-random-secret-here
+  # SESSION_COOKIE_DOMAIN: .dpxdt-test.appspot.com
+  # SECRET_KEY: your-session-cookie-key-here
+  # MAIL_DEFAULT_SENDER: Depicted <notify@dpxdt-test.appspotmail.com>
+  CACHE_TYPE: memcached
   MAIL_SUPPRESS_SEND: True
   MAIL_USE_APPENGINE: True
   LOG_TO_DISK: True
