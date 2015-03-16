@@ -1,7 +1,5 @@
 #!/bin/bash
 
-source common.sh
-
 ./dpxdt/tools/run_server.py \
     --enable_api_server \
     --enable_queue_workers \

@@ -1,6 +1,0 @@
-#!/bin/bash
-export LOG_PATH=/var/log/service/dpxdt_worker
-mkdir -p $LOG_PATH
-# Sleep to prevent races on the lock file
-sleep 1
-exec /usr/bin/svlogd -ttt $LOG_PATH

@@ -8,12 +8,9 @@
 CVS
 .DS_Store
 *.pyc
-secrets.py
-templates_compiled.zip
 dist
 *.egg-info
 .Python
 bin
 include
 lib
-env.sh
