@@ -354,6 +354,9 @@ def main(argv):
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
+    if FLAGS.verbose_workers:
+        logging.getLogger('dpxdt.client.workers').setLevel(logging.DEBUG)
+
     real_main(
         start_url=argv[1],
         ignore_prefixes=FLAGS.ignore_prefixes,
