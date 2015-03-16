@@ -33,12 +33,14 @@ if os.environ.get('LOG_TO_DISK'):
         level=logging.DEBUG)
 
 
+
+# Initialize flags from flags file or enviornment.
+import gflags
+gflags.FLAGS(['--flagfile=flags.cfg'])
+
+
 # Load up our app and all its dependencies. Make the environment sane.
-sys.path.insert(0, './lib/')
 from dpxdt.server import app
-
-
-# TODO: Initialize flags from flags file or enviornment.
 
 
 # When in production use precompiled templates. Sometimes templates break

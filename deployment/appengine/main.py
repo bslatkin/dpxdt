@@ -26,6 +26,7 @@ import os
 
 # Local modules
 from dpxdt.server import app
+from dpxdt.tools import run_server
 
 
 @app.route('/_ah/warmup')
@@ -35,7 +36,8 @@ def appengine_warmup():
 
 @app.route('/_ah/start')
 def appengine_start():
-    return 'OK'
+    # TODO: Gracefully cancel this when /_ah/stop is received
+    run_server.main([])
 
 
 # Use the gae_mini_profiler module if it's importable.

@@ -72,12 +72,6 @@ def run_workers():
 
 
 def main(argv):
-    try:
-        argv = FLAGS(argv)
-    except gflags.FlagsError, e:
-        print '%s\nUsage: %s ARGS\n%s' % (e, sys.argv[0], FLAGS)
-        sys.exit(1)
-
     if FLAGS.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
         logging.getLogger('werkzeug').setLevel(logging.DEBUG)
@@ -121,8 +115,13 @@ def main(argv):
 
 
 def run():
-    # (intended to be run from package)
-    main(sys.argv)
+    try:
+        argv = FLAGS(sys.argv)
+    except gflags.FlagsError, e:
+        print '%s\nUsage: %s ARGS\n%s' % (e, sys.argv[0], FLAGS)
+        sys.exit(1)
+
+    main(argv)
 
 
 if __name__ == '__main__':
