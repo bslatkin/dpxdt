@@ -10,4 +10,3 @@ appengine_deploy:
 	    "from dpxdt.server import app; \
 	     app.jinja_env.compile_templates( \
 	         './appengine_deploy/templates_compiled.zip')"
-	echo "- ^(.*/)?lib/jinja2(/.*)?" >> appengine_deploy/api_server.yaml
