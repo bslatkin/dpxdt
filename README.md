@@ -677,3 +677,34 @@ Eventually the command will finish and drop you back at a shell.
 1. Go to the [Google Cloud Console](http://cloud.google.com/console) for your App Engine app. To to the App Engine section. Go to the versions section. Select your newly deployed version. Click "make default". Confirm that when you load ```yourappid.appspot.com``` (without the explicit version prefix) that you see the new version of the code running.
 
 1. Congratulations, you are done!
+
+
+
+
+----
+
+
+New readme stuff here
+
+
+
+For local development of managed VM:
+
+Have a mysql server running. You'll need to create a test user for the docker instance to access:
+
+mysql -u root
+
+CREATE USER 'testuser'@'%' IDENTIFIED BY 'testpass';
+GRANT ALL PRIVILEGES ON test.* To 'testuser'@'%' IDENTIFIED BY 'testpass';
+FLUSH PRIVILEGES;
+
+make appengine_deploy
+./run_combined_vm.sh
+
+
+For deployment of managed VM:
+
+Edit combined_vm.yaml with your various environment settings and passwords.
+
+./deploy_combined_vm.sh --project=your_project_here
+

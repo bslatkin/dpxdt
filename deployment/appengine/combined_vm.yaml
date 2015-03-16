@@ -4,7 +4,7 @@ api_version: 1
 threadsafe: true
 
 env_variables:
-  SQLALCHEMY_DATABASE_URI: mysql+gaerdbms:///test?instance=foo:bar
+  SQLALCHEMY_DATABASE_URI: mysql+mysqldb://testuser:testpass@HOSTNAME/test
   CACHE_TYPE: memcached
   GOOGLE_CLOUD_STORAGE_BUCKET: fake-bucket-name-here/artifacts
   MAIL_USE_APPENGINE: True
