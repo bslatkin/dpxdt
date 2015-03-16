@@ -23,6 +23,7 @@ import os
 import logging
 import sys
 
+
 # Log to disk for managed VMs:
 # https://cloud.google.com/appengine/docs/managed-vms/custom-runtimes#logging
 if os.environ.get('LOG_TO_DISK'):

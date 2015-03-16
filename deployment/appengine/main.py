@@ -15,6 +15,12 @@
 
 """Entry point for the App Engine environment."""
 
+# In the normal App Engine environment, this is always implicitly imported
+# before the rest of the App. In the Managed VMs environment, it's not imported
+# at all. So import it here. In normal App Engine this will be a no-op.
+import appengine_config
+
+
 import logging
 import os
 
