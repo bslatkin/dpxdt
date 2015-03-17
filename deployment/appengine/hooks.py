@@ -47,7 +47,7 @@ def _artifact_created(artifact):
 
 def _get_artifact_response(artifact):
     """Override for serving an artifact from Google Cloud Storage."""
-     if artifact.alternate:
+    if artifact.alternate:
         filename = artifact.alternate
 
         # Trim any old /gs prefixes that were there for the old files API.
