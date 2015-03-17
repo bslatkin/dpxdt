@@ -27,7 +27,9 @@ RUN apt-get install -y \
     libmysqlclient-dev \
     python-dev
 
-RUN easy_install -U distribute
 RUN pip install -r /app/requirements.txt
+
+RUN easy_install -U distribute
+RUN pip install GoogleAppEngineCloudStorageClient MySQL-python
 
 ADD . /app

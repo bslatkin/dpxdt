@@ -4,11 +4,9 @@ Flask-Login==0.2.11
 Flask-Mail==0.9.1
 Flask-SQLAlchemy==2.0
 Flask-WTF==0.11
-GoogleAppEngineCloudStorageClient==1.9.15.0
 Jinja2==2.7.3
 Mako==1.0.1
 MarkupSafe==0.23
-MySQL-python==1.2.5
 PyYAML==3.11
 SQLAlchemy==0.9.8
 WTForms==2.0.2
