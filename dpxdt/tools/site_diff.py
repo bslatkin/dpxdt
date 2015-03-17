@@ -73,13 +73,12 @@ TRAVERSAL_URL_REGEX = (
     r"(?P<relative>\.(\.)?)/(?!(/)|"
     r"(http(s?)://)|(url\())(?P<url>[^\"'> \t]*)")
 # URLs that are in the same directory as the requested URL.
-SAME_DIR_URL_REGEX = (
-    r"(?!(/)|([a-z0-9.-]{2,10}:(//)?)|(#)|(url\())(?P<url>[^\\\"'> \t]+)")
+SAME_DIR_URL_REGEX = r"(?!(/)|(http(s?)://)|(#)|(url\())(?P<url>[^\"'> \t]+)"
 # URL matches the root directory.
 ROOT_DIR_URL_REGEX = r"(?!//(?!>))/(?P<url>)(?=[ \t\n]*[\"'> /])"
 # Start of a tag using 'src' or 'href'
 TAG_START = (
-    r"(?i)(?P<tag><?[^\s]*)(?P<attr>\s(src|href|action|url|background))"
+    r"(?i)(?P<tag>\ssrc|href|action|url|background)"
     r"(?P<equals>[\t ]*=[\t ]*)(?P<quote>[\"']?)")
 # Potential HTML document URL with no fragments.
 MAYBE_HTML_URL_REGEX = (
@@ -87,15 +86,15 @@ MAYBE_HTML_URL_REGEX = (
 
 REPLACEMENT_REGEXES = [
     (TAG_START + SAME_DIR_URL_REGEX,
-     "\g<tag>\g<attr>\g<equals>\g<quote>%(accessed_dir)s\g<url>"),
+     "\g<tag>\g<equals>\g<quote>%(accessed_dir)s\g<url>"),
     (TAG_START + TRAVERSAL_URL_REGEX,
-     "\g<tag>\g<attr>\g<equals>\g<quote>%(accessed_dir)s/\g<relative>/\g<url>"),
+     "\g<tag>\g<equals>\g<quote>%(accessed_dir)s/\g<relative>/\g<url>"),
     (TAG_START + BASE_RELATIVE_URL_REGEX,
-     "\g<tag>\g<attr>\g<equals>\g<quote>%(base)s/\g<url>"),
+     "\g<tag>\g<equals>\g<quote>%(base)s/\g<url>"),
     (TAG_START + ROOT_DIR_URL_REGEX,
-     "\g<tag>\g<attr>\g<equals>\g<quote>%(base)s/"),
+     "\g<tag>\g<equals>\g<quote>%(base)s/"),
     (TAG_START + ABSOLUTE_URL_REGEX,
-     "\g<tag>\g<attr>\g<equals>\g<quote>\g<url>"),
+     "\g<tag>\g<equals>\g<quote>\g<url>"),
 ]
 
 
@@ -147,21 +146,11 @@ def extract_urls(url, data, unescape=HTMLParser.HTMLParser().unescape):
 
     result = set()
     for match in re.finditer(MAYBE_HTML_URL_REGEX, data):
-        link = match.groupdict()
-        # Ignore JavaScript variable assignments
-        if 'var' == link['tag'] and '' == link['quote']:
-            continue
-
-        try:
-            found_url = unescape(link['absurl'])
-            found_url = clean_url(
-                found_url,
-                force_scheme=parts[0])  # Use the main page's scheme
-        except ValueError as e:
-            logging.warning('Error decoding url: %s. %s: %s', link['absurl'], e.__class__.__name__, e)
-        else:
-            result.add(found_url)
-
+        found_url = unescape(match.groupdict()['absurl'])
+        found_url = clean_url(
+            found_url,
+            force_scheme=parts[0])  # Use the main page's scheme
+        result.add(found_url)
 
     return result
 
