@@ -123,7 +123,7 @@ class OneTestWorkflowItem(workers.WorkflowItem):
 
         logging.info('Test config:\n%s', json.dumps(test_config, indent=2))
 
-        capture_config = copy.deepcopy(test_config['config'])
+        capture_config = copy.deepcopy(test_config.get('config', {}))
         capture_config['targetUrl'] = test_config['url']
         config_file = os.path.join(test_dir, 'config.json')
         json.dump(capture_config, open(config_file, 'w'), indent=2)
