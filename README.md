@@ -22,6 +22,67 @@ See [this video for a presentation](http://youtu.be/UMnZiTL0tUc) about how perce
 
 ## Getting started
 
+Depicted can be used in two ways: as a local tool for generating screenshots and as a server for coordinating continuous deployment.
+
+To get started with either, run:
+
+    pip install dpxdt
+
+For the local tool, read on. For the server, [scroll on](#server).
+
+## <a name="client"></a>Local Depicted
+
+Local `dpxdt` is a tool for generating screenshots. It reads in a YAML config file and generates screenshots using PhantomJS. This makes sense for testing reusable tools (e.g. libraries) which aren't "deployed" in the way that a traditional web app is.
+
+Create a simple page to screenshot:
+
+```html
+<!-- demo.html -->
+<h2>dpxdt local demo</h2>
+<p>dpxdt can be used to spot changes on local web servers.</p>
+```
+
+And a config file to specify what to screenshot:
+```yaml
+# (tests/test.yaml)
+# This is run once before any individual test.
+# It's a good place to start your demo server.
+setup: |
+    python -m SimpleHTTPServer
+
+# This runs after the setup script and before any tests are run.
+# It's a great place to wait for server startup.
+waitFor:
+    url: http://localhost:8000/demo.html
+    timeout_secs: 5
+
+tests:
+  - name: demo
+    url: http://localhost:8000/demo.html
+    config: {}
+```
+
+The `setup` stanza is a bash script which typically starts the server you want to screenshot. Note that this script doesn't terminate—dpxdt will kill it when it's done.
+
+The `waitFor` stanza tells dpxdt how it will know whether the server is ready for screenshotting. This stanza can be a bash script as well, but typically it suffices to specify a URL and a timeout. dpxdt will repeatedly fetch the URL until it resolves (i.e. returns status code 200).
+
+The `tests` section specifies a list of URLs to fetch. The `name` value identifies the test and is also used as the output file name.
+
+You can run this simple test via `dpxdt update tests`. Here's what it looks like:
+
+    $ dpxdt update tests
+    Request for http://localhost:8000/demo.html succeeded, continuing with tests...
+    demo: Running webpage capture process
+    demo: Updated tests/demo.png
+
+This looks for YAML files in the `tests` directory and processes each in turn. It starts the `SimpleHTTPServer`, captures a screenshot and writes it to `tests/demo.png`:
+
+![A screenshot of the demo page.](http://cl.ly/image/3F0K1B1P2b3V/demo.png)
+
+To learn more about local dpxdt, check out its [tutorial](/LOCAL.md).
+
+## <a name="server"></a>Depicted Server
+
 Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it easy to run in your environment. It works with SQLite out of the box right on your laptop. The API server can also run on App Engine. The workers run [ImageMagick](http://www.imagemagick.org/Usage/compare/) and [PhantomJS](http://phantomjs.org/) as subprocesses. I like to run the worker on a cloud VM, but you could run it on your behind a firewall if that's important to you. See [deployment](#deployment) below for details.
 
 ### Running the server locally
