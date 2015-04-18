@@ -26,8 +26,17 @@ Create new build
         <form action="{{ url_for('new_build') }}" method="post">
             <fieldset>
                 {{ build_form.csrf_token }}
+
                 {{ build_form.name.label }}
                 {{ build_form.name }}
+
+                <div>
+                    <label class="checkbox" for="{{ build_form.public.label.field_id }}">
+                        {{ build_form.public }}
+                        {{ build_form.public.label.text }}
+                    </label>
+                </div>
+                <br>
                 <br>
                 <button type="submit" class="btn">Create</button>
             </fieldset>

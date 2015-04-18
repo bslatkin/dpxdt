@@ -355,6 +355,7 @@ def build_settings():
 
     # Update form values for rendering
     settings_form.name.data = build.name
+    settings_form.public.data = build.public
     settings_form.build_id.data = build.id
     settings_form.email_alias.data = build.email_alias
     settings_form.send_email.data = build.send_email
