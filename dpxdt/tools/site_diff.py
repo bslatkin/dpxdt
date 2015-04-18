@@ -23,6 +23,8 @@ Example usage:
     --release_client_id=<your api key> \
     --release_client_secret=<your api secret> \
     --crawl_depth=1 \
+    --width=320 \
+    --height=480 \
     http://www.example.com/my/website/here
 """
 
@@ -299,11 +301,14 @@ class SiteDiff(workers.WorkflowItem):
             if FLAGS.cookies:
                 config_dict['cookies'] = json.loads(
                     open(FLAGS.cookies).read())
-
             if http_username:
                 config_dict['httpUserName'] = http_username
             if http_password:
                 config_dict['httpPassword'] = http_password
+            if FLAGS.width:
+                config_dict['viewportSize']['width'] = FLAGS.width
+            if FLAGS.height:
+                config_dict['viewportSize']['height'] = FLAGS.height
 
             config_data = json.dumps(config_dict)
 

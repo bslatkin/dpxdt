@@ -36,10 +36,11 @@ from dpxdt.client import fetch_worker
 from dpxdt.client import pdiff_worker
 from dpxdt.client import process_worker
 from dpxdt.client import timer_worker
+from dpxdt.client import utils
 from dpxdt.client import workers
 
-FLAGS.phantomjs_binary = 'phantomjs'
-FLAGS.phantomjs_timeout = 20
+FLAGS.SetDefault('phantomjs_binary', 'phantomjs')
+FLAGS.SetDefault('phantomjs_timeout', 20)
 
 gflags.DEFINE_boolean(
         'list_tests', False,
@@ -69,7 +70,7 @@ FAILED_TESTS = 0
 def should_run_test(name, pattern):
     '''Given a test_filter pattern and a test name, should the test be run?'''
     if pattern == '': return True
-    
+
     def matches_any(name, parts):
         for part in parts:
             if fnmatch.fnmatch(name, part):
@@ -96,7 +97,7 @@ class OneTestWorkflowItem(workers.WorkflowItem):
 
     def run(self, test_config, ref_dir, tmp_dir, mode, heartbeat=None, num_attempts=0):
         '''Build a CaptureAndDiffWorkflowItem for a test.
-        
+
         Args:
             test_config: See test.yaml for structure of test_config.
         Returns: A CaptureAndDiffWorkflowItem
@@ -122,7 +123,7 @@ class OneTestWorkflowItem(workers.WorkflowItem):
 
         logging.info('Test config:\n%s', json.dumps(test_config, indent=2))
 
-        capture_config = copy.deepcopy(test_config['config'])
+        capture_config = copy.deepcopy(test_config.get('config', {}))
         capture_config['targetUrl'] = test_config['url']
         config_file = os.path.join(test_dir, 'config.json')
         json.dump(capture_config, open(config_file, 'w'), indent=2)
@@ -149,7 +150,7 @@ class OneTestWorkflowItem(workers.WorkflowItem):
         except capture_worker.CaptureFailedError, e:
             if num_attempts >= e.max_attempts:
                 yield heartbeat('Unable to capture screenshot after %d tries.' % num_attempts)
-                raise
+                raise e
             else:
                 num_attempts += 1
                 yield heartbeat('Capture failed, retrying (%d)' % num_attempts)
@@ -182,7 +183,7 @@ class CaptureAndDiffWorkflowItem(workers.WorkflowItem):
         if ref_path is None:
             yield heartbeat('Updated %s' % output_path)
             return  # update mode
-        
+
         # TODO: consolidate this code w/ DoPdiffQueueWorkflow.run
         ref_resized_path = os.path.join(os.path.dirname(output_path), 'ref_resized')
         diff_path = os.path.join(os.path.dirname(output_path), 'diff.png')
@@ -252,7 +253,7 @@ class CaptureAndDiffWorkflowItem(workers.WorkflowItem):
 
     def maybe_imgur(self, path):
         '''Uploads a file to imgur if requested via command line flags.
-        
+
         Returns either "path" or "path url" depending on the course of action.
         '''
         if not FLAGS.imgur_client_id:
@@ -468,6 +469,10 @@ def main(argv):
 
     config_dir = argv[2]
     assert os.path.isdir(config_dir), 'Expected directory, got %s' % config_dir
+
+    utils.verify_binary('phantomjs_binary', ['--version'])
+    utils.verify_binary('pdiff_compare_binary', ['--version'])
+    utils.verify_binary('pdiff_composite_binary', ['--version'])
 
     assert os.path.exists(FLAGS.phantomjs_script)
 
