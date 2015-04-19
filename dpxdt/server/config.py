@@ -66,8 +66,6 @@ MAIL_DEFAULT_SENDER = os.environ.get(
 
 MAIL_SUPPRESS_SEND = os.environ.get('MAIL_SUPPRESS_SEND', True)
 
-MAIL_USE_APPENGINE = os.environ.get('MAIL_USE_APPENGINE', False)
-
 # Cloud storage; currently only works in App Engine deployment
 GOOGLE_CLOUD_STORAGE_BUCKET = os.environ.get(
     'GOOGLE_CLOUD_STORAGE_BUCKET',
