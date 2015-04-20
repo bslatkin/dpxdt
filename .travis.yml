@@ -3,7 +3,4 @@ language: python
 python:
   - "2.7"
 
-install:
-  - echo "SECRET_KEY = 'just_for_testing'" > secrets.py
-
 script: ./run_tests.sh
