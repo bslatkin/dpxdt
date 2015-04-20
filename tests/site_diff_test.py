@@ -31,12 +31,12 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-from dpxdt import runworker
 from dpxdt import server
 from dpxdt.client import capture_worker
 from dpxdt.client import workers
 from dpxdt.server import db
 from dpxdt.server import models
+from dpxdt.tools import run_server
 from dpxdt.tools import site_diff
 
 
@@ -81,7 +81,7 @@ def setUpModule():
     server_thread.setDaemon(True)
     server_thread.start()
 
-    runworker.run_workers()
+    run_server.run_workers()
 
 
 def create_build():
