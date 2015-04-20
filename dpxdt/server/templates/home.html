@@ -15,6 +15,7 @@ Depicted
 
 {% block body %}
 
+{% if show_video_and_promo_text %}
 <div class="row">
     <div class="span6 body-subsection">
         <p>
@@ -41,6 +42,11 @@ Depicted
         <iframe width="640" height="360" class="video-promo" src="https://www.youtube-nocookie.com/embed/1wHr-O6gEfc?rel=0&html5=1" frameborder="0" allowfullscreen></iframe>
     </div>
 </div>
+{% endif %}
+
+<div class="create-new-build">
+    <a href="{{ url_for('new_build') }}" class="btn btn-primary">Create new build</a>
+</div>
 
 {% if build_list %}
 
@@ -50,23 +56,25 @@ Depicted
     </div>
 </div>
 
-{% for build in build_list %}
-    <div class="row">
-        <div class="span8">
-            <a href="{{ url_for('view_build', id=build.id) }}" class="big-link">{{ build.name }}</a>
+<div class="build-list">
+    {% for build in build_list %}
+        <div class="row">
+            <div class="span7">
+                <a href="{{ url_for('view_build', id=build.id) }}" class="big-link">{{ build.name }}</a>
+            </div>
+            <div class="span2">
+                {% if build.public %}
+                    Public
+                {% else %}
+                    Private
+                {% endif %}
+            </div>
+            <div class="span3">
+                Created {{ build.created|timesince }}
+            </div>
         </div>
-        <div class="span2">
-            {% if build.public %}
-                Public
-            {% else %}
-                Private
-            {% endif %}
-        </div>
-        <div class="span2">
-            Created {{ build.created|timesince }}
-        </div>
-    </div>
-{% endfor %}
+    {% endfor %}
+</div>
 
 {% endif %}
 

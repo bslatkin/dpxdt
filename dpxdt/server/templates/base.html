@@ -22,33 +22,21 @@
 {% block header %}
 
 <div class="row">
-    <div class="span10">
-        <a href="{{ url_for('homepage') }}" class="mobile-logo visible-phone">
+    <div class="span12">
+        <a href="{{ url_for('homepage') }}" class="logo">
             <div class="logo-outside">
                 <div class="logo-inside">dpxdt</div>
             </div>
         </a>
-        <div class="homepage-logo hidden-phone">
-            <div class="logo-outside">
-                <div class="logo-inside">dpxdt</div>
-            </div>
-        </div>
         {% if build %}
             {% if url_for('view_build') != request.path %}
-                <h1><a class="big-link" href="{{ url_for('view_build', id=build.id) }}">Build: {{ build.name }}</a></h1>
+                <h1><a class="big-link" href="{{ url_for('view_build', id=build.id) }}">{{ build.name }}</a></h1>
             {% else %}
-                <h1>Build: {{ build.name }}</h1>
+                <h1>{{ build.name }}</h1>
             {% endif %}
         {% else %}
             <h1>{% block page_title %}{% endblock page_title %}</h1>
         {% endif %}
-    </div>
-    <div class="span2 text-right hidden-phone base-logo-container">
-        <a href="{{ url_for('homepage') }}">
-            <div class="logo-outside">
-                <div class="logo-inside">dpxdt</div>
-            </div>
-        </a>
     </div>
 </div>
 
@@ -109,6 +97,9 @@
                 <div class="row">
                     <div class="span6">
                         {% block footer_left %}{% endblock footer_left %}
+                        <a href="//github.com/bslatkin/dpxdt" target="_blank" class="github-link">
+                            <img src="/static/img/GitHub-Mark-32px.png">
+                        </a>
                     </div>
                     <div class="span6 text-right">
                         {% block footer_right %}
