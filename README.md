@@ -637,7 +637,8 @@ Here's how to deploy to Google App Engine / CloudSQL / Google Compute Engine. Th
     1. Name your DB instance ("main" works well)
     1. Under _Advanced options_ configure check the box for "Assign an IPv4 address to my Cloud SQL instance"
     1. Once the instance is up, create a new database ("main" works well)
-    1. Under _Access control_ create a new user; set the name and password
+    1. Under _Access control / Users_ create a new user; set the name and password
+    1. Under _Access control / Authorization_ add the allowed network of `0.0.0.0/0`
     1. Update `settings.cfg` with your correct values for `SQLALCHEMY_DATABASE_URI`
 1. Create a Google Cloud Storage bucket on cloud console for the project
     1. Click _Storage browser_ and create a new bucket
@@ -651,37 +652,58 @@ Here's how to deploy to Google App Engine / CloudSQL / Google Compute Engine. Th
     1. You'll download a file with the suffix `.p12`
     1. Follow [the directions here](https://cloud.google.com/storage/docs/authentication#converting-the-private-key) to convert this key to a PEM file
 1. Follow the [App Engine Managed VMs getting started guide](https://cloud.google.com/appengine/docs/managed-vms/getting-started) to setup your environment to run the server locally
-1. Run this command to run a local VM. It must point at the secret key PEM file you generated above and use the corresponding service account email address. This will take a little while as it generates a Docker image.
+1. Run this command to run a local VM. **This will use your production database and cloud storage**. It must point at the secret key PEM file you generated above and use the corresponding service account email address. This will take a little while as it generates a Docker image.
 
         ./run_combined_vm.sh \
             --appidentity-email-address=your_account_name@developer.gserviceaccount.com \
             --appidentity-private-key-path=path/to/pem_file.pem
 
-1. Navigate to <http://localhost:5000> and see if it works. If this fails to load, try to cat the Docker log with these command:
+1. You should see a message like `default: "GET /_ah/start HTTP/1.1" 200`. If you don't, debug the local image with:
 
     docker ps
     docker exec <your process> tail /var/log/app_engine/app.log.json
 
-1. Navigate to <http://localhost:5000/admin/interactive>, login as admin, and initialize the database with this script:
+1. Navigate to <http://localhost:5000/_ah/appstats/shell>, login as admin, and initialize the database with this script:
 
     from dpxdt import server
     server.db.create_all()
 
-1. Navigate to the local server on <http://localhost:5000> to:
+1. Navigate to the local server on <http://localhost:5000>, sign in, and then:
     1. Create a new build; this will be the master build
     1. Create an API key for the new build
-1. Make the API key into a super user by navigating to <http://localhost:5000/admin/interactive> and running this script:
+1. Make the API key into a super user by navigating to <http://localhost:5000/_ah/appstats/shell> and running this script:
 
     from dpxdt.server import models
     from dpxdt.server import db
 
-    a = models.ApiKey.query.get('<user_id_here>')
+    a = models.ApiKey.query.get('<client_id_here>')
     a.superuser = True
 
     db.session.add(a)
     db.session.commit()
 
-1. Deploy to App Engine with this command:
+1. Update `settings.cfg` to match your config
+    1. Set `SESSION_COOKIE_DOMAIN` to your final deployment location
+    1. Set `SECRET_KEY` to something new and different
+1. Update `flags.cfg` to match your config
+    1. Set `--release_client_id` to the API client ID you created
+    1. Set `--release_client_secret` to the API client ID you created
+1. Test that everything works locally by creating another build and API key and running this command:
+
+    ./dpxdt/tools/url_pair_diff.py \
+        --upload_build_id=<build number> \
+        --release_server_prefix=http://localhost:5000/api \
+        --release_client_id=<your api key> \
+        --release_client_secret=<your api secret> \
+        http://google.com \
+        http://yahoo.com
+
+1. Screenshots should show up after a minute or two on the URL it spits out. If not, you can look at the app log with
+
+    docker ps
+    docker exec <your process> cat /var/log/app_engine/custom_logs/app.log
+
+1. Deploy to App Engine with this command
 
         gcloud \
             --verbosity=debug \
