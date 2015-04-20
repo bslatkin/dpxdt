@@ -6,10 +6,11 @@ Make continuous deployment safe by comparing before and after webpage screenshot
 
 Depicted is:
 
-- An API server for capturing webpage screenshots and automatically generating visual, perceptual difference images ("pdiffs").
-- A workflow for teams to coordinate new releases using pdiffs.
-- A client library for integrating with existing continuous integration processes.
-- Built for portability; API server runs on App Engine, behind the firewall, etc.
+- A [local command-line tool](#local-depicted) for doing perceptual diff testing.
+- An [API server and workflow](#depicted-server) for capturing webpage screenshots and automatically generating visual, perceptual difference images.
+    - A workflow for teams to coordinate new releases using pdiffs.
+    - A client library for integrating the server with existing continuous integration processes.
+    - Built for portability; API server runs on App Engine, behind the firewall, etc.
 - A wrapper of [PhantomJS](http://phantomjs.org/) for screenshots.
 - Open source, Apache 2.0 licensed.
 - Not a framework, not a religion.
@@ -22,15 +23,15 @@ See [this video for a presentation](http://youtu.be/UMnZiTL0tUc) about how perce
 
 ## Getting started
 
-Depicted can be used in two ways: as a local tool for generating screenshots and as a server for coordinating continuous deployment.
+Depicted can be used in two ways: as a [local tool](#local-depicted) for generating screenshots and [as a server](#depicted-server) for coordinating continuous deployment.
 
 To get started with either, run:
 
     pip install dpxdt
 
-For the local tool, read on. For the server, [scroll on](#server).
+For the local tool, read on. For the server, [scroll on](#depicted-server).
 
-## <a name="client"></a>Local Depicted
+# Local Depicted
 
 Local `dpxdt` is a tool for generating screenshots. It reads in a YAML config file and generates screenshots using PhantomJS. This makes sense for testing reusable tools (e.g. libraries) which aren't "deployed" in the way that a traditional web app is.
 
@@ -79,13 +80,135 @@ This looks for YAML files in the `tests` directory and processes each in turn. I
 
 ![A screenshot of the demo page.](http://cl.ly/image/3F0K1B1P2b3V/demo.png)
 
-To learn more about local dpxdt, check out its [tutorial](/LOCAL.md).
+## Configuration
 
-## <a name="server"></a>Depicted Server
+The screenshot is 400x300 with a transparent background. This is probably not what you want! You can override these settings with the `config` stanza:
 
-Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it easy to run in your environment. It works with SQLite out of the box right on your laptop. The API server can also run on App Engine. The workers run [ImageMagick](http://www.imagemagick.org/Usage/compare/) and [PhantomJS](http://phantomjs.org/) as subprocesses. I like to run the worker on a cloud VM, but you could run it on your behind a firewall if that's important to you. See [deployment](#deployment) below for details.
+```yaml
+# (tests/test.yaml)
+setup: |
+    python -m SimpleHTTPServer
 
-### Running the server locally
+waitFor:
+    url: http://localhost:8000/demo.html
+    timeout_secs: 5
+
+tests:
+  - name: demo
+    url: http://localhost:8000/demo.html
+    config:
+        viewportSize:
+            width: 800
+            height: 600
+        injectCss: |
+            body {
+              background-color: white;
+            }
+```
+
+You can find a complete list of config settings in [capture.js](https://github.com/bslatkin/dpxdt/blob/master/dpxdt/client/capture.js), but the most common ones are `viewportSize`, `injectCss` and `injectJs`.
+
+## Perceptual Diffs
+
+Local dpxdt has two modes: `update` and `test`. As we've seen above, `update` saves screenshots to the test directory. `test` takes screenshots and compares them to the saved versions.
+
+For example:
+
+    $ dpdxdt test tests
+    Request for http://localhost:8000/demo.html succeeded, continuing with tests...
+    demo: Running webpage capture process
+    demo: Resizing reference image
+    demo: Running perceptual diff process
+    demo passed (no diff)
+    All tests passed!
+
+Now if we change `demo.html`:
+
+```html
+<!-- demo.html -->
+<h2>dpxdt local demo</h2>
+<p>dpxdt may be used to spot changes on local web servers.</p>
+```
+
+and run the test command again:
+
+    $ dpxdt test tests
+    Request for http://localhost:8000/demo.html succeeded, continuing with tests...
+    demo: Running webpage capture process
+    demo: Resizing reference image
+    demo: Running perceptual diff process
+    demo failed
+      0.0385669 distortion
+      Ref:  /tmp/.../tmp6rMuVH/ref_resized
+      Run:  /tmp/.../tmp6rMuVH/screenshot.png
+      Diff: /tmp/.../tmp6rMuVH/diff.png
+     (all):     /tmp/.../tmp6rMuVH/{ref_resized,screenshot.png,diff.png}
+    1 test(s) failed.
+
+dpxdt has output a triplet of images: reference, run and diff. You can open all of them at once by copying the (all) line. For example, on Mac OS X:
+
+    open /tmp/.../tmp6rMuVH/{ref_resized,screenshot.png,diff.png}
+
+Here's what they look like:
+
+| Which  | Image |
+| ---:  | ----- |
+| Reference  | ![reference image](http://cl.ly/image/33073K33231z/ref_resized.png) |
+| Run  | ![run image](http://cl.ly/image/0e1X3e0Q3v0J/screenshot.png)        |
+| Diff | ![diff image](http://cl.ly/image/423Y3q0g3c23/diff.png)             |
+
+The red portions of the diff image highlight where the change is. These might be difficult to spot without a perceptual diff!
+
+## Shared Configurations
+
+Most tests will share a similar `config` stanza. As your you write more tests, this gets quite repetitive. YAML supports a syntax for references which greatly reduces the repetition:
+
+```yaml
+# (tests/test.yaml)
+setup: |
+    python -m SimpleHTTPServer
+
+waitFor:
+    url: http://localhost:8000/demo.html
+    timeout_secs: 5
+
+standard-config: &stdconfig
+    viewportSize:
+        width: 800
+        height: 600
+    injectCss: >
+        body {
+          background-color: white;
+        }
+
+tests:
+  - name: demo
+    url: http://localhost:8000/demo.html
+    config: *stdconfig
+
+  - name: demo-with-click
+    url: http://localhost:8000/demo.html
+    config:
+        <<: *stdconfig
+        injectJs: |
+            $('button').click();
+```
+
+As the last example shows, you can "mix in" a config and add to it. If you include a stanza which is already in the mixed-in config (e.g. `viewportSize`), it will override it.
+
+# Depicted Server
+
+Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it easy to run in your environment. It works with SQLite out of the box right on your laptop. The API server can also run on App Engine. The workers run [ImageMagick](http://www.imagemagick.org/Usage/compare/) and [PhantomJS](http://phantomjs.org/) as subprocesses. I like to run the worker on a cloud VM, but you could run it on your behind a firewall if that's important to you.
+
+Topics in this section:
+
+- [Running the server locally](#running-the-server-locally)
+- [How to use Depicted effectively](#how-to-use-depicted-effectively)
+- [Example tools](#example-tools)
+- [The API documentation](#api)
+- [Deployment to App Engine](#deployment)
+
+## Running the server locally
 
 1. Have a version of [Python 2.7](http://www.python.org/download/releases/2.7/) installed.
 1. Download [PhantomJS](http://phantomjs.org/) for your machine.
@@ -95,18 +218,15 @@ Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it 
         git clone https://github.com/bslatkin/dpxdt.git
 
 1. ```cd``` to the repo directory:
-1. Update all git submodules in the repo:
+1. Create a new python virtual environment and activate it:
 
-        git submodule update --init --recursive
+        virtualenv .
+        source bin/activate
 
-1. Modify ```common.sh``` to match your enviornment:
-        
-        # Edit variables such as ...
-        export PHANTOMJS_BINARY=/Users/yourname/Downloads/phantomjs-1.9.0-macosx/bin/phantomjs
+1. Install all dependencies into the environment:
 
-1. Write a ```secrets.py``` file to the root directory:
-
-        SECRET_KEY = 'insert random string of characters here'
+        pip install -r requirements.txt
+        pip install -e .
 
 1. Execute ```./run_shell.sh``` and run these commands to initialize your DB:
 
@@ -124,6 +244,9 @@ Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it 
             http://www.yahoo.com
 
 1. Follow the URL the tool writes to the terminal and verify screenshots are present. Any errors will be printed to the log in the terminal where you are running the server process.
+1. Deactivate your virtual environment
+
+        deactivate
 
 ## How to use Depicted effectively
 
@@ -191,10 +314,13 @@ Here's an example invocation of Site Diff against a real API server:
 ```
 
 Note, when you use this the "upload_build_id" above should be changed to match your build id in the UI, for example:
+
 ```
 https://dpxdt-test.appspot.com/build?id=500
 ```
+
 You should use:
+
 ```
 --upload_build_id=500
 ```
