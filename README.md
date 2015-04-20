@@ -618,7 +618,80 @@ Marks a release candidate as having all runs reported.
 
 ## Deployment
 
-Here's how to deploy to App Engine / CloudSQL / Google Compute Engine. This guide is still a little rough.
+Here's how to deploy to Google App Engine / CloudSQL / Google Compute Engine. This guide is still a little rough.
+
+1. `cd` into the `deployment` directory:
+1. Run this command:
+
+        make appengine_deploy
+
+1. `cd` into the `appengine_deploy` directory
+1. Create a new project on [cloud console](https://console.developers.google.com/project)
+1. In the _APIs & auth / Credentials_ section, create a new OAuth Client ID
+    1. Select "Web application"
+    1. Fill in the _Consent screen_ information as appropriate
+    1. Set _Authorized redirect URIs_ to `https://your-project.appspot.com/oauth2callback`
+    1. Copy the _Client ID_, _Email address_, and _Client secret_ values into corresponding fields in `settings.cfg`
+1. Create a new Cloud SQL instance on cloud console for the project
+    1. Click _Create a MySQL instance_
+    1. Name your DB instance ("main" works well)
+    1. Under _Advanced options_ configure check the box for "Assign an IPv4 address to my Cloud SQL instance"
+    1. Once the instance is up, create a new database ("main" works well)
+    1. Under _Access control_ create a new user; set the name and password
+    1. Update `settings.cfg` with your correct values for `SQLALCHEMY_DATABASE_URI`
+1. Create a Google Cloud Storage bucket on cloud console for the project
+    1. Click _Storage browser_ and create a new bucket
+    1. Name your bucket (your project name works well)
+    1. Create a new folder for images ("artifacts" works well)
+    1. Update `settings.cfg` with your correct values for `GOOGLE_CLOUD_STORAGE_BUCKET`
+1. Create a new service account (this is used to test your config locally)
+    1. Go to the _APIs & auth / Credentials_
+    1. Under _OAuth_ click on "Create new Client ID"
+    1. Choose "Service account" and key type "P12 Key"
+    1. You'll download a file with the suffix `.p12`
+    1. Follow [the directions here](https://cloud.google.com/storage/docs/authentication#converting-the-private-key) to convert this key to a PEM file
+1. Follow the [App Engine Managed VMs getting started guide](https://cloud.google.com/appengine/docs/managed-vms/getting-started) to setup your environment to run the server locally
+1. Run this command to run a local VM. It must point at the secret key PEM file you generated above and use the corresponding service account email address. This will take a little while as it generates a Docker image.
+
+        ./run_combined_vm.sh \
+            --appidentity-email-address=your_account_name@developer.gserviceaccount.com \
+            --appidentity-private-key-path=path/to/pem_file.pem
+
+1. Navigate to <http://localhost:5000/admin/interactive>, login as admin, and initialize the database with this script:
+
+    from dpxdt import server
+    server.db.create_all()
+
+1. Navigate to the local server on <http://localhost:5000> to:
+    1. Create a new build; this will be the master build
+    1. Create an API key for the new build
+1. Make the API key into a super user by navigating to <http://localhost:5000/admin/interactive> and running this script:
+
+    from dpxdt.server import models
+    from dpxdt.server import db
+
+    a = models.ApiKey.query.get('<user_id_here>')
+    a.superuser = True
+
+    db.session.add(a)
+    db.session.commit()
+
+1. Deploy to App Engine with this command:
+
+        gcloud \
+            --verbosity=debug \
+            --project=<your project> \
+            preview app deploy \
+            --version=<your version> \
+            combined_vm.yaml
+
+1. Login to your deployed app
+1. Create a build
+1. Create an API key
+1. Make an API key into a super  you can set a key to superuser
+
+
+
 
 For local development of managed VM:
 
@@ -628,34 +701,9 @@ CREATE USER 'testuser'@'%' IDENTIFIED BY 'testpass';
 GRANT ALL PRIVILEGES ON test.* To 'testuser'@'%' IDENTIFIED BY 'testpass';
 FLUSH PRIVILEGES;
 
-Create a new service account, download the key as a pkcs12 file, convert it to PEM
 
-https://cloud.google.com/storage/docs/authentication#service_accounts
 
-make appengine_deploy
 
-update settings.cfg with your variable values in the environment. Use SQLALCHEMY_DATABASE_URI: mysql+mysqldb://user:pass@your_hostname/your_db for testing against the local mysql but with the remote bucket
-
-./run_combined_vm.sh \
-    --appidentity-email-address=your_account_name@developer.gserviceaccount.com \
-    --appidentity-private-key-path=path/to/pem_file.pem
-
-For deployment of managed VM:
-
-Edit settings.cfg with your various environment settings and passwords.
-
-gcloud --verbosity=debug --project=<your project> preview app deploy --version=<your version> combined_vm.yaml
-
-From /admin/interactive you can set a key to superuser
-
-from dpxdt.server import models
-from dpxdt.server import db
-
-a = models.ApiKey.query.get('user_id_here')
-a.superuser = True
-
-db.session.add(a)
-db.session.commit()
 
 ### Upgrading production and migrating your database
 
