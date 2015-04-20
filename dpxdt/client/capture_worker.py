@@ -49,10 +49,11 @@ gflags.DEFINE_integer(
     'subprocesses. Can be used to spread out load on the server.')
 
 gflags.DEFINE_string(
-    'phantomjs_binary', None, 'Path to the phantomjs binary')
+    'phantomjs_binary', 'phantomjs', 'Path to the phantomjs binary')
 
 gflags.DEFINE_string(
-    'phantomjs_script', None,
+    'phantomjs_script',
+    os.path.join(os.path.dirname(__file__), 'capture.js'),
     'Path to the script that drives the phantomjs process')
 
 gflags.DEFINE_integer(

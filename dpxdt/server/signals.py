@@ -28,12 +28,10 @@ _signals = Namespace()
 # Build is committed to the DB.
 build_updated = _signals.signal('build-updated')
 
-
 # A release has been created or updated via the API. Sender is the app.
 # Arguments are (models.Build, models.Release). Signal is sent immediately
 # *after* the Release is committed to the DB.
 release_updated_via_api = _signals.signal('release-update')
-
 
 # A run has been created or updated via the API. Sender is the app. Arguments
 # are (models.Build, models.Release, models.Run). Signal is sent immediately

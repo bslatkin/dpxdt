@@ -17,6 +17,7 @@
 
 import functools
 import logging
+import time
 
 # Local libraries
 import sqlalchemy
@@ -31,17 +32,58 @@ from dpxdt.server import utils
 from dpxdt.server import work_queue
 
 
-class UserOps(object):
+def _clear_version_cache(key):
+    versioned_key = '%s_version' % key
+    # NOTE: Accessing the backend directly because Flask-Cache doesn't
+    # expose the increment method.
+    cache.cache.inc(versioned_key)
+
+
+def _get_versioned_hash_key(key):
+    versioned_key = '%s_version' % key
+    version = int(time.time())
+    if not cache.add(versioned_key, version):
+        version = cache.get(versioned_key)
+        if version is None:
+            logging.error(
+                'Fetching cached version for %r returned None, using %d',
+                versioned_key, version)
+    return '%s:%d' % (key, version)
+
+
+class BaseOps(object):
+    """Base class for cacheable operations.
+
+    The versioned_cache_key value will be the same for the lifetime of the
+    BaseOps object, which should be a single HTTP request.
+    """
+
+    cache_key = None
+    versioned_cache_key = None
+
+    # For Flask-Cache keys
+    def __repr__(self):
+        if self.versioned_cache_key is None:
+            self.versioned_cache_key = _get_versioned_hash_key(self.cache_key)
+        return self.versioned_cache_key
+
+    def evict(self):
+        """Evict all caches related to these operations."""
+        logging.debug('Evicting cache for %r', self.cache_key)
+        _clear_version_cache(self.cache_key)
+        # Cause the cache key to be refreshed next time any operation is
+        # run to make sure we don't act on old cached data.
+        self.versioned_cache_key = None
+
+
+class UserOps(BaseOps):
     """Cacheable operations for user-specific information."""
 
     def __init__(self, user_id):
         self.user_id = user_id
+        self.cache_key = 'caching.UserOps(user_id=%r)' % self.user_id
 
-    # For Flask-Cache keys
-    def __repr__(self):
-        return 'caching.UserOps(user_id=%r)' % self.user_id
-
-    @cache.memoize(per_instance=True)
+    @cache.memoize()
     def load(self):
         if not self.user_id:
             return None
@@ -50,7 +92,7 @@ class UserOps(object):
             db.session.expunge(user)
         return user
 
-    @cache.memoize(per_instance=True)
+    @cache.memoize()
     def get_builds(self):
         if self.user_id:
             user = models.User.query.get(self.user_id)
@@ -73,7 +115,7 @@ class UserOps(object):
 
         return build_list
 
-    @cache.memoize(per_instance=True)
+    @cache.memoize()
     def owns_build(self, build_id):
         build = models.Build.query.get(build_id)
         user_is_owner = False
@@ -83,26 +125,16 @@ class UserOps(object):
 
         return build, user_is_owner
 
-    def evict(self):
-        """Evict all caches related to this user."""
-        logging.debug('Evicting cache for %r', self)
-        cache.delete_memoized(self.load)
-        cache.delete_memoized(self.get_builds)
-        cache.delete_memoized(self.owns_build)
 
-
-class ApiKeyOps(object):
+class ApiKeyOps(BaseOps):
     """Cacheable operations for API key-specific information."""
 
     def __init__(self, client_id, client_secret):
         self.client_id = client_id
         self.client_secret = client_secret
+        self.cache_key = 'caching.ApiKeyOps(client_id=%r)' % self.client_id
 
-    # For Flask-Cache keys
-    def __repr__(self):
-        return 'caching.ApiKeyOps(client_id=%r)' % self.client_id
-
-    @cache.memoize(per_instance=True)
+    @cache.memoize()
     def get(self):
         api_key = models.ApiKey.query.get(self.client_id)
         utils.jsonify_assert(api_key, 'API key must exist', 403)
@@ -111,7 +143,7 @@ class ApiKeyOps(object):
                              'Must have good credentials', 403)
         return api_key
 
-    @cache.memoize(per_instance=True)
+    @cache.memoize()
     def can_access_build(self, build_id):
         api_key = self.get()
 
@@ -124,22 +156,13 @@ class ApiKeyOps(object):
 
         return api_key, build
 
-    def evict(self):
-        """Evict all caches related to this API key."""
-        logging.debug('Evicting cache for %r', self)
-        cache.delete_memoized(self.get)
-        cache.delete_memoized(self.can_access_build)
 
-
-class BuildOps(object):
+class BuildOps(BaseOps):
     """Cacheable operations for build-specific operations."""
 
     def __init__(self, build_id):
         self.build_id = build_id
-
-    # For Flask-Cache keys
-    def __repr__(self):
-        return 'caching.BuildOps(build_id=%r)' % self.build_id
+        self.cache_key = 'caching.BuildOps(build_id=%r)' % self.build_id
 
     @staticmethod
     def sort_run(run):
@@ -166,7 +189,7 @@ class BuildOps(object):
             return ('runs_failed',)
         return ('runs_pending',)
 
-    @cache.memoize(per_instance=True)
+    @cache.memoize()
     def get_candidates(self, page_size, offset):
         candidate_list = (
             models.Release.query
@@ -199,7 +222,7 @@ class BuildOps(object):
 
         return has_next_page, candidate_list, stats_counts
 
-    @cache.memoize(per_instance=True)
+    @cache.memoize()
     def get_release(self, release_name, release_number):
         release = (
             models.Release.query
@@ -302,7 +325,7 @@ class BuildOps(object):
 
         return next_run, previous_run
 
-    @cache.memoize(per_instance=True)
+    @cache.memoize()
     def get_run(self, release_name, release_number, test_name):
         run = (
             models.Run.query
@@ -336,17 +359,9 @@ class BuildOps(object):
 
         return run, next_run, previous_run, approval_log
 
-    def evict(self):
-        """Evict all caches relating to this build."""
-        logging.debug('Evicting cache for %r', self)
-        cache.delete_memoized(self.get_candidates)
-        cache.delete_memoized(self.get_release)
-        cache.delete_memoized(self.get_run)
-
 
 
 # Connect Frontend and API events to cache eviction.
-
 
 def _evict_user_cache(sender, user=None, build=None):
     UserOps(user.get_id()).evict()

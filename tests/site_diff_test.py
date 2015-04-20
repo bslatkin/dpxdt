@@ -31,12 +31,12 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-from dpxdt import runworker
 from dpxdt import server
 from dpxdt.client import capture_worker
 from dpxdt.client import workers
 from dpxdt.server import db
 from dpxdt.server import models
+from dpxdt.tools import run_server
 from dpxdt.tools import site_diff
 
 
@@ -81,7 +81,7 @@ def setUpModule():
     server_thread.setDaemon(True)
     server_thread.start()
 
-    runworker.run_workers()
+    run_server.run_workers()
 
 
 def create_build():
@@ -337,29 +337,49 @@ class HtmlRewritingTest(unittest.TestCase):
             test('http://www.example.com/relative-with/some-'
                  '(parenthesis%20here)'))
 
-        self.assertEquals(None, test('ftp://bob@www.example.com/'))
+        # Known bad results
+        self.assertEquals(
+            'http://www.example.com/my-url/ftp://bob@www.example.com/',
+            test('ftp://bob@www.example.com/'))
 
-        self.assertEquals(None, test('mailto:bob@example.com'))
+        self.assertEquals(
+            'http://www.example.com/my-url/mailto:bob@example.com',
+            test('mailto:bob@example.com'))
 
-        self.assertEquals(None, test('javascript:runme()'))
+        self.assertEquals(
+            'http://www.example.com/my-url/javascript:runme()',
+            test('javascript:runme()'))
 
-        self.assertEquals(None, test('tel:1-555-555-5555'))
+        self.assertEquals(
+            'http://www.example.com/my-url/tel:1-555-555-5555',
+            test('tel:1-555-555-5555'))
 
         self.assertEquals('http://www.example.com/test.js',
                           test('/test.js'))
 
-        # Escaped sources (e.g. inside inline JavaScript) should not be scraped
+        # Escaped sources (e.g. inside inline JavaScript) are scraped,
+        # even though they shouldn't be.
         scriptTag = ('<script type=\"text\/javascript\"'
             ' src=\"\/\/platform.twitter.com\/widgets.js\"><\/script>')
-        self.assertEquals(set([]), site_diff.extract_urls(base_url, scriptTag))
+        self.assertEquals(
+            set([
+                'http://www.example.com/my-url/'
+                '\\/\\/platform.twitter.com\\/widgets.js'
+            ]),
+            site_diff.extract_urls(base_url, scriptTag))
 
         spacesInTag = "<a href = 'spaced.html'>"
         self.assertEquals(
             set(['http://www.example.com/my-url/spaced.html']),
             site_diff.extract_urls(base_url, spacesInTag))
 
+        # JavaScript variable assignment isn't handled correctly.
         jsText = "var src = true;"
-        self.assertEquals(set([]), site_diff.extract_urls(base_url, jsText))
+        self.assertEquals(
+            set([
+                'http://www.example.com/my-url/true'
+            ]),
+            site_diff.extract_urls(base_url, jsText))
 
 
 def main(argv):

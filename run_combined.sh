@@ -1,11 +1,8 @@
 #!/bin/bash
 
-source common.sh
-
-./dpxdt/runserver.py \
-    --local_queue_workers \
-    --phantomjs_binary=$PHANTOMJS_BINARY \
-    --phantomjs_script=$CAPTURE_SCRIPT \
+./dpxdt/tools/run_server.py \
+    --enable_api_server \
+    --enable_queue_workers \
     --phantomjs_timeout=20 \
     --release_server_prefix=http://localhost:5000/api \
     --queue_server_prefix=http://localhost:5000/api/work_queue \

@@ -34,7 +34,6 @@ from flask.ext.login import (
 from . import app
 from . import db
 from . import login
-import config
 from dpxdt.server import forms
 from dpxdt.server import models
 from dpxdt.server import operations
@@ -84,8 +83,8 @@ def login_view():
     #   /using-google-oauth2-with-flask
     params = dict(
         response_type='code',
-        client_id=config.GOOGLE_OAUTH2_CLIENT_ID,
-        redirect_uri=config.GOOGLE_OAUTH2_REDIRECT_URI,
+        client_id=app.config['GOOGLE_OAUTH2_CLIENT_ID'],
+        redirect_uri=app.config['GOOGLE_OAUTH2_REDIRECT_URI'],
         scope=GOOGLE_OAUTH2_SCOPES,
         state=urllib.quote(next_url),
     )
@@ -102,14 +101,14 @@ def logout():
     return redirect(url_for('homepage'))
 
 
-@app.route(config.GOOGLE_OAUTH2_REDIRECT_PATH)
+@app.route('/oauth2callback')
 def login_auth():
     # TODO: Handle when the 'error' parameter is present
     params = dict(
         code=request.args.get('code'),
-        client_id=config.GOOGLE_OAUTH2_CLIENT_ID,
-        client_secret=config.GOOGLE_OAUTH2_CLIENT_SECRET,
-        redirect_uri=config.GOOGLE_OAUTH2_REDIRECT_URI,
+        client_id=app.config['GOOGLE_OAUTH2_CLIENT_ID'],
+        client_secret=app.config['GOOGLE_OAUTH2_CLIENT_SECRET'],
+        redirect_uri=app.config['GOOGLE_OAUTH2_REDIRECT_URI'],
         grant_type='authorization_code'
     )
     payload = urllib.urlencode(params)

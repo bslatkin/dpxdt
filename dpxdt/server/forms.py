@@ -18,9 +18,11 @@
 import datetime
 
 # Local libraries
-from flask.ext.wtf import (
-    BooleanField, DataRequired, Email, Form, HiddenField, IntegerField,
-    Length, NumberRange, Optional, Required, SubmitField, TextField)
+from flask.ext.wtf import Form
+from wtforms import (
+    BooleanField, HiddenField, IntegerField, SubmitField, TextField)
+from wtforms.validators import (
+    DataRequired, Email, Optional, Length, NumberRange, Required)
 
 # Local modules
 from . import app

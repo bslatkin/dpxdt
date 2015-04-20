@@ -69,11 +69,13 @@ API key management for '{{ build.name }}'
                         </div>
                         <div class="row">
                             <div class="span2"><strong>Client ID</strong></div>
-                            <div class="span5">{{ api_key.id }}</div>
+                            {# Extra divs are for easy double-click to copy and paste #}
+                            <div class="span5"><div>{{ api_key.id }}</div></div>
                         </div>
                         <div class="row">
                             <div class="span2"><strong>Client Secret</strong></div>
-                            <div class="span5">{{ api_key.secret }}</div>
+                            {# Extra divs are for easy double-click to copy and paste #}
+                            <div class="span5"><div>{{ api_key.secret }}</div></div>
                         </div>
                     </div>
                     <div class="span2 text-right">

@@ -20,22 +20,46 @@ See:
 """
 
 import os
+import logging
+import os
 import sys
 
+
+# Log to disk for managed VMs:
+# https://cloud.google.com/appengine/docs/managed-vms/custom-runtimes#logging
+if os.environ.get('LOG_TO_DISK'):
+    log_dir = '/var/log/app_engine/custom_logs'
+    try:
+        os.makedirs(log_dir)
+    except OSError:
+        pass  # Directory already exists
+
+    log_path = os.path.join(log_dir, 'app.log')
+    handler = logging.FileHandler(log_path)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(logging.Formatter(
+        '%(levelname)s %(filename)s:%(lineno)s] %(message)s'))
+    logging.getLogger().addHandler(handler)
+
+
 # Load up our app and all its dependencies. Make the environment sane.
-sys.path.insert(0, './lib/')
-from dpxdt.server import app
+from dpxdt.tools import run_server
 
 
-# For debugging SQL queries.
-# import logging
-# logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
+# Initialize flags from flags file or enviornment.
+import gflags
+gflags.FLAGS(['dpxdt_server', '--flagfile=flags.cfg'])
+logging.info('BEGIN Flags')
+for key, flag in gflags.FLAGS.FlagDict().iteritems():
+    logging.info('%s = %s', key, flag.value)
+logging.info('END Flags')
 
 
 # When in production use precompiled templates. Sometimes templates break
 # in production. To debug templates there, comment this out entirely.
 if os.environ.get('SERVER_SOFTWARE', '').startswith('Google App Engine'):
     import jinja2
+    from dpxdt.server import app
     app.jinja_env.auto_reload = False
     app.jinja_env.loader = jinja2.ModuleLoader('templates_compiled.zip')
 
@@ -57,7 +81,12 @@ appstats_MAX_STACK = 20
 # Use very shallow local variable reprs to reduce noise.
 appstats_MAX_DEPTH = 2
 
+# Enable the remote shell, since the old admin interactive console doesn't
+# work with managed VMs.
+appstats_SHELL_OK = True
 
+
+# These are only used if gae_mini_profiler was properly installed
 def gae_mini_profiler_should_profile_production():
     from google.appengine.api import users
     return users.is_current_user_admin()
