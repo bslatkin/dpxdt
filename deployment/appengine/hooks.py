@@ -23,7 +23,6 @@ import flask
 
 # Local modules
 from dpxdt.server import app
-from dpxdt.server import config
 
 
 # TODO: Merge these hooks into dpxdt/server/api.py so they can be used
@@ -33,7 +32,7 @@ from dpxdt.server import config
 def _artifact_created(artifact):
     """Override for saving an artifact to google storage."""
     filename = '/%s/sha1-%s' % (
-        config.GOOGLE_CLOUD_STORAGE_BUCKET, artifact.id)
+        app.config['GOOGLE_CLOUD_STORAGE_BUCKET'], artifact.id)
 
     with cloudstorage.open(
             filename, 'w', content_type=artifact.content_type) as handle:
