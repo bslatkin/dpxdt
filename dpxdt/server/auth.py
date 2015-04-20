@@ -101,7 +101,7 @@ def logout():
     return redirect(url_for('homepage'))
 
 
-@app.route(config.GOOGLE_OAUTH2_REDIRECT_PATH)
+@app.route('/oauth2callback')
 def login_auth():
     # TODO: Handle when the 'error' parameter is present
     params = dict(

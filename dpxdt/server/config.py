@@ -38,10 +38,7 @@ GOOGLE_OAUTH2_EMAIL_ADDRESS = (
     '918724168220-nqq27o7so1p7stukds23oo2vof5gkfmh@'
     'developer.gserviceaccount.com')
 
-GOOGLE_OAUTH2_REDIRECT_PATH = '/oauth2callback'
-
-GOOGLE_OAUTH2_REDIRECT_URI = (
-    'http://localhost:5000' + GOOGLE_OAUTH2_REDIRECT_PATH)
+GOOGLE_OAUTH2_REDIRECT_URI = 'http://localhost:5000/oauth2callback'
 
 GOOGLE_OAUTH2_CLIENT_ID = (
     '918724168220-nqq27o7so1p7stukds23oo2vof5gkfmh.apps.googleusercontent.com')
