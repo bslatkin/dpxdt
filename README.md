@@ -660,45 +660,45 @@ Here's how to deploy to Google App Engine / CloudSQL / Google Compute Engine. Th
 
 1. You should see a message like `default: "GET /_ah/start HTTP/1.1" 200`. If you don't, debug the local image with:
 
-    docker ps
-    docker exec <your process> tail /var/log/app_engine/app.log.json
+        docker ps
+        docker exec <your process> tail /var/log/app_engine/app.log.json
 
 1. Navigate to <http://localhost:5000/_ah/appstats/shell>, login as admin, and initialize the database with this script:
 
-    from dpxdt import server
-    server.db.create_all()
+        from dpxdt import server
+        server.db.create_all()
 
 1. Navigate to the local server on <http://localhost:5000>, sign in, and then:
     1. Create a new build; this will be the master build
     1. Create an API key for the new build
 1. Make the API key into a super user by navigating to <http://localhost:5000/_ah/appstats/shell> and running this script:
 
-    from dpxdt.server import models
-    from dpxdt.server import db
+        from dpxdt.server import models
+        from dpxdt.server import db
 
-    a = models.ApiKey.query.get('<client_id_here>')
-    a.superuser = True
+        a = models.ApiKey.query.get('<client_id_here>')
+        a.superuser = True
 
-    db.session.add(a)
-    db.session.commit()
+        db.session.add(a)
+        db.session.commit()
 
 1. Update `flags.cfg` to match your config
     1. Set `--release_client_id` to the API client ID you created
     1. Set `--release_client_secret` to the API client ID you created
 1. Test that everything works locally by creating another build and API key and running this command:
 
-    ./dpxdt/tools/url_pair_diff.py \
-        --upload_build_id=<build number> \
-        --release_server_prefix=http://localhost:5000/api \
-        --release_client_id=<your api key> \
-        --release_client_secret=<your api secret> \
-        http://google.com \
-        http://yahoo.com
+        ./dpxdt/tools/url_pair_diff.py \
+            --upload_build_id=<build number> \
+            --release_server_prefix=http://localhost:5000/api \
+            --release_client_id=<your api key> \
+            --release_client_secret=<your api secret> \
+            http://google.com \
+            http://yahoo.com
 
 1. Screenshots should show up after a minute or two on the URL it spits out. If not, you can look at the app log with
 
-    docker ps
-    docker exec <your process> cat /var/log/app_engine/custom_logs/app.log
+        docker ps
+        docker exec <your process> cat /var/log/app_engine/custom_logs/app.log
 
 1. Update `settings.cfg` to match your config
     1. Set `SESSION_COOKIE_DOMAIN` to your final deployment location
@@ -711,17 +711,18 @@ Here's how to deploy to Google App Engine / CloudSQL / Google Compute Engine. Th
             --project=<your project> \
             preview app deploy \
             combined_vm.yaml
+
 1. Test that everything works in production by doing another URL pair diff; this time, change the `--release_server_prefix` flag to point at your production deployment:
 
-    ./dpxdt/tools/url_pair_diff.py \
-        --upload_build_id=<build number> \
-        --release_server_prefix=https://your-project.appspot.com/api \
-        --release_client_id=<your api key> \
-        --release_client_secret=<your api secret> \
-        http://google.com \
-        http://yahoo.com
+        ./dpxdt/tools/url_pair_diff.py \
+            --upload_build_id=<build number> \
+            --release_server_prefix=https://your-project.appspot.com/api \
+            --release_client_id=<your api key> \
+            --release_client_secret=<your api secret> \
+            http://google.com \
+            http://yahoo.com
 
-And your done! To deploy updates from HEAD, just repeat the steps from local execution with `./run.sh` all the way down.
+And you're done! To deploy updates from HEAD, just repeat the steps from local execution with `./run.sh` all the way down.
 
 ### Upgrading production and migrating your database
 
