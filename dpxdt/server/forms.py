@@ -30,6 +30,7 @@ class BuildForm(Form):
     """Form for creating or editing a build."""
 
     name = TextField(validators=[Length(min=1, max=200)])
+    public = BooleanField()
 
 
 class ReleaseForm(Form):
@@ -102,6 +103,7 @@ class SettingsForm(Form):
     """Form for modifying build settings."""
 
     name = TextField(validators=[Length(min=1, max=200)])
+    public = BooleanField()
     send_email = BooleanField('Send notification emails')
     email_alias = TextField('Mailing list for notifications',
                             validators=[Optional(), Email()])
