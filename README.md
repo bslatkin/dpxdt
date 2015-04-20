@@ -657,6 +657,11 @@ Here's how to deploy to Google App Engine / CloudSQL / Google Compute Engine. Th
             --appidentity-email-address=your_account_name@developer.gserviceaccount.com \
             --appidentity-private-key-path=path/to/pem_file.pem
 
+1. Navigate to <http://localhost:5000> and see if it works. If this fails to load, try to cat the Docker log with these command:
+
+    docker ps
+    docker exec <your process> tail /var/log/app_engine/app.log.json
+
 1. Navigate to <http://localhost:5000/admin/interactive>, login as admin, and initialize the database with this script:
 
     from dpxdt import server
