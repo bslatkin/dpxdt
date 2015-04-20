@@ -654,7 +654,7 @@ Here's how to deploy to Google App Engine / CloudSQL / Google Compute Engine. Th
 1. Follow the [App Engine Managed VMs getting started guide](https://cloud.google.com/appengine/docs/managed-vms/getting-started) to setup your environment to run the server locally
 1. Run this command to run a local VM. **This will use your production database and cloud storage**. It must point at the secret key PEM file you generated above and use the corresponding service account email address. This will take a little while as it generates a Docker image.
 
-        ./run_combined_vm.sh \
+        ./run.sh \
             --appidentity-email-address=your_account_name@developer.gserviceaccount.com \
             --appidentity-private-key-path=path/to/pem_file.pem
 
@@ -682,9 +682,6 @@ Here's how to deploy to Google App Engine / CloudSQL / Google Compute Engine. Th
     db.session.add(a)
     db.session.commit()
 
-1. Update `settings.cfg` to match your config
-    1. Set `SESSION_COOKIE_DOMAIN` to your final deployment location
-    1. Set `SECRET_KEY` to something new and different
 1. Update `flags.cfg` to match your config
     1. Set `--release_client_id` to the API client ID you created
     1. Set `--release_client_secret` to the API client ID you created
@@ -703,34 +700,28 @@ Here's how to deploy to Google App Engine / CloudSQL / Google Compute Engine. Th
     docker ps
     docker exec <your process> cat /var/log/app_engine/custom_logs/app.log
 
+1. Update `settings.cfg` to match your config
+    1. Set `SESSION_COOKIE_DOMAIN` to your final deployment location
+    1. Set `SECRET_KEY` to something new and different
 1. Deploy to App Engine with this command
 
+        gcloud auth login --project=<your project>
         gcloud \
             --verbosity=debug \
             --project=<your project> \
             preview app deploy \
-            --version=<your version> \
             combined_vm.yaml
+1. Test that everything works in production by doing another URL pair diff; this time, change the `--release_server_prefix` flag to point at your production deployment:
 
-1. Login to your deployed app
-1. Create a build
-1. Create an API key
-1. Make an API key into a super  you can set a key to superuser
+    ./dpxdt/tools/url_pair_diff.py \
+        --upload_build_id=<build number> \
+        --release_server_prefix=https://your-project.appspot.com/api \
+        --release_client_id=<your api key> \
+        --release_client_secret=<your api secret> \
+        http://google.com \
+        http://yahoo.com
 
-
-
-
-For local development of managed VM:
-
-Get your local MySQL running
-
-CREATE USER 'testuser'@'%' IDENTIFIED BY 'testpass';
-GRANT ALL PRIVILEGES ON test.* To 'testuser'@'%' IDENTIFIED BY 'testpass';
-FLUSH PRIVILEGES;
-
-
-
-
+And your done! To deploy updates from HEAD, just repeat the steps from local execution with `./run.sh` all the way down.
 
 ### Upgrading production and migrating your database
 
