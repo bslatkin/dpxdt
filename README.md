@@ -652,7 +652,7 @@ Here's how to deploy to Google App Engine / CloudSQL / Google Compute Engine. Th
     1. You'll download a file with the suffix `.p12`
     1. Follow [the directions here](https://cloud.google.com/storage/docs/authentication#converting-the-private-key) to convert this key to a PEM file
 1. Follow the [App Engine Managed VMs getting started guide](https://cloud.google.com/appengine/docs/managed-vms/getting-started) to setup your environment to run the server locally
-1. Run this command to run a local VM. **This will use your production database and cloud storage**. It must point at the secret key PEM file you generated above and use the corresponding service account email address. This will take a little while as it generates a Docker image.
+1. Run this command to run a local VM. **This will use your production database!** It must point at the secret key PEM file you generated above and use the corresponding service account email address. This will take a little while as it generates a Docker image.
 
         ./run.sh \
             --appidentity-email-address=your_account_name@developer.gserviceaccount.com \
