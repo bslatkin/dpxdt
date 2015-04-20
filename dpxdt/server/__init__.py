@@ -33,6 +33,8 @@ from . import config
 
 app = Flask(__name__)
 app.config.from_object(config)
+if 'YOURAPPLICATION_SETTINGS' in os.environ:
+    app.config.from_envvar('YOURAPPLICATION_SETTINGS')
 
 
 db = SQLAlchemy(

@@ -23,9 +23,7 @@ import hashlib
 import os
 import uuid
 
-SQLALCHEMY_DATABASE_URI = os.environ.get(
-    'SQLALCHEMY_DATABASE_URI',
-    'sqlite:////tmp/test.db')
+SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/test.db'
 
 # Always set to None or else Flask will return 404s unless the inbound
 # request perfectly matches this variable (including the port number).
@@ -33,43 +31,33 @@ SERVER_NAME = None
 
 MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
-SESSION_COOKIE_DOMAIN = os.environ.get('SESSION_COOKIE_DOMAIN', None)
+SESSION_COOKIE_DOMAIN = None
 
 # Google OAuth2 login config for local development.
-GOOGLE_OAUTH2_EMAIL_ADDRESS = os.environ.get(
-    'GOOGLE_OAUTH2_EMAIL_ADDRESS',
+GOOGLE_OAUTH2_EMAIL_ADDRESS = (
     '918724168220-nqq27o7so1p7stukds23oo2vof5gkfmh@'
     'developer.gserviceaccount.com')
 
 GOOGLE_OAUTH2_REDIRECT_PATH = '/oauth2callback'
 
-GOOGLE_OAUTH2_REDIRECT_URI = os.environ.get(
-    'GOOGLE_OAUTH2_REDIRECT_URI',
-    'http://localhost:5000') + GOOGLE_OAUTH2_REDIRECT_PATH
+GOOGLE_OAUTH2_REDIRECT_URI = (
+    'http://localhost:5000' + GOOGLE_OAUTH2_REDIRECT_PATH)
 
-GOOGLE_OAUTH2_CLIENT_ID = os.environ.get(
-    'GOOGLE_OAUTH2_CLIENT_ID',
+GOOGLE_OAUTH2_CLIENT_ID = (
     '918724168220-nqq27o7so1p7stukds23oo2vof5gkfmh.apps.googleusercontent.com')
 
-GOOGLE_OAUTH2_CLIENT_SECRET = os.environ.get(
-    'GOOGLE_OAUTH2_CLIENT_SECRET',
-    'EhiCP-PuQYN0OsWGAELTUHyl')
+GOOGLE_OAUTH2_CLIENT_SECRET = 'EhiCP-PuQYN0OsWGAELTUHyl'
 
-# Caching
-CACHE_TYPE = os.environ.get('CACHE_TYPE', 'simple')
+CACHE_TYPE = 'simple'
+
 CACHE_DEFAULT_TIMEOUT = 600
 
-# Mail
-MAIL_DEFAULT_SENDER = os.environ.get(
-    'MAIL_DEFAULT_SENDER',
-    'Depicted <nobody@localhost>')
+MAIL_DEFAULT_SENDER = 'Depicted <nobody@localhost>'
 
-MAIL_SUPPRESS_SEND = os.environ.get('MAIL_SUPPRESS_SEND', True)
+MAIL_SUPPRESS_SEND = True
 
 # Cloud storage; currently only works in App Engine deployment
-GOOGLE_CLOUD_STORAGE_BUCKET = os.environ.get(
-    'GOOGLE_CLOUD_STORAGE_BUCKET',
-    None)
+GOOGLE_CLOUD_STORAGE_BUCKET = None
 
 # Secret key for CSRF key for WTForms, Login cookie. This will only last
 # for the duration of the currently running process.
@@ -77,4 +65,4 @@ def default_key():
     return base64.b64encode(
         hashlib.sha1(uuid.uuid4().bytes).digest()).strip('=')
 
-SECRET_KEY = os.environ.get('SECRET_KEY') or default_key()
+SECRET_KEY = default_key()
