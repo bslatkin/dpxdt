@@ -524,7 +524,7 @@ The config passed to the `request_run` function may have any or all of these fie
 
 ```json
 {
-    "clipRect" {
+    "clipRect": {
         "left": 0,
         "top": 0,
         "width": 100,
