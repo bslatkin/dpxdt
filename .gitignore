@@ -14,3 +14,4 @@ dist
 bin
 include
 lib
+pip-selfcheck.json
