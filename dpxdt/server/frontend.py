@@ -32,7 +32,6 @@ from . import app
 from . import db
 from . import login
 from dpxdt.server import auth
-from dpxdt.server import config
 from dpxdt.server import forms
 from dpxdt.server import models
 from dpxdt.server import operations
@@ -60,7 +59,7 @@ def homepage():
     return render_template(
         'home.html',
         build_list=build_list,
-        show_video_and_promo_text=config.SHOW_VIDEO_AND_PROMO_TEXT)
+        show_video_and_promo_text=app.config['SHOW_VIDEO_AND_PROMO_TEXT'])
 
 
 @app.route('/new', methods=['GET', 'POST'])

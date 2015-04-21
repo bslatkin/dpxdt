@@ -64,16 +64,9 @@ a.big-link {
 
 /* Page branding. */
 .logo {
-    float: left;
-    margin-right: 18px;
-}
-.logo ~ h1 {
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
 }
 .logo-outside {
-    padding: 12px 6px 6px 6px;
+    padding: 6px;
     background-color: #000;
     display: inline-block;
     text-align: center;
@@ -86,6 +79,23 @@ a.big-link {
     width: 36px;
     height: 36px;
     line-height: 36px;
+    color: #fff;
+    letter-spacing: 1px;
+    font-size: 9px;
+    vertical-align: middle;
+}
+.logo-small-outside {
+    padding: 4px 6px;
+    background-color: #000;
+    display: inline-block;
+    text-align: center;
+}
+.logo-small-inside {
+    padding: 0px;
+    display: block;
+    width: 36px;
+    height: 16px;
+    line-height: 16px;
     color: #fff;
     letter-spacing: 1px;
     font-size: 9px;
@@ -107,7 +117,11 @@ a.big-link {
 }
 
 .create-new-build {
-    margin: 30px 0 10px;
+    margin: 20px 0 10px;
+}
+
+.build-list {
+    margin-top: 10px;
 }
 
 .build-list > .row {

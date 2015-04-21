@@ -24,10 +24,22 @@
 <div class="row">
     <div class="span12">
         <a href="{{ url_for('homepage') }}" class="logo">
-            <div class="logo-outside">
-                <div class="logo-inside">dpxdt</div>
+            <div class="hidden-phone">
+                <div class="logo-outside">
+                    <div class="logo-inside">dpxdt</div>
+                </div>
+            </div>
+            <div class="visible-phone">
+                <div class="logo-small-outside">
+                    <div class="logo-small-inside">dpxdt</div>
+                </div>
             </div>
         </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="span12">
         {% if build %}
             {% if url_for('view_build') != request.path %}
                 <h1><a class="big-link" href="{{ url_for('view_build', id=build.id) }}">{{ build.name }}</a></h1>
@@ -97,9 +109,6 @@
                 <div class="row">
                     <div class="span6">
                         {% block footer_left %}{% endblock footer_left %}
-                        <a href="//github.com/bslatkin/dpxdt" target="_blank" class="github-link">
-                            <img src="/static/img/GitHub-Mark-32px.png">
-                        </a>
                     </div>
                     <div class="span6 text-right">
                         {% block footer_right %}

@@ -34,9 +34,6 @@ Depicted
         <p class="body-subsection">
             See the video (right) for a presentation about how perceptual diffs have made continuous deployment safe. <a href="https://github.com/bslatkin/dpxdt">Learn about the tool and API on GitHub</a>.
         </p>
-        <p class="body-subsection">
-            <a href="{{ url_for('new_build') }}" class="btn btn-primary">Create new build</a>
-        </p>
     </div>
     <div class="span6 body-subsection">
         <iframe width="640" height="360" class="video-promo" src="https://www.youtube-nocookie.com/embed/1wHr-O6gEfc?rel=0&html5=1" frameborder="0" allowfullscreen></iframe>
@@ -50,7 +47,7 @@ Depicted
 
 {% if build_list %}
 
-<div class="row body-section">
+<div class="row">
     <div class="span6">
         <h4>Builds you have access to</h4>
     </div>
@@ -83,4 +80,7 @@ Depicted
 
 {% block footer_left %}
 another <a href="http://onebigfluke.com">haxor industry</a>
+<a href="//github.com/bslatkin/dpxdt" target="_blank" class="github-link">
+    <img src="/static/img/GitHub-Mark-32px.png">
+</a>
 {% endblock footer_left %}
