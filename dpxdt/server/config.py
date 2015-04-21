@@ -56,6 +56,8 @@ MAIL_SUPPRESS_SEND = True
 # Cloud storage; currently only works in App Engine deployment
 GOOGLE_CLOUD_STORAGE_BUCKET = None
 
+SHOW_VIDEO_AND_PROMO_TEXT = False
+
 # Secret key for CSRF key for WTForms, Login cookie. This will only last
 # for the duration of the currently running process.
 def default_key():
