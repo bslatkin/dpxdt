@@ -99,9 +99,9 @@ from dpxdt.server import auth
 from dpxdt.server import emails
 from dpxdt.server import models
 from dpxdt.server import signals
+from dpxdt.server import webhooks
 from dpxdt.server import work_queue
 from dpxdt.server import utils
-
 
 @app.route('/api/create_release', methods=['POST'])
 @auth.build_api_access_required
@@ -182,15 +182,14 @@ def _check_release_done_processing(release):
                  'name=%r, number=%d', release.build_id, release.name,
                  release.number)
 
-    # Send the email at the end of this request so we know it's only
-    # sent a single time (guarded by the release.status check above).
+
     build_id = release.build_id
     release_name = release.name
     release_number = release.number
 
-    @utils.after_this_request
-    def send_notification_email(response):
-        emails.send_ready_for_review(build_id, release_name, release_number)
+    # Send the signal at the end of this request so we know it's only
+    # sent a single time (guarded by the release.status check above).
+    signals.build_ready_for_review.send(app, release=release)
 
     release.status = models.Release.REVIEWING
     db.session.add(release)
@@ -680,3 +679,17 @@ def download():
         return response
 
     return _get_artifact_response(artifact)
+
+
+# Connect API events to possibly send emails and webhooks.
+
+def _build_ready_for_review(sender, release=None):
+    if not release:
+        return
+    build_id = release.build_id
+    release_name = release.name
+    release_number = release.number
+    emails.send_ready_for_review(build_id, release_name, release_number)
+    webhooks.send_ready_for_review(build_id, release_name, release_number)
+
+signals.build_ready_for_review.connect(_build_ready_for_review, app)

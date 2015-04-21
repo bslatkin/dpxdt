@@ -22,7 +22,7 @@ from flask.ext.wtf import Form
 from wtforms import (
     BooleanField, HiddenField, IntegerField, SubmitField, TextField)
 from wtforms.validators import (
-    DataRequired, Email, Optional, Length, NumberRange, Required)
+    DataRequired, Email, Optional, Length, NumberRange, Required, URL)
 
 # Local modules
 from . import app
@@ -109,5 +109,7 @@ class SettingsForm(Form):
     send_email = BooleanField('Send notification emails')
     email_alias = TextField('Mailing list for notifications',
                             validators=[Optional(), Email()])
+    webhook_url = TextField('URL enpoint for webhooks',
+                            validators=[Optional(), URL()])
     build_id = HiddenField(validators=[NumberRange(min=1)])
     save = SubmitField('Save')

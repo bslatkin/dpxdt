@@ -42,3 +42,7 @@ run_updated_via_api = _signals.signal('run-updated')
 # Argument is (work_queue.WorkQueue). Signal is sent immediately after the
 # task is updated but before it is committed to the DB.
 task_updated = _signals.signal('task-updated')
+
+# A build has finished with all screenshots and diffs are complete. Sender is the app.
+# Argument is (models.Release).
+build_ready_for_review = _signals.signal('build_ready_for_review')

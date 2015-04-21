@@ -51,6 +51,18 @@ Settings for '{{ build.name }}'
                 {{ settings_form.email_alias }}
                 <span class="help-block">Otherwise sent to build admins</span>
             </div>
+
+            <div>
+                <label class="checkbox" for="{{ settings_form.send_webhook.label.field_id }}">
+                    {{ settings_form.send_webhook }}
+                    {{ settings_form.send_webhook.label.text }}
+                </label>
+                <span class="help-block">e.g., When a release is ready for review</span>
+            </div>
+            <div>
+                {{ settings_form.send_webhook.label }}
+                {{ settings_form.send_webhook }}
+            </div>
             <br>
             {{ settings_form.save(class_='btn btn-primary') }}
         </form>
