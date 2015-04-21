@@ -663,6 +663,10 @@ Here's how to deploy to Google App Engine / CloudSQL / Google Compute Engine. Th
         docker ps
         docker exec <your process> tail /var/log/app_engine/app.log.json
 
+1. You can also clear your Docker image cache and try again with:
+
+        docker images -q | xargs docker rmi
+
 1. Navigate to <http://localhost:5000/_ah/appstats/shell>, login as admin, and initialize the database with this script:
 
         from dpxdt import server
