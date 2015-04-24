@@ -64,6 +64,8 @@ a.big-link {
 
 /* Page branding. */
 .logo {
+   float: left;
+   margin-right: 15px;
 }
 .logo-outside {
     padding: 6px;

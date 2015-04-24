@@ -35,11 +35,6 @@
                 </div>
             </div>
         </a>
-    </div>
-</div>
-
-<div class="row">
-    <div class="span12">
         {% if build %}
             {% if url_for('view_build') != request.path %}
                 <h1><a class="big-link" href="{{ url_for('view_build', id=build.id) }}">{{ build.name }}</a></h1>
