@@ -89,7 +89,7 @@ import time
 # Local libraries
 import flask
 from flask import Flask, abort, g, request, url_for
-from flask.exceptions import HTTPException
+from werkzeug.exceptions import HTTPException
 
 # Local modules
 from . import app

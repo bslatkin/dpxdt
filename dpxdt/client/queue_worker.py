@@ -27,6 +27,9 @@ from dpxdt.client import timer_worker
 from dpxdt.client import workers
 
 
+LOGGER = workers.LOGGER
+
+
 gflags.DEFINE_string(
     'queue_server_prefix', None,
     'URL prefix of where the work queue server is located, such as '
@@ -111,9 +114,9 @@ class DoTaskWorkflow(workers.WorkflowItem):
     fire_and_forget = True
 
     def run(self, queue_url, local_queue_workflow, task, wait_seconds=0):
-        logging.info('Starting work item from queue_url=%r, '
-                     'task=%r, workflow=%r, wait_seconds=%r',
-                     queue_url, task, local_queue_workflow, wait_seconds)
+        LOGGER.info('Starting work item from queue_url=%r, '
+                    'task=%r, workflow=%r, wait_seconds=%r',
+                    queue_url, task, local_queue_workflow, wait_seconds)
 
         if wait_seconds > 0:
             yield timer_worker.TimerItem(wait_seconds)
@@ -137,13 +140,13 @@ class DoTaskWorkflow(workers.WorkflowItem):
         try:
             yield local_queue_workflow(**payload)
         except Exception, e:
-            logging.exception('Exception while processing work from '
-                              'queue_url=%r, task=%r', queue_url, task)
+            LOGGER.exception('Exception while processing work from '
+                             'queue_url=%r, task=%r', queue_url, task)
             yield heartbeat('%s: %s' % (e.__class__.__name__, str(e)))
 
             if (isinstance(e, GiveUpAfterAttemptsError) and
                     task['lease_attempts'] >= e.max_attempts):
-                logging.warning(
+                LOGGER.warning(
                     'Hit max attempts on task=%r, marking task as error',
                     task)
                 error = True
@@ -163,17 +166,17 @@ class DoTaskWorkflow(workers.WorkflowItem):
                 username=FLAGS.release_client_id,
                 password=FLAGS.release_client_secret)
         except Exception, e:
-            logging.error('Could not finish work with '
-                          'queue_url=%r, task=%r. %s: %s',
-                          queue_url, task, e.__class__.__name__, e)
+            LOGGER.error('Could not finish work with '
+                         'queue_url=%r, task=%r. %s: %s',
+                         queue_url, task, e.__class__.__name__, e)
         else:
             if finish_item.json and finish_item.json.get('error'):
-                logging.error('Could not finish work with '
-                              'queue_url=%r, task=%r. %s',
-                              queue_url, finish_item.json['error'], task)
+                LOGGER.error('Could not finish work with '
+                             'queue_url=%r, task=%r. %s',
+                             queue_url, finish_item.json['error'], task)
             else:
-                logging.info('Finished work item with queue_url=%r, '
-                             'task_id=%r', queue_url, task_id)
+                LOGGER.info('Finished work item with queue_url=%r, '
+                            'task_id=%r', queue_url, task_id)
 
 
 class RemoteQueueWorkflow(workers.WorkflowItem):
@@ -200,7 +203,7 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
             next_tasks = []
 
             if next_count > 0:
-                logging.info(
+                LOGGER.debug(
                     'Fetching %d tasks from queue_url=%r for workflow=%r',
                     next_count, queue_url, local_queue_workflow)
                 try:
@@ -210,13 +213,13 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
                         username=FLAGS.release_client_id,
                         password=FLAGS.release_client_secret)
                 except Exception, e:
-                    logging.error(
+                    LOGGER.error(
                         'Could not fetch work from queue_url=%r. %s: %s',
                         queue_url, e.__class__.__name__, e)
                 else:
                     if next_item.json:
                         if next_item.json.get('error'):
-                            logging.error(
+                            LOGGER.error(
                                 'Could not fetch work from queue_url=%r. %s',
                                 queue_url, next_item.json['error'])
                         elif next_item.json['tasks']:
@@ -238,5 +241,5 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
             yield timer_worker.TimerItem(poll_time)
 
             outstanding[:] = [x for x in outstanding if not x.done]
-            logging.debug('%d items for %r still outstanding: %r',
-                          len(outstanding), local_queue_workflow, outstanding)
+            LOGGER.debug('%d items for %r still outstanding: %r',
+                         len(outstanding), local_queue_workflow, outstanding)

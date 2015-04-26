@@ -34,6 +34,14 @@ h4 a:hover {
     border-top: 1px solid #ccc;
     padding: 20px 0;
 }
+.footer-section .github-link {
+    margin: 0 1em;
+}
+
+.footer-section .github-link img {
+    margin-top: -0.2em;
+    width: 1.2em;
+}
 .inline-block {
     display: inline-block;
     margin: 0;
@@ -55,20 +63,12 @@ a.big-link {
 }
 
 /* Page branding. */
-.endpoint-homepage .base-logo-container {
-    display: none;
-}
-.homepage-logo {
-    display: none;
-    float: left;
-    margin-right: 15px;
-    vertical-align: top;
-}
-.endpoint-homepage .homepage-logo {
-    display: inline-block;
+.logo {
+   float: left;
+   margin-right: 15px;
 }
 .logo-outside {
-    padding: 12px 6px 6px 6px;
+    padding: 6px;
     background-color: #000;
     display: inline-block;
     text-align: center;
@@ -86,14 +86,56 @@ a.big-link {
     font-size: 9px;
     vertical-align: middle;
 }
+.logo-small-outside {
+    padding: 4px 6px;
+    background-color: #000;
+    display: inline-block;
+    text-align: center;
+}
+.logo-small-inside {
+    padding: 0px;
+    display: block;
+    width: 36px;
+    height: 16px;
+    line-height: 16px;
+    color: #fff;
+    letter-spacing: 1px;
+    font-size: 9px;
+    vertical-align: middle;
+}
 
 /* Homepage */
+.video-and-promo-text > .body-subsection,
+.video-and-promo-text p.body-subsection:last-child {
+    margin-bottom: 0;
+}
+
 .video-promo-container {
     width: 100%;
     height: 100%;
 }
 .video-promo {
     width: 100%;
+}
+
+.create-new-build {
+    margin: 20px 0 10px;
+}
+
+.build-list {
+    margin-top: 10px;
+}
+
+.build-list > .row {
+    margin-bottom: 20px;
+}
+
+.build-list > .row:last-child {
+    margin-bottom: 0;
+}
+
+.build-list .big-link {
+    font-size: 140%;
 }
 
 /* View styles */

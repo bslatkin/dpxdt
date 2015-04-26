@@ -56,10 +56,10 @@ def homepage():
         auth.claim_invitations(current_user)
 
     build_list = operations.UserOps(current_user.get_id()).get_builds()
-
     return render_template(
         'home.html',
-        build_list=build_list)
+        build_list=build_list,
+        show_video_and_promo_text=app.config['SHOW_VIDEO_AND_PROMO_TEXT'])
 
 
 @app.route('/new', methods=['GET', 'POST'])
@@ -95,7 +95,7 @@ def new_build():
 def view_build():
     """Page for viewing all releases in a build."""
     build = g.build
-    page_size = 20
+    page_size = 10
     offset = request.args.get('offset', 0, type=int)
 
     ops = operations.BuildOps(build.id)
@@ -355,6 +355,7 @@ def build_settings():
 
     # Update form values for rendering
     settings_form.name.data = build.name
+    settings_form.public.data = build.public
     settings_form.build_id.data = build.id
     settings_form.email_alias.data = build.email_alias
     settings_form.send_email.data = build.send_email

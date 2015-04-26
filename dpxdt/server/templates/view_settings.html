@@ -34,6 +34,12 @@ Settings for '{{ build.name }}'
                 {{ settings_form.name }}
             </div>
             <div>
+                <label class="checkbox" for="{{ settings_form.public.label.field_id }}">
+                    {{ settings_form.public }}
+                    {{ settings_form.public.label.text }}
+                </label>
+            </div>
+            <div>
                 <label class="checkbox" for="{{ settings_form.send_email.label.field_id }}">
                     {{ settings_form.send_email }}
                     {{ settings_form.send_email.label.text }}

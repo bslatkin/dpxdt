@@ -1,1 +1,2 @@
-recursive-include dpxdt/client *
+global-exclude *.pyc .DS_Store
+recursive-include dpxdt

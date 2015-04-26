@@ -6,10 +6,11 @@ Make continuous deployment safe by comparing before and after webpage screenshot
 
 Depicted is:
 
-- An API server for capturing webpage screenshots and automatically generating visual, perceptual difference images ("pdiffs").
-- A workflow for teams to coordinate new releases using pdiffs.
-- A client library for integrating with existing continuous integration processes.
-- Built for portability; API server runs on App Engine, behind the firewall, etc.
+- A [local command-line tool](#local-depicted) for doing perceptual diff testing.
+- An [API server and workflow](#depicted-server) for capturing webpage screenshots and automatically generating visual, perceptual difference images.
+    - A workflow for teams to coordinate new releases using pdiffs.
+    - A client library for integrating the server with existing continuous integration.
+    - Built for portability; server runs on App Engine, behind the firewall, etc.
 - A wrapper of [PhantomJS](http://phantomjs.org/) for screenshots.
 - Open source, Apache 2.0 licensed.
 - Not a framework, not a religion.
@@ -20,19 +21,13 @@ See [this video for a presentation](http://youtu.be/UMnZiTL0tUc) about how perce
 
 [![Build Status](https://travis-ci.org/bslatkin/dpxdt.svg?branch=master)](https://travis-ci.org/bslatkin/dpxdt)
 
-## Getting started
-
-Depicted can be used in two ways: as a local tool for generating screenshots and as a server for coordinating continuous deployment.
-
-To get started with either, run:
-
-    pip install dpxdt
-
-For the local tool, read on. For the server, [scroll on](#server).
-
-## <a name="client"></a>Local Depicted
+# Local Depicted
 
 Local `dpxdt` is a tool for generating screenshots. It reads in a YAML config file and generates screenshots using PhantomJS. This makes sense for testing reusable tools (e.g. libraries) which aren't "deployed" in the way that a traditional web app is.
+
+To get started with run:
+
+    pip install dpxdt
 
 Create a simple page to screenshot:
 
@@ -79,13 +74,135 @@ This looks for YAML files in the `tests` directory and processes each in turn. I
 
 ![A screenshot of the demo page.](http://cl.ly/image/3F0K1B1P2b3V/demo.png)
 
-To learn more about local dpxdt, check out its [tutorial](/LOCAL.md).
+## Configuration
 
-## <a name="server"></a>Depicted Server
+The screenshot is 400x300 with a transparent background. This is probably not what you want! You can override these settings with the `config` stanza:
 
-Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it easy to run in your environment. It works with SQLite out of the box right on your laptop. The API server can also run on App Engine. The workers run [ImageMagick](http://www.imagemagick.org/Usage/compare/) and [PhantomJS](http://phantomjs.org/) as subprocesses. I like to run the worker on a cloud VM, but you could run it on your behind a firewall if that's important to you. See [deployment](#deployment) below for details.
+```yaml
+# (tests/test.yaml)
+setup: |
+    python -m SimpleHTTPServer
 
-### Running the server locally
+waitFor:
+    url: http://localhost:8000/demo.html
+    timeout_secs: 5
+
+tests:
+  - name: demo
+    url: http://localhost:8000/demo.html
+    config:
+        viewportSize:
+            width: 800
+            height: 600
+        injectCss: |
+            body {
+              background-color: white;
+            }
+```
+
+You can find a complete list of config settings in [capture.js](https://github.com/bslatkin/dpxdt/blob/master/dpxdt/client/capture.js), but the most common ones are `viewportSize`, `injectCss` and `injectJs`.
+
+## Perceptual Diffs
+
+Local dpxdt has two modes: `update` and `test`. As we've seen above, `update` saves screenshots to the test directory. `test` takes screenshots and compares them to the saved versions.
+
+For example:
+
+    $ dpdxdt test tests
+    Request for http://localhost:8000/demo.html succeeded, continuing with tests...
+    demo: Running webpage capture process
+    demo: Resizing reference image
+    demo: Running perceptual diff process
+    demo passed (no diff)
+    All tests passed!
+
+Now if we change `demo.html`:
+
+```html
+<!-- demo.html -->
+<h2>dpxdt local demo</h2>
+<p>dpxdt may be used to spot changes on local web servers.</p>
+```
+
+and run the test command again:
+
+    $ dpxdt test tests
+    Request for http://localhost:8000/demo.html succeeded, continuing with tests...
+    demo: Running webpage capture process
+    demo: Resizing reference image
+    demo: Running perceptual diff process
+    demo failed
+      0.0385669 distortion
+      Ref:  /tmp/.../tmp6rMuVH/ref_resized
+      Run:  /tmp/.../tmp6rMuVH/screenshot.png
+      Diff: /tmp/.../tmp6rMuVH/diff.png
+     (all):     /tmp/.../tmp6rMuVH/{ref_resized,screenshot.png,diff.png}
+    1 test(s) failed.
+
+dpxdt has output a triplet of images: reference, run and diff. You can open all of them at once by copying the (all) line. For example, on Mac OS X:
+
+    open /tmp/.../tmp6rMuVH/{ref_resized,screenshot.png,diff.png}
+
+Here's what they look like:
+
+| Which  | Image |
+| ---:  | ----- |
+| Reference  | ![reference image](http://cl.ly/image/33073K33231z/ref_resized.png) |
+| Run  | ![run image](http://cl.ly/image/0e1X3e0Q3v0J/screenshot.png)        |
+| Diff | ![diff image](http://cl.ly/image/423Y3q0g3c23/diff.png)             |
+
+The red portions of the diff image highlight where the change is. These might be difficult to spot without a perceptual diff!
+
+## Shared Configurations
+
+Most tests will share a similar `config` stanza. As your you write more tests, this gets quite repetitive. YAML supports a syntax for references which greatly reduces the repetition:
+
+```yaml
+# (tests/test.yaml)
+setup: |
+    python -m SimpleHTTPServer
+
+waitFor:
+    url: http://localhost:8000/demo.html
+    timeout_secs: 5
+
+standard-config: &stdconfig
+    viewportSize:
+        width: 800
+        height: 600
+    injectCss: >
+        body {
+          background-color: white;
+        }
+
+tests:
+  - name: demo
+    url: http://localhost:8000/demo.html
+    config: *stdconfig
+
+  - name: demo-with-click
+    url: http://localhost:8000/demo.html
+    config:
+        <<: *stdconfig
+        injectJs: |
+            $('button').click();
+```
+
+As the last example shows, you can "mix in" a config and add to it. If you include a stanza which is already in the mixed-in config (e.g. `viewportSize`), it will override it.
+
+# Depicted Server
+
+Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it easy to run in your environment. It works with SQLite out of the box right on your laptop. The API server can also run on App Engine. The workers run [ImageMagick](http://www.imagemagick.org/Usage/compare/) and [PhantomJS](http://phantomjs.org/) as subprocesses. I like to run the worker on a cloud VM, but you could run it on your behind a firewall if that's important to you.
+
+Topics in this section:
+
+- [Running the server locally](#running-the-server-locally)
+- [How to use Depicted effectively](#how-to-use-depicted-effectively)
+- [Example tools](#example-tools)
+- [The API documentation](#api)
+- [Deployment to App Engine](#deployment)
+
+## Running the server locally
 
 1. Have a version of [Python 2.7](http://www.python.org/download/releases/2.7/) installed.
 1. Download [PhantomJS](http://phantomjs.org/) for your machine.
@@ -95,18 +212,15 @@ Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it 
         git clone https://github.com/bslatkin/dpxdt.git
 
 1. ```cd``` to the repo directory:
-1. Update all git submodules in the repo:
+1. Create a new python virtual environment and activate it:
 
-        git submodule update --init --recursive
+        virtualenv .
+        source bin/activate
 
-1. Modify ```common.sh``` to match your enviornment:
-        
-        # Edit variables such as ...
-        export PHANTOMJS_BINARY=/Users/yourname/Downloads/phantomjs-1.9.0-macosx/bin/phantomjs
+1. Install all dependencies into the environment:
 
-1. Write a ```secrets.py``` file to the root directory:
-
-        SECRET_KEY = 'insert random string of characters here'
+        pip install -r requirements.txt
+        pip install -e .
 
 1. Execute ```./run_shell.sh``` and run these commands to initialize your DB:
 
@@ -124,6 +238,9 @@ Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it 
             http://www.yahoo.com
 
 1. Follow the URL the tool writes to the terminal and verify screenshots are present. Any errors will be printed to the log in the terminal where you are running the server process.
+1. Deactivate your virtual environment
+
+        deactivate
 
 ## How to use Depicted effectively
 
@@ -191,10 +308,13 @@ Here's an example invocation of Site Diff against a real API server:
 ```
 
 Note, when you use this the "upload_build_id" above should be changed to match your build id in the UI, for example:
+
 ```
 https://dpxdt-test.appspot.com/build?id=500
 ```
+
 You should use:
+
 ```
 --upload_build_id=500
 ```
@@ -387,80 +507,51 @@ Endpoints:
 Creates a new release candidate for a build.
 
 ##### Parameters
-<dl>
-    <dt>build_id</dt>
-    <dd>ID of the build.</dd>
-    <dt>release_name</dt>
-    <dd>Name of the new release.</dd>
-    <dt>url</dt>
-    <dd>URL of the homepage of the new release. Only present for humans who need to understand what a release is for.</dd>
-</dl>
+
+- *build_id*: ID of the build.
+- *release_name*: Name of the new release.
+- *url*: URL of the homepage of the new release. Only present for humans who need to understand what a release is for.
 
 ##### Returns
-<dl>
-    <dt>build_id</dt>
-    <dd>ID of the build.</dd>
-    <dt>release_name</dt>
-    <dd>Name of the release that was just created.</dd>
-    <dt>release_number</dt>
-    <dd>Number assigned to the new release by the system.</dd>
-    <dt>url</dt>
-    <dd>URL of the release's homepage.</dd>
-</dl>
+
+- *build_id*: ID of the build.
+- *release_name*: Name of the release that was just created.
+- *release_number*: Number assigned to the new release by the system.
+- *url*: URL of the release's homepage.
 
 #### /api/find_run
 
 Finds the last good run of the given name for a release. Returns an error if no run previous good release exists.
 
 ##### Parameters
-<dl>
-    <dt>build_id</dt>
-    <dd>ID of the build.</dd>
-    <dt>run_name</dt>
-    <dd>Name of the run to find the last known-good version of.</dd>
-</dl>
+
+- *build_id*: ID of the build.
+- *run_name*: Name of the run to find the last known-good version of.
 
 ##### Returns
-<dl>
-    <dt>build_id</dt>
-    <dd>ID of the build.</dd>
-    <dt>release_name</dt>
-    <dd>Name of the last known-good release for the run.</dd>
-    <dt>release_number</dt>
-    <dd>Number of the last known-good release for the run.</dd>
-    <dt>run_name</dt>
-    <dd>Name of the run that was found. May be null if a run could not be found.</dd>
-    <dt>url</dt>
-    <dd>URL of the last known-good release for the run. May be null if a run could not be found.</dd>
-    <dt>image</dt>
-    <dd>Artifact ID (SHA1 hash) of the screenshot image associated with the run. May be null if a run could not be found.</dd>
-    <dt>log</dt>
-    <dd>Artifact ID (SHA1 hash) of the log file from the screenshot process associated with the run. May be null if a run could not be found.</dd>
-    <dt>config</dt>
-    <dd>Artifact ID (SHA1 hash) of the config file used for the screenshot process associated with the run. May be null if a run could not be found.</dd>
-</dl>
+
+- *build_id*: ID of the build.
+- *release_name*: Name of the last known-good release for the run.
+- *release_number*: Number of the last known-good release for the run.
+- *run_name*: Name of the run that was found. May be null if a run could not be found.
+- *url*: URL of the last known-good release for the run. May be null if a run could not be found.
+- *image*: Artifact ID (SHA1 hash) of the screenshot image associated with the run. May be null if a run could not be found.
+- *log*: Artifact ID (SHA1 hash) of the log file from the screenshot process associated with the run. May be null if a run could not be found.
+- *config*: Artifact ID (SHA1 hash) of the config file used for the screenshot process associated with the run. May be null if a run could not be found.
 
 #### /api/request_run
 
 Requests a new run for a release candidate. Causes the API system to take screenshots and do pdiffs. When `ref_url` and `ref_config` are supplied, the system will run two sets of captures (one for the baseline, one for the new release) and then compare them. When `rel_url` and `ref_config` are not specified, the last good run for this build is found and used for comparison.
 
 ##### Parameters
-<dl>
-    <dt>build_id</dt>
-    <dd>ID of the build.</dd>
-    <dt>release_name</dt>
-    <dd>Name of the release.</dd>
-    <dt>release_number</dt>
-    <dd>Number of the release.</dd>
-    <dt>url</dt>
-    <dd>URL to request as a run.</dd>
-    <dt>config</dt>
-    <dd>JSON data that is the config for the new run.</dd>
-    <dt>ref_url</dt>
-    <dd>URL of the baseline to request as a run.</dd>
-    <dt>ref_config</dt>
-    <dd>JSON data that is the config for the baseline of the new run.</dd>
-</dl>
+
+- *build_id*: ID of the build.
+- *release_name*: Name of the release.
+- *release_number*: Number of the release.
+- *url*: URL to request as a run.
+- *config*: JSON data that is the config for the new run.
+- *ref_url*: URL of the baseline to request as a run.
+- *ref_config*: JSON data that is the config for the baseline of the new run.
 
 ###### Format of `config`
 
@@ -468,99 +559,80 @@ The config passed to the `request_run` function may have any or all of these fie
 
 ```json
 {
+    "clipRect": {
+        "left": 0,
+        "top": 0,
+        "width": 100,
+        "height": 200
+    },
+    "cookies": [
+        {
+            "name": "my-cookie-name",
+            "value": "my-cookie-value",
+            "domain": ".example.com"
+        }
+    ],
+    "injectCss": ".my-css-rules-here { display: none; }",
+    "injectJs": "document.getElementById('foobar').innerText = 'foo';",
+    "resourcesToIgnore": ["www.google-analytics.com", "bad.example.com"],
+    "resourceTimeoutMs": 60000,
+    "userAgent": "My fancy user agent",
     "viewportSize": {
         "width": 1024,
         "height": 768
-    },
-    "injectCss": ".my-css-rules-here { display: none; }",
-    "injectJs": "document.getElementById('foobar').innerText = 'foo';",
-    "resourceTimeoutMs": 60000
+    }
 }
 ```
 
 ##### Returns
-<dl>
-    <dt>build_id</dt>
-    <dd>ID of the build.</dd>
-    <dt>release_name</dt>
-    <dd>Name of the release.</dd>
-    <dt>release_number</dt>
-    <dd>Number of the release.</dd>
-    <dt>run_name</dt>
-    <dd>Name of the run that was created.</dd>
-    <dt>url</dt>
-    <dd>URL that was requested for the run.</dd>
-    <dt>config</dt>
-    <dd>Artifact ID (SHA1 hash) of the config file that will be used for the screenshot process associated with the run.</dd>
-    <dt>ref_url</dt>
-    <dd>URL that was requested for the baseline reference for the run.</dd>
-    <dt>ref_config</dt>
-    <dd>Artifact ID (SHA1 hash) of the config file used for the baseline screenshot process of the run.</dd>
-</dl>
+
+- *build_id*: ID of the build.
+- *release_name*: Name of the release.
+- *release_number*: Number of the release.
+- *run_name*: Name of the run that was created.
+- *url*: URL that was requested for the run.
+- *config*: Artifact ID (SHA1 hash) of the config file that will be used for the screenshot process associated with the run.
+- *ref_url*: URL that was requested for the baseline reference for the run.
+- *ref_config*: Artifact ID (SHA1 hash) of the config file used for the baseline screenshot process of the run.
 
 #### /api/upload
 
 Uploads an artifact referenced by a run.
 
 ##### Parameters
-<dl>
-    <dt>build_id</dt>
-    <dd>ID of the build.</dd>
-    <dt>(a single file in the multipart/form-data)</dt>
-    <dd>Data of the file being uploaded. Should have a filename in the mime headers so the system can infer the content type of the uploaded asset.</dd>
-</dl>
+
+- *build_id*: ID of the build.
+- *(a single file in the multipart/form-data)*: Data of the file being uploaded. Should have a filename in the mime headers so the system can infer the content type of the uploaded asset.
 
 ##### Returns
-<dl>
-    <dt>build_id</dt>
-    <dd>ID of the build.</dd>
-    <dt>sha1sum</dt>
-    <dd>Artifact ID (SHA1 hash) of the file that was uploaded.</dd>
-    <dt>content_type</dt>
-    <dd>Content type of the artifact that was uploaded.</dd>
-</dl>
+
+- *build_id*: ID of the build.
+- *sha1sum*: Artifact ID (SHA1 hash) of the file that was uploaded.
+- *content_type*: Content type of the artifact that was uploaded.
 
 #### /api/report_run
 
 Reports data for a run for a release candidate. May be called multiple times as progress is made for a run. Should not be called once the screenshot image for the run has been assigned.
 
 ##### Parameters
-<dl>
-    <dt>build_id</dt>
-    <dd>ID of the build.</dd>
-    <dt>release_name</dt>
-    <dd>Name of the release.</dd>
-    <dt>release_number</dt>
-    <dd>Number of the release.</dd>
-    <dt>run_name</dt>
-    <dd>Name of the run.</dd>
-    <dt>url</dt>
-    <dd>URL associated with the run.</dd>
-    <dt>image</dt>
-    <dd>Artifact ID (SHA1 hash) of the screenshot image associated with the run.</dd>
-    <dt>log</dt>
-    <dd>Artifact ID (SHA1 hash) of the log file from the screenshot process associated with the run.</dd>
-    <dt>config</dt>
-    <dd>Artifact ID (SHA1 hash) of the config file used for the screenshot process associated with the run.</dd>
-    <dt>ref_url</dt>
-    <dd>URL associated with the run's baseline release.</dd>
-    <dt>ref_image</dt>
-    <dd>Artifact ID (SHA1 hash) of the screenshot image associated with the run's baseline release.</dd>
-    <dt>ref_log</dt>
-    <dd>Artifact ID (SHA1 hash) of the log file from the screenshot process associated with the run's baseline release.</dd>
-    <dt>ref_config</dt>
-    <dd>Artifact ID (SHA1 hash) of the config file used for the screenshot process associated with the run's baseline release.</dd>
-    <dt>diff_image</dt>
-    <dd>Artifact ID (SHA1 hash) of the perceptual diff image associated with the run.</dd>
-    <dt>diff_log</dt>
-    <dd>Artifact ID (SHA1 hash) of the log file from the perceptual diff process associated with the run.</dd>
-    <dt>diff_failed</dt>
-    <dd>Present and non-empty string when the diff process failed for some reason. May be missing when diff ran and reported a log but may need to retry for this run.</dd>
-    <dt>run_failed</dt>
-    <dd>Present and non-empty string when the run failed for some reason. May be missing when capture ran and reported a log but may need to retry for this run.</dd>
-    <dt>distortion</dt>
-    <dd>Float amount of difference found in the diff that was uploaded, as a float between 0 and 1</dd>
-</dl>
+
+- *build_id*: ID of the build.
+- *release_name*: Name of the release.
+- *release_number*: Number of the release.
+- *run_name*: Name of the run.
+- *url*: URL associated with the run.
+- *image*: Artifact ID (SHA1 hash) of the screenshot image associated with the run.
+- *log*: Artifact ID (SHA1 hash) of the log file from the screenshot process associated with the run.
+- *config*: Artifact ID (SHA1 hash) of the config file used for the screenshot process associated with the run.
+- *ref_url*: URL associated with the run's baseline release.
+- *ref_image*: Artifact ID (SHA1 hash) of the screenshot image associated with the run's baseline release.
+- *ref_log*: Artifact ID (SHA1 hash) of the log file from the screenshot process associated with the run's baseline release.
+- *ref_config*: Artifact ID (SHA1 hash) of the config file used for the screenshot process associated with the run's baseline release.
+- *diff_image*: Artifact ID (SHA1 hash) of the perceptual diff image associated with the run.
+- *diff_log*: Artifact ID (SHA1 hash) of the log file from the perceptual diff process associated with the run.
+- *diff_failed*: Present and non-empty string when the diff process failed for some reason. May be missing when diff ran and reported a log but may need to retry for this run.
+- *run_failed*: Present and non-empty string when the run failed for some reason. May be missing when capture ran and reported a log but may need to retry for this run.
+- *distortion*: Float amount of difference found in the diff that was uploaded, as a float between 0 and 1
 
 ##### Returns
 Nothing but success on success.
@@ -570,61 +642,130 @@ Nothing but success on success.
 Marks a release candidate as having all runs reported.
 
 ##### Parameters
-<dl>
-    <dt>build_id</dt>
-    <dd>ID of the build.</dd>
-    <dt>release_name</dt>
-    <dd>Name of the release.</dd>
-    <dt>release_number</dt>
-    <dd>Number of the release.</dd>
-</dl>
+
+- *build_id*: ID of the build.
+- *release_name*: Name of the release.
+- *release_number*: Number of the release.
 
 ##### Returns
-<dl>
-    <dt>results_url</dt>
-    <dd>URL where a release candidates run status can be viewed in a web browser by a build admin.</dd>
-</dl>
+
+- *results_url*: URL where a release candidates run status can be viewed in a web browser by a build admin.
 
 ## Deployment
 
-Here's how to deploy to App Engine / CloudSQL / Google Compute Engine. This guide is still a little rough.
+Here's how to deploy to Google App Engine / CloudSQL / Google Compute Engine. This guide is still a little rough.
 
-1. [Create a new Cloud Project](http://cloud.google.com/console). Provision a CloudSQL DB and initialize it:
+1. `cd` into the `deployment` directory:
+1. Run this command:
 
-        ./google_sql.sh <your-project>:<your-db-name>
-        sql> create database test;
+        make appengine_deploy
 
-1. Go to the [Google API console](https://code.google.com/apis/console/) and provision a new project and "API Access". This will give you the OAuth client ID and secret you need to make auth work properly. Update ```config.py``` with your values for anything with the prefix ```GOOGLE_OAUTH2_```.
+1. `cd` into the `appengine_deploy` directory
+1. Create a new project on [cloud console](https://console.developers.google.com/project)
+1. In the _APIs & auth / Credentials_ section, create a new OAuth Client ID
+    1. Select "Web application"
+    1. Fill in the _Consent screen_ information as appropriate
+    1. Set _Authorized redirect URIs_ to `https://your-project.appspot.com/oauth2callback`
+    1. Copy the _Client ID_, _Email address_, and _Client secret_ values into corresponding fields in `settings.cfg`
+1. Create a new Cloud SQL instance on cloud console for the project
+    1. Click _Create a MySQL instance_
+    1. Name your DB instance ("main" works well)
+    1. Under _Advanced options_ configure check the box for "Assign an IPv4 address to my Cloud SQL instance"
+    1. Once the instance is up, create a new database ("main" works well)
+    1. Under _Access control / Users_ create a new user; set the name and password
+    1. Under _Access control / Authorization_ add the allowed network of `0.0.0.0/0`
+    1. Update `settings.cfg` with your correct values for `SQLALCHEMY_DATABASE_URI`
+1. Create a Google Cloud Storage bucket on cloud console for the project
+    1. Click _Storage browser_ and create a new bucket
+    1. Name your bucket (your project name works well)
+    1. Create a new folder for images ("artifacts" works well)
+    1. Update `settings.cfg` with your correct values for `GOOGLE_CLOUD_STORAGE_BUCKET`
+1. Create a new service account (this is used to test your config locally)
+    1. Go to the _APIs & auth / Credentials_
+    1. Under _OAuth_ click on "Create new Client ID"
+    1. Choose "Service account" and key type "P12 Key"
+    1. You'll download a file with the suffix `.p12`
+    1. Follow [the directions here](https://cloud.google.com/storage/docs/authentication#converting-the-private-key) to convert this key to a PEM file
+1. Follow the [App Engine Managed VMs getting started guide](https://cloud.google.com/appengine/docs/managed-vms/getting-started) to setup your environment to run the server locally
+1. Run this command to run a local VM. **This will use your production database!** It must point at the secret key PEM file you generated above and use the corresponding service account email address. This will take a little while as it generates a Docker image.
 
-1. Go to the [Google Cloud Console](http://cloud.google.com/console) and find the Google Cloud Storage bucket you've created for your deployment. In the App Engine admin console, go to "Application Settings" and find your "Service Account Name". Copy that name and in the Cloud Console add it as a team member (this gives your app access to the bucket). Update ```config.py``` with your bucket in ```GOOGLE_CLOUD_STORAGE_BUCKET```.
+        ./run.sh \
+            --appidentity-email-address=your_account_name@developer.gserviceaccount.com \
+            --appidentity-private-key-path=path/to/pem_file.pem
 
-1. Go to the ```deployment/appengine``` directory. Update ```app.yaml``` with your parameters. Create the ```secrets.py``` file as explained for development. Edit ```config.py``` and change this to match your CloudSQL setup:
+1. You should see a message like `default: "GET /_ah/start HTTP/1.1" 200`. If you don't, debug the local image with:
 
-        SQLALCHEMY_DATABASE_URI = 'mysql+gaerdbms:///test?instance=<your-project>:<your-db-name>''
+        docker ps
+        docker exec <your process> tail /var/log/app_engine/app.log.json
 
-1. Deploy the app:
+1. You can also clear your Docker image cache and try again with:
 
-        ./appengine_deploy.sh
+        docker images -q | xargs docker rmi
 
-1. Navigate to ```/admin``` on your app and run in the interactive console:
+1. Navigate to <http://localhost:5000/_ah/appstats/shell>, login as admin, and initialize the database with this script:
 
         from dpxdt import server
         server.db.create_all()
 
-1. Navigate to ```/``` on your app and see the homepage. Create a new build. Provision an API key. Then set your user and API key as superusers using the SQL tool:
+1. Navigate to the local server on <http://localhost:5000>, sign in, and then:
+    1. Create a new build; this will be the master build
+    1. Create an API key for the new build
+1. Make the API key into a super user by navigating to <http://localhost:5000/_ah/appstats/shell> and running this script:
 
-        select * from user;
-        update user set superuser = 1 where user.id = 'foo';
-        select * from api_key;
-        update api_key set superuser = 1 where id = 'foo';
+        from dpxdt.server import models
+        from dpxdt.server import db
 
-1. Now create the background workers package to deploy:
+        a = models.ApiKey.query.get('<client_id_here>')
+        a.superuser = True
 
-        ./worker_deploy.sh
+        db.session.add(a)
+        db.session.commit()
 
-1. Follow the commands it prints out to deploy the worker to a VM.
+1. Update `flags.cfg` to match your config
+    1. Set `--release_client_id` to the API client ID you created
+    1. Set `--release_client_secret` to the API client ID you created
+1. Test that everything works locally by creating another build and API key and running this command:
 
-#### Upgrading production and migrating your database
+        ./dpxdt/tools/url_pair_diff.py \
+            --upload_build_id=<build number> \
+            --release_server_prefix=http://localhost:5000/api \
+            --release_client_id=<your api key> \
+            --release_client_secret=<your api secret> \
+            http://google.com \
+            http://yahoo.com
+
+1. Screenshots should show up after a minute or two on the URL it spits out. If not, you can look at the app log with
+
+        docker ps
+        docker exec <your process> cat /var/log/app_engine/custom_logs/app.log
+
+1. Update `settings.cfg` to match your config
+    1. Set `SESSION_COOKIE_DOMAIN` to your final deployment location
+    1. Set `SECRET_KEY` to something new and different
+1. Deploy to App Engine with this command
+
+        gcloud auth login --project=<your project>
+        gcloud \
+            --verbosity=debug \
+            --project=<your project> \
+            preview app deploy \
+            combined_vm.yaml
+
+1. Test that everything works in production by doing another URL pair diff; this time, change the `--release_server_prefix` flag to point at your production deployment:
+
+        ./dpxdt/tools/url_pair_diff.py \
+            --upload_build_id=<build number> \
+            --release_server_prefix=https://your-project.appspot.com/api \
+            --release_client_id=<your api key> \
+            --release_client_secret=<your api secret> \
+            http://google.com \
+            http://yahoo.com
+
+And you're done! To deploy updates from HEAD, just repeat the steps from local execution with `./run.sh` all the way down.
+
+### Upgrading production and migrating your database
+
+TODO: Update this for Managed VM deployment
 
 Depicted uses [Alembic](https://alembic.readthedocs.org/en/latest/tutorial.html) to migrate production data stored in MySQL. The state of *your* database will be unique to when you last pulled from HEAD.
 
@@ -677,7 +818,6 @@ You'll get output that looks like this:
         INFO  [alembic.autogenerate.compare] Detected NOT NULL on column 'work_queue.status'
           Generating /Users/bslatkin/projects/dpxdt/alembic/versions/160c55b1c4b9_production_diff.py ... done
 
-
 1. Look inside the ```alembic/versions/<random_string>_production_diff.py``` file generated by Alembic and make sure it seems sane. Commit this to your git repo if you want to make the migration repeatable on multiple DB instances or downgradable so you can rollback.
 
 1. Run the migration. This is scary! 
@@ -700,8 +840,6 @@ You'll see what is happening and how long it's taking:
         | 87 | root |                | test | Query   |    0 | NULL              | show processlist                            |
         +----+------+----------------+------+---------+------+-------------------+---------------------------------------------+
 Eventually the command will finish and drop you back at a shell.
-
-1. Go back to the [Google Cloud Console](http://cloud.google.com/console) and disable the IP address for your MySQL instance. This is safer for your data. Google also charges you to have a public IP address and this stops the cost. You can reenable the IP address next time you need to migrate.
 
 1. Update ```app.yaml``` with a new version name and run this command to deploy the new code on a new non-default version:
 

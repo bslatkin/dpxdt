@@ -15,6 +15,11 @@
 
 """Common module for dpxdt client and server pieces."""
 
+import logging
+logging.basicConfig(
+    format='%(levelname)s %(filename)s:%(lineno)s] %(message)s')
+
+
 # Local Libraries
 import gflags
 FLAGS = gflags.FLAGS
@@ -28,3 +33,7 @@ gflags.DEFINE_bool(
 gflags.DEFINE_bool(
     'verbose_queries', False,
     'When set, do verbose logging of SQL queries.')
+
+gflags.DEFINE_bool(
+    'verbose_workers', False,
+    'When set, do verbose logging of background Worker progress.')

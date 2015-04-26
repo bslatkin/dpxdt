@@ -1,4 +1,0 @@
-#!/bin/bash
-cd /usr/local/share/dpxdt_deployment/
-export PYTHONPATH=./lib:$PYTHONPATH
-exec ./dpxdt/runworker.py --flagfile=flags.cfg 2>&1

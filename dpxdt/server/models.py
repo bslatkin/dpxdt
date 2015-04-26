@@ -175,7 +175,7 @@ class Run(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     release_id = db.Column(db.Integer, db.ForeignKey('release.id'))
     release = db.relationship('Release',
-                              backref=db.backref('runs', lazy='select'),
+                              backref=db.backref('runs', lazy='dynamic'),
                               lazy='joined',
                               join_depth=1)
 
@@ -201,7 +201,6 @@ class Run(db.Model):
     distortion = db.Column(db.Float())
 
     tasks = db.relationship('WorkQueue',
-                            backref=db.backref('runs', lazy='select'),
                             lazy='joined',
                             join_depth=1,
                             order_by='WorkQueue.created')

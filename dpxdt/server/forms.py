@@ -18,9 +18,11 @@
 import datetime
 
 # Local libraries
-from flask.ext.wtf import (
-    BooleanField, DataRequired, Email, Form, HiddenField, IntegerField,
-    Length, NumberRange, Optional, Required, SubmitField, TextField)
+from flask.ext.wtf import Form
+from wtforms import (
+    BooleanField, HiddenField, IntegerField, SubmitField, TextField)
+from wtforms.validators import (
+    DataRequired, Email, Optional, Length, NumberRange, Required)
 
 # Local modules
 from . import app
@@ -30,6 +32,7 @@ class BuildForm(Form):
     """Form for creating or editing a build."""
 
     name = TextField(validators=[Length(min=1, max=200)])
+    public = BooleanField()
 
 
 class ReleaseForm(Form):
@@ -102,6 +105,7 @@ class SettingsForm(Form):
     """Form for modifying build settings."""
 
     name = TextField(validators=[Length(min=1, max=200)])
+    public = BooleanField()
     send_email = BooleanField('Send notification emails')
     email_alias = TextField('Mailing list for notifications',
                             validators=[Optional(), Email()])
