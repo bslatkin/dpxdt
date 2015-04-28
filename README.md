@@ -572,6 +572,8 @@ The config passed to the `request_run` function may have any or all of these fie
             "domain": ".example.com"
         }
     ],
+    "httpUserName": "my-username",
+    "httpPassword": "my-password",
     "injectCss": ".my-css-rules-here { display: none; }",
     "injectJs": "document.getElementById('foobar').innerText = 'foo';",
     "resourcesToIgnore": ["www.google-analytics.com", "bad.example.com"],
