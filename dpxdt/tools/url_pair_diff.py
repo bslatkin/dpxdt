@@ -88,6 +88,12 @@ class UrlPairDiff(workers.WorkflowItem):
             config_dict['injectCss'] = FLAGS.inject_css
         if FLAGS.inject_js:
             config_dict['injectJs'] = FLAGS.inject_js
+
+        if FLAGS.http_username:
+            config_dict['httpUserName'] = FLAGS.http_username
+        if FLAGS.http_password:
+            config_dict['httpPassword'] = FLAGS.http_password
+
         config_data = json.dumps(config_dict)
 
         url_parts = urlparse.urlparse(new_url)

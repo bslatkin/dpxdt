@@ -319,6 +319,22 @@ You should use:
 --upload_build_id=500
 ```
 
+If your web site has got HTTP Basic authentication, then you can add the username and password with additionals parameters
+http_username and http_password. Previous example would be:
+
+```
+./dpxdt/tools/site_diff.py \
+    --upload_build_id=1234 \
+    --release_server_prefix=https://my-dpxdt-apiserver.example.com/api \
+    --release_client_id=<your api key> \
+    --release_client_secret=<your api secret> \
+    --crawl_depth=1 \
+    --http_username=user \
+    --http_password=pass \
+    http://www.example.com/my/website/here
+```
+
+
 ### Pair Diff
 
 Another example tool is [available in the repo](./dpxdt/tools/url_pair_diff.py) called Pair Diff. Unlike Site Diff, which establishes a baseline on each subsequent run, Pair Diff takes two live URLs and compares them. This is useful when you have a live version and staging version of your site both available at the same time and can do screenshots of both independently.
@@ -343,6 +359,25 @@ Here's an example run of Pair Diff against a real API server:
     http://www.example.com/my/before/page \
     http://www.example.com/my/after/page
 ```
+
+Same as site_diff.py, if your web sites have got HTTP Basic authentication, then you can add the username and password with additionals parameters
+http_username and http_password. Note that the password must be the same for both web sites (or one of them must have no authentication enabled for example).
+
+Previous example would be:
+
+```
+./dpxdt/tools/url_pair_diff.py \
+    --upload_build_id=1234 \
+    --release_server_prefix=https://my-dpxdt-apiserver.example.com/api \
+    --release_client_id=<your api key> \
+    --release_client_secret=<your api secret> \
+    --http_username=user \
+    --http_password=pass \
+    http://www.example.com/my/before/page \
+    http://www.example.com/my/after/page
+```
+
+
 
 ### Diff My Images
 

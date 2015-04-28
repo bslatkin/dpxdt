@@ -58,3 +58,12 @@ gflags.DEFINE_integer(
 gflags.DEFINE_integer(
     'height', 1024,
     'The viewport height, in pixels')
+
+gflags.DEFINE_string(
+    'http_username', None,
+    'Username if site is protected by an HTTP basic authentication.')
+
+gflags.DEFINE_string(
+    'http_password', None,
+    'Password if site is protected by an HTTP basic authentication')
+
