@@ -337,7 +337,7 @@ class WaitForUrlWorkflowItem(workers.WorkflowItem):
 
             yield heartbeat('Request for %s succeeded, continuing with tests...' % url)
             return
-        except requests.ConnectionError, NotReadyError:
+        except (requests.ConnectionError, NotReadyError):
             now = time.time()
             if now - start_time >= timeout:
                 raise process_worker.TimeoutError()
