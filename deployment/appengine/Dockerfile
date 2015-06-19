@@ -14,7 +14,9 @@ RUN apt-get install -y \
     imagemagick \
     libfreetype6 \
     libfontconfig \
-    ttf-mscorefonts-installer
+    ttf-mscorefonts-installer \
+    tmpreaper && \
+    sed -i -e 's/^SHOWWARNING/#SHOWWARNING/' /etc/tmpreaper.conf
 
 RUN fc-cache -fv
 
