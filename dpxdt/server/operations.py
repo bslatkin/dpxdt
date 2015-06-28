@@ -43,11 +43,13 @@ def _get_versioned_hash_key(key):
     versioned_key = '%s_version' % key
     version = int(time.time())
     if not cache.add(versioned_key, version):
-        version = cache.get(versioned_key)
-        if version is None:
+        val = cache.get(versioned_key)
+        if val is None:
             logging.error(
                 'Fetching cached version for %r returned None, using %d',
                 versioned_key, version)
+        else:
+            version = val
     return '%s:%d' % (key, version)
 
 
