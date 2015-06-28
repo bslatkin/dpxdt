@@ -108,7 +108,7 @@ Local dpxdt has two modes: `update` and `test`. As we've seen above, `update` sa
 
 For example:
 
-    $ dpdxdt test tests
+    $ dpxdt test tests
     Request for http://localhost:8000/demo.html succeeded, continuing with tests...
     demo: Running webpage capture process
     demo: Resizing reference image
