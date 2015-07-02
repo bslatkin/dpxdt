@@ -331,7 +331,7 @@ class WaitForUrlWorkflowItem(workers.WorkflowItem):
         try:
             url = waitfor['url']
             r = requests.head(url)
-            if r.status_code != 200:
+            if r.status_code not in [200, 301, 302]:
                 yield heartbeat('Request for %s failed (%d)' % (url, r.status_code))
                 raise NotReadyError()
 
