@@ -51,14 +51,18 @@ class WorkItem(object):
         pass
 
     @staticmethod
-    def _print_tree(obj):
+    def _print_tree(obj, depth):
         if isinstance(obj, dict):
             result = []
             for key, value in obj.iteritems():
-                result.append('%s: %s' % (key, WorkItem._print_tree(value)))
+                result.append('%s: %s' % (key, WorkItem._print_tree(value, depth - 1)))
             return '{%s}' % ', '.join(result)
         else:
-            value_str = repr(obj)
+            if isinstance(obj, WorkItem):
+                value_str = obj._print_repr(depth - 1)
+            else:
+                value_str = repr(obj)
+                
             if len(value_str) > 100:
                 return '%s...%s' % (value_str[:100], value_str[-1])
             else:
@@ -67,12 +71,28 @@ class WorkItem(object):
     def _get_dict_for_repr(self):
         return self.__dict__
 
-    def __repr__(self):
+    def _print_repr(self, depth):
+        """Print this WorkItem to the given stack depth.
+
+        The depth parameter ensures that we can print WorkItems in
+        arbitrarily long chains without hitting the max stack depth.
+        This can happen with WaitForUrlWorkflowItems, which
+        create long chains of small waits.
+        """
+        if depth <= 0:
+            return '%s.%s#%d' % (
+                self.__class__.__module__,
+                self.__class__.__name__,
+                id(self))
+        
         return '%s.%s(%s)#%d' % (
             self.__class__.__module__,
             self.__class__.__name__,
-            self._print_tree(self._get_dict_for_repr()),
+            self._print_tree(self._get_dict_for_repr(), depth - 1),
             id(self))
+
+    def __repr__(self):
+        return self._print_repr(3)
 
     def check_result(self):
         # TODO: For WorkflowItems, remove generator.throw(*item.error) from
