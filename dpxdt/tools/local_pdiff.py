@@ -289,11 +289,17 @@ class SetupStep(object):
         # order to avoid this, we make the shell script its own process group.
         # See http://stackoverflow.com/a/4791612/388951
         with open(log_file, 'a') as output_file:
-            self._setup_proc = subprocess.Popen(['bash', setup_file],
-                stderr=subprocess.STDOUT,
-                stdout=output_file,
-                close_fds=True,
-                preexec_fn=os.setsid)
+            if sys.platform == 'win32':
+                self._setup_proc = subprocess.Popen(['bash', setup_file],
+                    stderr=subprocess.STDOUT,
+                    stdout=output_file,
+                    creationflags=0x208)
+            else:
+                self._setup_proc = subprocess.Popen(['bash', setup_file],
+                    stderr=subprocess.STDOUT,
+                    stdout=output_file,
+                    close_fds=True, #not works in windows
+                    preexec_fn=os.setsid) #not works in windows
 
         return {'script': setup_file, 'log': log_file}
 
@@ -301,7 +307,10 @@ class SetupStep(object):
         if not self._setup_proc: return
         if self._setup_proc.pid > 0:
             # TODO: send SIGKILL after 5 seconds?
-            os.killpg(self._setup_proc.pid, signal.SIGTERM)
+            if sys.platform == 'win32':
+                os.kill(self._setup_proc.pid, signal.CTRL_C_EVENT)
+            else:
+                os.killpg(self._setup_proc.pid, signal.SIGTERM)
             self._setup_proc.wait()
 
 
