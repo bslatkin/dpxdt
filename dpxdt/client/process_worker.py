@@ -19,6 +19,7 @@ import Queue
 import logging
 import subprocess
 import time
+import sys
 
 # Local Libraries
 import gflags
@@ -60,11 +61,18 @@ class ProcessWorkflow(workers.WorkflowItem):
             args = self.get_args()
             LOGGER.info('item=%r Running subprocess: %r', self, args)
             try:
-                process = subprocess.Popen(
-                    args,
-                    stderr=subprocess.STDOUT,
-                    stdout=output_file,
-                    close_fds=True)
+                if sys.platform == 'win32':
+                    process = subprocess.Popen(
+                        args,
+                        stderr=subprocess.STDOUT,
+                        stdout=output_file,
+                        creationflags=0x208)
+                else:
+                    process = subprocess.Popen(
+                        args,
+                        stderr=subprocess.STDOUT,
+                        stdout=output_file,
+                        close_fds=True)
             except:
                 LOGGER.error('item=%r Failed to run subprocess: %r',
                              self, args)
