@@ -67,13 +67,13 @@ gflags.DEFINE_spaceseplist(
 ABSOLUTE_URL_REGEX = r"(?P<url>(http(s?):)?//[^\"'> \t]+)"
 # URLs that are relative to the base of the current hostname.
 BASE_RELATIVE_URL_REGEX = (
-    r"/(?!(/)|(http(s?)://)|(url\())(?P<url>[^\"'> \t]*)")
+    r"/(?!(/)|(mailto:)|(http(s?)://)|(url\())(?P<url>[^\"'> \t]*)")
 # URLs that have '../' or './' to start off their paths.
 TRAVERSAL_URL_REGEX = (
     r"(?P<relative>\.(\.)?)/(?!(/)|"
     r"(http(s?)://)|(url\())(?P<url>[^\"'> \t]*)")
 # URLs that are in the same directory as the requested URL.
-SAME_DIR_URL_REGEX = r"(?!(/)|(http(s?)://)|(#)|(url\())(?P<url>[^\"'> \t]+)"
+SAME_DIR_URL_REGEX = r"(?!(/)|(mailto:)|(http(s?)://)|(#)|(url\())(?P<url>[^\"'> \t]+)"
 # URL matches the root directory.
 ROOT_DIR_URL_REGEX = r"(?!//(?!>))/(?P<url>)(?=[ \t\n]*[\"'> /])"
 # Start of a tag using 'src' or 'href'
