@@ -337,14 +337,12 @@ class HtmlRewritingTest(unittest.TestCase):
             test('http://www.example.com/relative-with/some-'
                  '(parenthesis%20here)'))
 
+        self.assertIsNone(test('mailto:bob@example.com'))
+
         # Known bad results
         self.assertEquals(
             'http://www.example.com/my-url/ftp://bob@www.example.com/',
             test('ftp://bob@www.example.com/'))
-
-        self.assertEquals(
-            'http://www.example.com/my-url/mailto:bob@example.com',
-            test('mailto:bob@example.com'))
 
         self.assertEquals(
             'http://www.example.com/my-url/javascript:runme()',
