@@ -195,6 +195,12 @@ class FetchThread(workers.WorkerThread):
     def handle_item(self, item):
         start_time = time.time()
 
+        # For security reasons, don't allow any fetches of file URLs.
+        if item.url.startswith('file:'):
+            item.status_code = 403
+            LOGGER.debug('Blocking fetch of URL with file scheme: %r', item.url)
+            return item
+
         if item.post is not None:
             adjusted_data = {}
             use_form_data = False

@@ -437,15 +437,32 @@ class WorkflowThreadTest(unittest.TestCase):
         self.assertEquals('Waited for all of them', work.result)
 
 
+class FetchWorkerTest(unittest.TestCase):
+    """Tests for the FetchWorker."""
+
+    def setUp(self):
+        """Sets up the test harness."""
+        self.input_queue = Queue.Queue()
+        self.output_queue = Queue.Queue()
+        self.worker = fetch_worker.FetchThread(self.input_queue, self.output_queue)
+
+    def testForbiddenScheme(self):
+        """Tests that some schemes are not allowed."""
+        self.worker.start()
+        self.input_queue.put(fetch_worker.FetchItem('file:///etc/passwd'))
+        time.sleep(0.1)
+        result = self.output_queue.get()
+        self.assertEquals(403, result.status_code)
+
+
 class TimerThreadTest(unittest.TestCase):
     """Tests for the TimerThread."""
 
     def setUp(self):
-        """Tests setting up the test harness."""
+        """Sets up the test harness."""
         self.timer_queue = Queue.Queue()
         self.output_queue = Queue.Queue()
-        self.worker = timer_worker.TimerThread(
-            self.timer_queue, self.output_queue)
+        self.worker = timer_worker.TimerThread(self.timer_queue, self.output_queue)
 
     def testSimple(self):
         """Tests simple waiting."""
