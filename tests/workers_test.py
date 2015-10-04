@@ -27,6 +27,7 @@ FLAGS = gflags.FLAGS
 
 # Local modules
 from dpxdt.client import workers
+from dpxdt.client import fetch_worker
 from dpxdt.client import timer_worker
 
 
@@ -434,49 +435,6 @@ class WorkflowThreadTest(unittest.TestCase):
         self.assertTrue(work is finished)
         finished.check_result()
         self.assertEquals('Waited for all of them', work.result)
-
-
-class TimerThreadTest(unittest.TestCase):
-    """Tests for the TimerThread."""
-
-    def setUp(self):
-        """Sets up the test harness."""
-        self.timer_queue = Queue.Queue()
-        self.output_queue = Queue.Queue()
-        self.worker = timer_worker.TimerThread(self.timer_queue, self.output_queue)
-
-    def testSimple(self):
-        """Tests simple waiting."""
-        self.worker.start()
-        one = timer_worker.TimerItem(0.8)
-        two = timer_worker.TimerItem(0.5)
-        three = timer_worker.TimerItem(0.1)
-
-        # T = 0, one = 0
-        begin = time.time()
-        self.timer_queue.put(one)
-        time.sleep(0.2)
-        # T = 0.2, one = 0.2, two = 0
-        self.timer_queue.put(two)
-        time.sleep(0.2)
-        # T = 0.4, one = 0.4, two = 0.2
-        self.timer_queue.put(three)
-        time.sleep(0.2)
-        # T = 0.6, one = 0.6, two = 0.4, three = 0.1 ready!
-        output_three = self.output_queue.get()
-        time.sleep(0.1)
-        # T = 0.7, one = 0.7, two = 0.5 ready!
-        output_two = self.output_queue.get()
-        # T = 0.8, one = 0.8 ready!
-        output_one = self.output_queue.get()
-        end = time.time()
-
-        self.assertEquals(one.delay_seconds, output_one.delay_seconds)
-        self.assertEquals(two.delay_seconds, output_two.delay_seconds)
-        self.assertEquals(three.delay_seconds, output_three.delay_seconds)
-
-        elapsed = end - begin
-        self.assertTrue(1.0 > elapsed > 0.7)
 
 
 def main(argv):
