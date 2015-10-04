@@ -30,6 +30,8 @@ from dpxdt.client import fetch_worker
 from dpxdt.client import queue_worker
 from dpxdt.client import timer_worker
 from dpxdt.client import workers
+from dpxdt.server import db
+from dpxdt.server import work_queue
 from dpxdt.tools import run_server
 
 # Test-only modules
@@ -50,8 +52,8 @@ def setUpModule():
 
 
 class TestQueueWorkflow(workers.WorkflowItem):
-    def run(self):
-        pass
+    def run(self, foo=None, bar=None, baz=None, heartbeat=None):
+        yield heartbeat('Inside the workflow!')
 
 
 class RemoteQueueWorkflowTest(unittest.TestCase):
@@ -59,6 +61,8 @@ class RemoteQueueWorkflowTest(unittest.TestCase):
 
     def setUp(self):
         """Sets up the test harness."""
+        FLAGS.queue_idle_poll_seconds = 0.01
+        FLAGS.queue_busy_poll_seconds = 0.01
         self.coordinator = workers.get_coordinator()
         fetch_worker.register(self.coordinator)
         timer_worker.register(self.coordinator)
@@ -71,8 +75,16 @@ class RemoteQueueWorkflowTest(unittest.TestCase):
         # Nothing should be pending in the coordinator
         self.assertEquals(0, len(self.coordinator.pending))
 
-    def testQueue(self):
-        """TODO"""
+    def testLeaseAndFinish(self):
+        """Tests leasing tasks and finishing them."""
+        task_ids = []
+        for i in xrange(10):
+            next_id = work_queue.add(
+                TEST_QUEUE,
+                payload={'foo': i, 'bar': 5.5, 'baz': 'banana'})
+            task_ids.append(next_id)
+        db.session.commit()
+
         item = queue_worker.RemoteQueueWorkflow(
             TEST_QUEUE,
             TestQueueWorkflow,
@@ -83,7 +95,10 @@ class RemoteQueueWorkflowTest(unittest.TestCase):
         time.sleep(1)
         item.stop()
         self.coordinator.wait_one()
-        self.fail()
+
+        for task_id in task_ids:
+            found = work_queue.WorkQueue.query.get((task_id, TEST_QUEUE))
+            self.assertEquals(work_queue.WorkQueue.DONE, found.status)
 
 
 def main(argv):
