@@ -198,7 +198,7 @@ class RemoteQueueWorkflow(workers.WorkflowItem):
         queue_url = '%s/%s' % (FLAGS.queue_server_prefix, queue_name)
         outstanding = []
 
-        while self.live:
+        while not self.interrupted:
             next_count = max_tasks - len(outstanding)
             next_tasks = []
 

@@ -127,14 +127,17 @@ class SiteDiffTest(unittest.TestCase):
             if path == '/':
                 return 200, 'text/html', '<h1>Hello world!</h1>'
 
+        logging.info('Creating first release')
         site_diff.real_main(
             start_url=test1.server_prefix + '/',
             upload_build_id=self.build_id,
             upload_release_name=self.release_name)
 
+        logging.info('Waiting for first release')
         release = wait_for_release(self.build_id, self.release_name)
 
         # Verify the first screenshot worked and its status can load.
+        logging.info('Checking first screenshot')
         resp = self.client.get(
             '/release?id=%d&name=%s&number=%d' % (
                 self.build_id, release.name, release.number),
@@ -144,6 +147,7 @@ class SiteDiffTest(unittest.TestCase):
         self.assertIn('Diff not required', resp.data)
 
         # Mark the release as good.
+        logging.info('Marking first release as good')
         resp = self.client.post(
             '/release',
             data=dict(
@@ -160,14 +164,17 @@ class SiteDiffTest(unittest.TestCase):
             if path == '/':
                 return 200, 'text/html', '<h1>Hello again!</h1>'
 
+        logging.info('Creating second release')
         site_diff.real_main(
             start_url=test2.server_prefix + '/',
             upload_build_id=self.build_id,
             upload_release_name=self.release_name)
 
+        logging.info('Waiting for second release')
         release = wait_for_release(self.build_id, self.release_name)
 
         # Verify a diff was computed and found.
+        logging.info('Checking second screenshot has a diff')
         resp = self.client.get(
             '/release?id=%d&name=%s&number=%d' % (
                 self.build_id, release.name, release.number),
@@ -177,17 +184,20 @@ class SiteDiffTest(unittest.TestCase):
         self.assertIn('1 failure', resp.data)
         self.assertIn('Diff found', resp.data)
 
-        # Create the second release.
+        # Create the third release.
+        logging.info('Creating third release')
         site_diff.real_main(
             start_url=test1.server_prefix + '/',
             upload_build_id=self.build_id,
             upload_release_name=self.release_name)
 
+        logging.info('Waiting for third release')
         release = wait_for_release(self.build_id, self.release_name)
         test1.shutdown()
         test2.shutdown()
 
         # No diff found.
+        logging.info('Checking third screenshot has no diff')
         resp = self.client.get(
             '/release?id=%d&name=%s&number=%d' % (
                 self.build_id, release.name, release.number),
@@ -358,7 +368,7 @@ def main(argv):
         print '%s\nUsage: %s ARGS\n%s' % (e, sys.argv[0], FLAGS)
         sys.exit(1)
 
-    logging.getLogger().setLevel(logging.DEBUG)
+    test_utils.debug_log_everything()
     unittest.main(argv=argv)
 
 

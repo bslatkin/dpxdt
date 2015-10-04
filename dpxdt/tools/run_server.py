@@ -67,8 +67,8 @@ def run_workers():
     pdiff_worker.register(coordinator)
     timer_worker.register(coordinator)
     coordinator.start()
-    return coordinator
     logging.info('Workers started')
+    return coordinator
 
 
 def main(block=True):

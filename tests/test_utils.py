@@ -67,6 +67,7 @@ def start_server():
 
 
 def debug_log_everything():
-    for logger in logging.Logger.manager.loggerDict.itervalues():
-        if isinstance(logger, logging.Logger):
-            logger.setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.DEBUG)
+    for name in logging.Logger.manager.loggerDict.keys():
+        logger = logging.getLogger(name)
+        logger.setLevel(logging.DEBUG)

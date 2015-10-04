@@ -179,8 +179,9 @@ class WorkflowItem(WorkItem):
     the WorkItems returned by yield statements. Yield a list of WorkItems
     to do them in parallel. The first error encountered for the whole list
     will be raised if there's an exception. If the run() generator runs
-    indefinitely, use the 'live' instance variable to see if the workflow
-    should stop due to an outside signal (delivered via the stop() method).
+    indefinitely, use the 'interrupted' instance variable to see if the
+    workflow should stop due to an outside signal (delivered via the stop()
+    method).
     """
 
     # Allow these value to be assigned or overridden by a sub-class @property.
@@ -191,13 +192,13 @@ class WorkflowItem(WorkItem):
         WorkItem.__init__(self)
         self.args = args
         self.kwargs = kwargs
-        self.live = True
+        self.interrupted = False
 
     def run(self, *args, **kwargs):
         raise NotImplemented
 
     def stop(self):
-        self.live = False
+        self.interrupted = True
 
 
 class WaitAny(object):
@@ -365,7 +366,7 @@ class PendingBarriers(object):
         # This is a WorkItem from a worker thread that has finished and
         # needs to be reinjected into a WorkflowItem generator.
         barrier = self.pending.pop(item, None)
-        if not barrier:
+        if barrier is None:
             # Item was already finished in another barrier, or was
             # fire-and-forget and never part of a barrier; ignore it.
             return None
@@ -521,7 +522,7 @@ class WorkflowThread(WorkerThread):
             item = None
         else:
             barrier = self.pending.dequeue(item)
-            if not barrier:
+            if barrier is None:
                 LOGGER.debug('Could not find barrier for finished item=%r',
                              item)
                 return None

@@ -92,10 +92,11 @@ class RemoteQueueWorkflowTest(unittest.TestCase):
             wait_seconds=0.01)
         item.root = True
         self.coordinator.input_queue.put(item)
-        time.sleep(1)
+        time.sleep(2)
         item.stop()
         self.coordinator.wait_one()
 
+        db.session.flush()
         for task_id in task_ids:
             found = work_queue.WorkQueue.query.get((task_id, TEST_QUEUE))
             self.assertEquals(work_queue.WorkQueue.DONE, found.status)
