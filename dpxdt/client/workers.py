@@ -375,9 +375,9 @@ class PendingBarriers(object):
             # More work to do and no error seen. Keep waiting.
             return None
 
+        # The barrier has been fulfilled one way or another. Clear out any
+        # other pending parts of the barrier so they don't trigger again.
         for work in barrier:
-            # The barrier has been fulfilled one way or another. Clear out any
-            # other pending parts of the barrier so they don't trigger again.
             self.pending.pop(work, None)
 
         return barrier
