@@ -306,6 +306,83 @@ class Barrier(list):
             return self[0]
 
 
+class PendingBarriers(object):
+    """Contains a set of Barrier objects that are waiting for WorkItems."""
+
+    def __init__(self):
+        self.pending = {}
+        self.work_map = {}
+
+    def __len__(self):
+        return len(self.pending)
+
+    def register(self, work_type, queue):
+        self.work_map[work_type] = queue
+
+    def _find_target_queue(self, item):
+        # Try to find a queue by the work item's class, then by its
+        # super class, and so on.
+        next_types = [type(item)]
+        while next_types:
+            try_types = next_types[:]
+            next_types[:] = []
+            for current_type in try_types:
+                target_queue = self.work_map.get(current_type)
+                if target_queue:
+                    next_types = []
+                    break
+                next_types.extend(current_type.__bases__)
+
+        assert target_queue, 'Could not find queue to handle %r' % item
+
+        return target_queue
+
+    def enqueue(self, barrier):
+        for item in barrier:
+            if item.done:
+                # Don't reenqueue items that are already done.
+                continue
+
+            target_queue = self._find_target_queue(item)
+
+            if not item.fire_and_forget:
+                self.pending[item] = barrier
+
+            target_queue.put(item)
+
+        # If the barrier has no oustanding items, immediately progress the
+        # source workflow by reinjecting the barrier itself.
+        if not barrier.outstanding:
+            target_queue = self._find_target_queue(barrier.workflow)
+            target_queue.put(barrier)
+
+    def dequeue(self, item):
+        # Barriers dequeue to themselves. This should only be used for
+        # barriers that have no outstanding items remaining.
+        if isinstance(item, Barrier):
+            return item
+
+        # This is a WorkItem from a worker thread that has finished and
+        # needs to be reinjected into a WorkflowItem generator.
+        barrier = self.pending.pop(item, None)
+        if not barrier:
+            # Item was already finished in another barrier, or was
+            # fire-and-forget and never part of a barrier; ignore it.
+            return None
+
+        if barrier.outstanding and not barrier.error:
+            # More work to do and no error seen. Keep waiting.
+            return None
+
+        for work in barrier:
+            # The barrier has been fulfilled one way or another. Clear out any
+            # other pending parts of the barrier so they don't trigger again.
+            self.pending.pop(work, None)
+
+        return barrier
+
+
+
 class Return(Exception):
     """Raised in WorkflowItem.run to return a result to the caller."""
 
@@ -332,8 +409,7 @@ class WorkflowThread(WorkerThread):
                 if any.
         """
         WorkerThread.__init__(self, input_queue, output_queue)
-        self.pending = {}
-        self.work_map = {}
+        self.pending = PendingBarriers()
         self.worker_threads = []
         self.register(WorkflowItem, input_queue)
 
@@ -384,52 +460,55 @@ class WorkflowThread(WorkerThread):
                 enqueued when they are yielded by WorkflowItems being run by
                 this worker.
         """
-        self.work_map[work_type] = queue
+        self.pending.register(work_type, queue)
 
-    def enqueue_barrier(self, barrier):
-        for item in barrier:
-            if item.done:
-                # Don't reenqueue items that are already done.
-                continue
+    def _progress_workflow(self, item, workflow, generator):
+        try:
+            try:
+                error = item is not None and item.error
+                if error:
+                    LOGGER.debug('Throwing workflow=%r error=%r',
+                                 workflow, error)
+                    next_item = generator.throw(*error)
+                elif isinstance(item, WorkflowItem) and item.done:
+                    LOGGER.debug(
+                        'Sending workflow=%r finished item=%r',
+                        workflow, item)
+                    next_item = generator.send(item.result)
+                else:
+                    LOGGER.debug(
+                        'Sending workflow=%r finished item=%r',
+                        workflow, item)
+                    next_item = generator.send(item)
+            except StopIteration:
+                LOGGER.debug('Exhausted workflow=%r', workflow)
+                workflow.done = True
+            except Return as e:
+                LOGGER.debug('Return from workflow=%r result=%r',
+                             workflow, e.result)
+                workflow.done = True
+                workflow.result = e.result
+            except Exception as e:
+                LOGGER.exception(
+                    'Error in workflow=%r from item=%r, error=%r',
+                    workflow, item, error)
+                workflow.done = True
+                workflow.error = sys.exc_info()
+            else:
+                barrier = Barrier(workflow, generator, next_item)
+                self.pending.enqueue(barrier)
+        finally:
+            if workflow.done:
+                if workflow.root:
+                    # Root workflow finished. This goes to the output
+                    # queue so it can be received by the main thread.
+                    return workflow
+                else:
+                    # Sub-workflow finished. Reinject it into the
+                    # workflow so a pending parent can catch it.
+                    self.input_queue.put(workflow)
 
-            # Try to find a queue by the work item's class, then by its
-            # super class, and so on.
-            next_types = [type(item)]
-            while next_types:
-                try_types = next_types[:]
-                next_types[:] = []
-                for current_type in try_types:
-                    target_queue = self.work_map.get(current_type)
-                    if target_queue:
-                        next_types = []
-                        break
-                    next_types.extend(current_type.__bases__)
-
-            assert target_queue, 'Could not find queue to handle %r' % item
-
-            if not item.fire_and_forget:
-                self.pending[item] = barrier
-            target_queue.put(item)
-
-    def dequeue_barrier(self, item):
-        # This is a WorkItem from a worker thread that has finished and
-        # needs to be reinjected into a WorkflowItem generator.
-        barrier = self.pending.pop(item, None)
-        if not barrier:
-            # Item was already finished in another barrier, or was
-            # fire-and-forget and never part of a barrier; ignore it.
-            return None
-
-        if barrier.outstanding and not barrier.error:
-            # More work to do and no error seen. Keep waiting.
-            return None
-
-        for work in barrier:
-            # The barrier has been fulfilled one way or another. Clear out any
-            # other pending parts of the barrier so they don't trigger again.
-            self.pending.pop(work, None)
-
-        return barrier
+        return None
 
     def handle_item(self, item):
         if isinstance(item, WorkflowItem) and not item.done:
@@ -441,67 +520,16 @@ class WorkflowThread(WorkerThread):
                                 item, str(e)))
             item = None
         else:
-            barrier = self.dequeue_barrier(item)
+            barrier = self.pending.dequeue(item)
             if not barrier:
                 LOGGER.debug('Could not find barrier for finished item=%r',
                              item)
-                return
+                return None
             item = barrier.get_item()
             workflow = barrier.workflow
             generator = barrier.generator
 
-        while True:
-            try:
-                try:
-                    error = item is not None and item.error
-                    if error:
-                        LOGGER.debug('Throwing workflow=%r error=%r',
-                                     workflow, error)
-                        next_item = generator.throw(*error)
-                    elif isinstance(item, WorkflowItem) and item.done:
-                        LOGGER.debug(
-                            'Sending workflow=%r finished item=%r',
-                            workflow, item)
-                        next_item = generator.send(item.result)
-                    else:
-                        LOGGER.debug(
-                            'Sending workflow=%r finished item=%r',
-                            workflow, item)
-                        next_item = generator.send(item)
-                except StopIteration:
-                    LOGGER.debug('Exhausted workflow=%r', workflow)
-                    workflow.done = True
-                except Return as e:
-                    LOGGER.debug('Return from workflow=%r result=%r',
-                                 workflow, e.result)
-                    workflow.done = True
-                    workflow.result = e.result
-                except Exception as e:
-                    LOGGER.exception(
-                        'Error in workflow=%r from item=%r, error=%r',
-                        workflow, item, error)
-                    workflow.done = True
-                    workflow.error = sys.exc_info()
-            finally:
-                if workflow.done:
-                    if workflow.root:
-                        # Root workflow finished. This goes to the output
-                        # queue so it can be received by the main thread.
-                        return workflow
-                    else:
-                        # Sub-workflow finished. Reinject it into the
-                        # workflow so a pending parent can catch it.
-                        self.input_queue.put(workflow)
-                        return
-
-            barrier = Barrier(workflow, generator, next_item)
-            self.enqueue_barrier(barrier)
-            if barrier.outstanding:
-                break
-
-            # If a returned barrier has no oustanding parts, immediately
-            # progress the workflow.
-            item = barrier.get_item()
+        return self._progress_workflow(item, workflow, generator)
 
 
 class PrintWorkflow(WorkflowItem):

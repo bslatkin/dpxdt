@@ -30,6 +30,9 @@ from dpxdt.client import workers
 from dpxdt.client import fetch_worker
 from dpxdt.client import timer_worker
 
+# Test-only imports
+import test_utils
+
 
 class EchoThread(workers.WorkerThread):
     def handle_item(self, item):
@@ -95,7 +98,6 @@ class GeneratorExceptionReraiseParent(workers.WorkflowItem):
 class RootGeneratorExceptionWorkflow(workers.WorkflowItem):
     def run(self):
         try:
-            print 'up here'
             yield GeneratorExceptionReraiseParent()
         except Exception, e:
             assert str(e) == 'Another exception', str(e)
@@ -244,10 +246,6 @@ class RootFireAndForgetMultipleExceptionWorkflow(workers.WorkflowItem):
         assert jobs[0].done
         assert jobs[1].done is False
         assert jobs[2].done is False
-
-        # for i, job in enumerate(jobs):
-        #     print '%d is done %r' % (i, job.done)
-        #     # assert str(job.error[1]) == 'Dying on 99'
 
         yield timer_worker.TimerItem(1.5)
 
@@ -438,7 +436,7 @@ class WorkflowThreadTest(unittest.TestCase):
 
 
 def main(argv):
-    logging.getLogger().setLevel(logging.DEBUG)
+    test_utils.debug_log_everything()
     argv = FLAGS(argv)
     unittest.main(argv=argv)
 

@@ -64,3 +64,9 @@ def start_server():
     server_thread.start()
 
     return server_thread
+
+
+def debug_log_everything():
+    for logger in logging.Logger.manager.loggerDict.itervalues():
+        if isinstance(logger, logging.Logger):
+            logger.setLevel(logging.DEBUG)
