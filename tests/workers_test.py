@@ -26,7 +26,6 @@ import gflags
 FLAGS = gflags.FLAGS
 
 # Local modules
-from dpxdt.client import fetch_worker
 from dpxdt.client import workers
 from dpxdt.client import timer_worker
 
@@ -435,24 +434,6 @@ class WorkflowThreadTest(unittest.TestCase):
         self.assertTrue(work is finished)
         finished.check_result()
         self.assertEquals('Waited for all of them', work.result)
-
-
-class FetchWorkerTest(unittest.TestCase):
-    """Tests for the FetchWorker."""
-
-    def setUp(self):
-        """Sets up the test harness."""
-        self.input_queue = Queue.Queue()
-        self.output_queue = Queue.Queue()
-        self.worker = fetch_worker.FetchThread(self.input_queue, self.output_queue)
-
-    def testForbiddenScheme(self):
-        """Tests that some schemes are not allowed."""
-        self.worker.start()
-        self.input_queue.put(fetch_worker.FetchItem('file:///etc/passwd'))
-        time.sleep(0.1)
-        result = self.output_queue.get()
-        self.assertEquals(403, result.status_code)
 
 
 class TimerThreadTest(unittest.TestCase):
