@@ -135,7 +135,7 @@ class WorkerThread(threading.Thread):
 
             try:
                 next_item = self.handle_item(item)
-            except Exception, e:
+            except Exception as e:
                 item.error = sys.exc_info()
                 LOGGER.exception('%s error item=%r', self.worker_name, item)
                 self.output_queue.put(item)
@@ -436,7 +436,7 @@ class WorkflowThread(WorkerThread):
             workflow = item
             try:
                 generator = item.run(*item.args, **item.kwargs)
-            except TypeError, e:
+            except TypeError as e:
                 raise TypeError('Bad workflow function item=%r error=%s' % (
                                 item, str(e)))
             item = None
@@ -471,12 +471,12 @@ class WorkflowThread(WorkerThread):
                 except StopIteration:
                     LOGGER.debug('Exhausted workflow=%r', workflow)
                     workflow.done = True
-                except Return, e:
+                except Return as e:
                     LOGGER.debug('Return from workflow=%r result=%r',
                                  workflow, e.result)
                     workflow.done = True
                     workflow.result = e.result
-                except Exception, e:
+                except Exception as e:
                     LOGGER.exception(
                         'Error in workflow=%r from item=%r, error=%r',
                         workflow, item, error)
