@@ -295,7 +295,7 @@ class WorkflowThreadTest(unittest.TestCase):
     def setUp(self):
         """Sets up the test harness."""
         FLAGS.fetch_frequency = 100
-        FLAGS.polltime = 0.01
+        FLAGS.polltime = 1
         self.coordinator = workers.get_coordinator()
 
         self.echo_queue = Queue.Queue()

@@ -361,6 +361,8 @@ class PendingBarriers(object):
         # If the barrier has no oustanding items, immediately progress the
         # source workflow by reinjecting the barrier itself.
         if not barrier.outstanding:
+            LOGGER.debug('Immediately re-enqueuing finished barrier: %r',
+                         barrier)
             target_queue = self._find_target_queue(barrier.workflow)
             target_queue.put(barrier)
 
