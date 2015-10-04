@@ -62,7 +62,7 @@ class WorkItem(object):
                 value_str = obj._print_repr(depth - 1)
             else:
                 value_str = repr(obj)
-                
+
             if len(value_str) > 100:
                 return '%s...%s' % (value_str[:100], value_str[-1])
             else:
@@ -84,7 +84,7 @@ class WorkItem(object):
                 self.__class__.__module__,
                 self.__class__.__name__,
                 id(self))
-        
+
         return '%s.%s(%s)#%d' % (
             self.__class__.__module__,
             self.__class__.__name__,
@@ -178,7 +178,9 @@ class WorkflowItem(WorkItem):
     into the run() generator at the yield point. Results will be available on
     the WorkItems returned by yield statements. Yield a list of WorkItems
     to do them in parallel. The first error encountered for the whole list
-    will be raised if there's an exception.
+    will be raised if there's an exception. If the run() generator runs
+    indefinitely, use the 'live' instance variable to see if the workflow
+    should stop due to an outside signal (delivered via the stop() method).
     """
 
     # Allow these value to be assigned or overridden by a sub-class @property.
@@ -189,9 +191,13 @@ class WorkflowItem(WorkItem):
         WorkItem.__init__(self)
         self.args = args
         self.kwargs = kwargs
+        self.live = True
 
     def run(self, *args, **kwargs):
         raise NotImplemented
+
+    def stop(self):
+        self.live = False
 
 
 class WaitAny(object):

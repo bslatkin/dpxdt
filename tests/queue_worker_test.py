@@ -29,6 +29,29 @@ FLAGS = gflags.FLAGS
 from dpxdt.client import fetch_worker
 from dpxdt.client import queue_worker
 from dpxdt.client import timer_worker
+from dpxdt.client import workers
+from dpxdt.tools import run_server
+
+# Test-only modules
+import test_utils
+
+
+# Will be set by one-time setUp
+server_thread = None
+
+
+TEST_QUEUE = 'test-queue'
+
+
+def setUpModule():
+    """Sets up the environment for testing."""
+    global server_thread
+    server_thread = test_utils.start_server()
+
+
+class TestQueueWorkflow(workers.WorkflowItem):
+    def run(self):
+        pass
 
 
 class RemoteQueueWorkflowTest(unittest.TestCase):
@@ -36,9 +59,6 @@ class RemoteQueueWorkflowTest(unittest.TestCase):
 
     def setUp(self):
         """Sets up the test harness."""
-        FLAGS.fetch_frequency = 100
-        FLAGS.fetch_threads = 1
-        FLAGS.polltime = 0.01
         self.coordinator = workers.get_coordinator()
         fetch_worker.register(self.coordinator)
         timer_worker.register(self.coordinator)
@@ -53,6 +73,16 @@ class RemoteQueueWorkflowTest(unittest.TestCase):
 
     def testQueue(self):
         """TODO"""
+        item = queue_worker.RemoteQueueWorkflow(
+            TEST_QUEUE,
+            TestQueueWorkflow,
+            max_tasks=1,
+            wait_seconds=0.01)
+        item.root = True
+        self.coordinator.input_queue.put(item)
+        time.sleep(1)
+        item.stop()
+        self.coordinator.wait_one()
         self.fail()
 
 
