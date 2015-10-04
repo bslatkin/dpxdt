@@ -18,9 +18,7 @@
 import BaseHTTPServer
 import logging
 import os
-import socket
 import sys
-import tempfile
 import threading
 import time
 import unittest
@@ -39,11 +37,8 @@ from dpxdt.server import models
 from dpxdt.tools import run_server
 from dpxdt.tools import site_diff
 
-
-def get_free_port():
-    sock = socket.socket()
-    sock.bind(('', 0))
-    return sock.getsockname()[1]
+# Test-only modules
+import test_utils
 
 
 # Will be set by one-time setUp
@@ -53,34 +48,7 @@ server_thread = None
 def setUpModule():
     """Sets up the environment for testing."""
     global server_thread
-
-    server_port = get_free_port()
-
-    FLAGS.fetch_frequency = 100
-    FLAGS.fetch_threads = 1
-    FLAGS.phantomjs_timeout = 60
-    FLAGS.polltime = 1
-    FLAGS.queue_idle_poll_seconds = 1
-    FLAGS.queue_busy_poll_seconds = 1
-    FLAGS.queue_server_prefix = (
-        'http://localhost:%d/api/work_queue' % server_port)
-    FLAGS.release_server_prefix = 'http://localhost:%d/api' % server_port
-
-    db_path = tempfile.mktemp(suffix='.db')
-    logging.info('sqlite path used in tests: %s', db_path)
-    server.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
-    db.drop_all()
-    db.create_all()
-
-    server.app.config['CSRF_ENABLED'] = False
-    server.app.config['IGNORE_AUTH'] = True
-    server.app.config['TESTING'] = True
-    run = lambda: server.app.run(debug=False, host='0.0.0.0', port=server_port)
-
-    server_thread = threading.Thread(target=run)
-    server_thread.setDaemon(True)
-    server_thread.start()
-
+    server_thread = test_utils.start_server()
     run_server.run_workers()
 
 
@@ -104,7 +72,7 @@ def wait_for_release(build_id, release_name, timeout_seconds=60):
         if release.status == models.Release.REVIEWING:
             return release
         else:
-            print 'Release status: %s' % release.status
+            logging.info('Release status: %s', release.status)
 
         assert time.time() - start < timeout_seconds, (
             'Timing out waiting for release to enter terminal state')
@@ -137,7 +105,7 @@ def webserver(func):
     thread.daemon = True
     thread.start()
     server.server_prefix = 'http://localhost:%d' % server.server_address[1]
-    print 'Test server started on %s' % server.server_prefix
+    logging.info('Test server started on %s', server.server_prefix)
     return server
 
 
