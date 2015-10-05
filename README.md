@@ -200,9 +200,11 @@ Topics in this section:
 - [How to use Depicted effectively](#how-to-use-depicted-effectively)
 - [Example tools](#example-tools)
 - [The API documentation](#api)
-- [Deployment to App Engine](#deployment)
+- [Deployment to production (Sqlite, App Engine, etc)](#deployment)
 
 ## Running the server locally
+
+**WARNING LABEL**: This is *only* for local development. If you actually want a reliable server that will run for days, see [the section on deployment](#deployment) below.
 
 1. Have a version of [Python 2.7](http://www.python.org/download/releases/2.7/) installed.
 1. Download [PhantomJS](http://phantomjs.org/) for your machine.
@@ -654,6 +656,38 @@ Marks a release candidate as having all runs reported.
 - *results_url*: URL where a release candidates run status can be viewed in a web browser by a build admin.
 
 ## Deployment
+
+### Sqlite instance
+
+Here's how to run a production-grade version of the server on your a machine using sqlite as the database. This will also work on VMs if you set the database location to a persistent filesystem.
+
+1. `cd` into the `deployment` directory:
+1. Run this command:
+
+        make sqlite_deploy
+
+1. Copy the `sqlite_deploy` directory to wherever you want to run the server
+1. `cd` into the `sqlite_deploy` directory
+1. Create a new python virtual environment and activate it:
+
+        virtualenv .
+        source bin/activate
+
+1. Install all dependencies into the environment:
+
+        pip install -r requirements.txt
+        pip install -e .
+
+1. Run the server
+
+        ./run.sh
+
+1. Note that all of the data for the server will live in the `sqlite_deploy` directory in a file named `data.db`.
+1. When you quit the server, don't forget to deactivate your virtual environment:
+
+        deactivate
+
+### App Engine managed VMs
 
 Here's how to deploy to Google App Engine / CloudSQL / Google Compute Engine. This guide is still a little rough.
 

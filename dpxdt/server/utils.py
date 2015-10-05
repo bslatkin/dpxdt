@@ -80,7 +80,7 @@ def jsonify_error(message_or_exception, status_code=400):
     else:
         message = message_or_exception
 
-    logging.debug('Returning status=%d, error message: %s',
+    logging.debug('Returning status=%s, error message: %s',
                   status_code, message)
     response = jsonify(error=message)
     response.status_code = status_code
@@ -153,7 +153,9 @@ def is_production():
     """Returns True if this is the production environment."""
     # TODO: Support other deployment situations.
     return (
-        os.environ.get('SERVER_SOFTWARE', '').startswith('Google App Engine'))
+        os.environ.get('SERVER_SOFTWARE', '').startswith('Google App Engine')
+        or
+        'SQLITE_PRODUCTION' in os.environ)
 
 
 def get_deployment_timestamp():
