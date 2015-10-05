@@ -36,6 +36,11 @@ import test_utils
 
 class EchoThread(workers.WorkerThread):
     def handle_item(self, item):
+        # Wait a context switch before finishing any items. This will make
+        # sure that any fire_and_forget WorkItems are reinjected into the
+        # WorkflowThread before they're marked as 'done' by being handled
+        # in this thread. Without this sleep the workers_tests are flaky.
+        time.sleep(0.1)
         if item.should_die:
             raise Exception('Dying on %d' % item.input_number)
         item.output_number = item.input_number
@@ -148,12 +153,15 @@ class RootWaitAnyExceptionWorkflow(workers.WorkflowItem):
             EchoItem(10),
             EchoItem(33),
         ])
-        assert len([x for x in output if x.done]) == 2
+        assert len([x for x in output if x.done]) == 1
         assert not output[0].done
         assert output[1].done and output[1].output_number == 10
-        assert output[2].done and output[2].output_number == 33
+        assert not output[2].done
 
         yield timer_worker.TimerItem(2)
+
+        assert output[0].done
+        assert output[2].done and output[2].output_number == 33
 
         try:
             yield output
@@ -295,7 +303,7 @@ class WorkflowThreadTest(unittest.TestCase):
     def setUp(self):
         """Sets up the test harness."""
         FLAGS.fetch_frequency = 100
-        FLAGS.polltime = 1
+        FLAGS.polltime = 0.01
         self.coordinator = workers.get_coordinator()
 
         self.echo_queue = Queue.Queue()
@@ -314,8 +322,12 @@ class WorkflowThreadTest(unittest.TestCase):
 
     def tearDown(self):
         """Cleans up the test harness."""
+        # Wait for any remaining work to finish.
+        time.sleep(1)
+
         self.coordinator.stop()
         self.coordinator.join()
+
         # Nothing should be pending in the coordinator
         self.assertEquals(0, len(self.coordinator.pending))
 
