@@ -10,7 +10,7 @@ Depicted is:
 - An [API server and workflow](#depicted-server) for capturing webpage screenshots and automatically generating visual, perceptual difference images.
     - A workflow for teams to coordinate new releases using pdiffs.
     - A client library for integrating the server with existing continuous integration.
-    - Built for portability; server runs on App Engine, behind the firewall, etc.
+    - Built for portability; server runs with SQLite, MySQL, behind the firewall, etc.
 - A wrapper of [PhantomJS](http://phantomjs.org/) for screenshots.
 - Open source, Apache 2.0 licensed.
 - Not a framework, not a religion.
@@ -192,7 +192,7 @@ As the last example shows, you can "mix in" a config and add to it. If you inclu
 
 # Depicted Server
 
-Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it easy to run in your environment. It works with SQLite out of the box right on your laptop. The API server can also run on App Engine. The workers run [ImageMagick](http://www.imagemagick.org/Usage/compare/) and [PhantomJS](http://phantomjs.org/) as subprocesses. I like to run the worker on a cloud VM, but you could run it on your behind a firewall if that's important to you.
+Depicted is written in portable Python. It uses Flask and SQLAlchemy to make it easy to run in your environment. It works with SQLite out of the box right on your laptop. The API server can also run on VMs. The workers run [ImageMagick](http://www.imagemagick.org/Usage/compare/) and [PhantomJS](http://phantomjs.org/) as subprocesses. I like to run the worker on a cloud VM, but you could run it on your behind a firewall if that's important to you.
 
 Topics in this section:
 
@@ -200,7 +200,7 @@ Topics in this section:
 - [How to use Depicted effectively](#how-to-use-depicted-effectively)
 - [Example tools](#example-tools)
 - [The API documentation](#api)
-- [Deployment to production (Sqlite, App Engine, etc)](#deployment)
+- [Deployment to production (Sqlite, etc)](#deployment)
 
 ## Running the server locally
 
@@ -688,121 +688,9 @@ Here's how to run a production-grade version of the server on your a machine usi
     - You may want to install a package like [tmpreaper](https://packages.debian.org/jessie/tmpreaper) to ensure you don't fill up `/tmp` with test images and log files.
     - You may want to run the server under a supervisor like [runit](https://packages.debian.org/jessie/runit) so it's always up.
 
-### App Engine managed VMs
-
-Here's how to deploy to Google App Engine / CloudSQL / Google Compute Engine. This guide is still a little rough.
-
-1. `cd` into the `deployment` directory:
-1. Run this command:
-
-        make appengine_deploy
-
-1. `cd` into the `appengine_deploy` directory
-1. Create a new project on [cloud console](https://console.developers.google.com/project)
-1. In the _APIs & auth / Credentials_ section, create a new OAuth Client ID
-    1. Select "Web application"
-    1. Fill in the _Consent screen_ information as appropriate
-    1. Set _Authorized redirect URIs_ to `https://your-project.appspot.com/oauth2callback`
-    1. Copy the _Client ID_, _Email address_, and _Client secret_ values into corresponding fields in `settings.cfg`
-1. Create a new Cloud SQL instance on cloud console for the project
-    1. Click _Create a MySQL instance_
-    1. Name your DB instance ("main" works well)
-    1. Under _Advanced options_ configure check the box for "Assign an IPv4 address to my Cloud SQL instance"
-    1. Once the instance is up, create a new database ("main" works well)
-    1. Under _Access control / Users_ create a new user; set the name and password
-    1. Under _Access control / Authorization_ add the allowed network of `0.0.0.0/0`
-    1. Update `settings.cfg` with your correct values for `SQLALCHEMY_DATABASE_URI`
-1. Create a Google Cloud Storage bucket on cloud console for the project
-    1. Click _Storage browser_ and create a new bucket
-    1. Name your bucket (your project name works well)
-    1. Create a new folder for images ("artifacts" works well)
-    1. Update `settings.cfg` with your correct values for `GOOGLE_CLOUD_STORAGE_BUCKET`
-1. Create a new service account (this is used to test your config locally)
-    1. Go to the _APIs & auth / Credentials_
-    1. Under _OAuth_ click on "Create new Client ID"
-    1. Choose "Service account" and key type "P12 Key"
-    1. You'll download a file with the suffix `.p12`
-    1. Follow [the directions here](https://cloud.google.com/storage/docs/authentication#converting-the-private-key) to convert this key to a PEM file
-1. Follow the [App Engine Managed VMs getting started guide](https://cloud.google.com/appengine/docs/managed-vms/getting-started) to setup your environment to run the server locally
-1. Run this command to run a local VM. **This will use your production database!** It must point at the secret key PEM file you generated above and use the corresponding service account email address. This will take a little while as it generates a Docker image.
-
-        ./run.sh \
-            --appidentity-email-address=your_account_name@developer.gserviceaccount.com \
-            --appidentity-private-key-path=path/to/pem_file.pem
-
-1. You should see a message like `default: "GET /_ah/start HTTP/1.1" 200`. If you don't, debug the local image with:
-
-        docker ps
-        docker exec <your process> tail /var/log/app_engine/app.log.json
-
-1. You can also clear your Docker image cache and try again with:
-
-        docker images -q | xargs docker rmi
-
-1. Navigate to <http://localhost:5000/_ah/appstats/shell>, login as admin, and initialize the database with this script:
-
-        from dpxdt import server
-        server.db.create_all()
-
-1. Navigate to the local server on <http://localhost:5000>, sign in, and then:
-    1. Create a new build; this will be the master build
-    1. Create an API key for the new build
-1. Make the API key into a super user by navigating to <http://localhost:5000/_ah/appstats/shell> and running this script:
-
-        from dpxdt.server import models
-        from dpxdt.server import db
-
-        a = models.ApiKey.query.get('<client_id_here>')
-        a.superuser = True
-
-        db.session.add(a)
-        db.session.commit()
-
-1. Update `flags.cfg` to match your config
-    1. Set `--release_client_id` to the API client ID you created
-    1. Set `--release_client_secret` to the API client ID you created
-1. Test that everything works locally by creating another build and API key and running this command:
-
-        ./dpxdt/tools/url_pair_diff.py \
-            --upload_build_id=<build number> \
-            --release_server_prefix=http://localhost:5000/api \
-            --release_client_id=<your api key> \
-            --release_client_secret=<your api secret> \
-            http://google.com \
-            http://yahoo.com
-
-1. Screenshots should show up after a minute or two on the URL it spits out. If not, you can look at the app log with
-
-        docker ps
-        docker exec <your process> cat /var/log/app_engine/custom_logs/app.log
-
-1. Update `settings.cfg` to match your config
-    1. Set `SESSION_COOKIE_DOMAIN` to your final deployment location
-    1. Set `SECRET_KEY` to something new and different
-1. Deploy to App Engine with this command
-
-        gcloud auth login --project=<your project>
-        gcloud \
-            --verbosity=debug \
-            --project=<your project> \
-            preview app deploy \
-            combined_vm.yaml
-
-1. Test that everything works in production by doing another URL pair diff; this time, change the `--release_server_prefix` flag to point at your production deployment:
-
-        ./dpxdt/tools/url_pair_diff.py \
-            --upload_build_id=<build number> \
-            --release_server_prefix=https://your-project.appspot.com/api \
-            --release_client_id=<your api key> \
-            --release_client_secret=<your api secret> \
-            http://google.com \
-            http://yahoo.com
-
-And you're done! To deploy updates from HEAD, just repeat the steps from local execution with `./run.sh` all the way down.
-
 ### Upgrading production and migrating your database
 
-TODO: Update this for Managed VM deployment
+TODO: Update this for deployment
 
 Depicted uses [Alembic](https://alembic.readthedocs.org/en/latest/tutorial.html) to migrate production data stored in MySQL. The state of *your* database will be unique to when you last pulled from HEAD.
 
@@ -876,14 +764,3 @@ You'll see what is happening and how long it's taking:
         | 83 | root |                | test | Query   |  236 | copy to tmp table | ALTER TABLE run ADD COLUMN distortion FLOAT |
         | 87 | root |                | test | Query   |    0 | NULL              | show processlist                            |
         +----+------+----------------+------+---------+------+-------------------+---------------------------------------------+
-Eventually the command will finish and drop you back at a shell.
-
-1. Update ```app.yaml``` with a new version name and run this command to deploy the new code on a new non-default version:
-
-        ./appengine_deploy.sh
-
-1. Access the new non-default version on a url like ```https://yourversion-dot-yourappid.appspot.com```. When you login you'll land back on the default version so edit the URL manually to go back to the new version. Then click around. Make sure everything is working!
-
-1. Go to the [Google Cloud Console](http://cloud.google.com/console) for your App Engine app. To to the App Engine section. Go to the versions section. Select your newly deployed version. Click "make default". Confirm that when you load ```yourappid.appspot.com``` (without the explicit version prefix) that you see the new version of the code running.
-
-1. Congratulations, you are done!
