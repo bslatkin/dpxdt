@@ -659,33 +659,34 @@ Marks a release candidate as having all runs reported.
 
 ### Sqlite instance
 
-Here's how to run a production-grade version of the server on your a machine using sqlite as the database. This will also work on VMs if you set the database location to a persistent filesystem.
+Here's how to run a production-grade version of the server on your a machine using sqlite as the database. This will also work on VMs if you put the deployment directory on a persistent filesystem.
 
 1. `cd` into the `deployment` directory:
 1. Run this command:
 
         make sqlite_deploy
 
-1. Copy the `sqlite_deploy` directory to wherever you want to run the server
 1. `cd` into the `sqlite_deploy` directory
-1. Create a new python virtual environment and activate it:
+1. Create a new project on [cloud console](https://console.developers.google.com/project)
+    1. In the _APIs & auth / Credentials_ section, create a new OAuth Client ID
+        1. Select "Web application"
+        1. Fill in the _Consent screen_ information as appropriate
+        1. Set _Authorized redirect URIs_ to `https://your-project.example.com/oauth2callback`
+    1. Copy the _Redirect URI_, _Client ID_, _Email address_, and _Client secret_ values into corresponding fields in `settings.cfg`
+    1. Update the `SESSION_COOKIE_DOMAIN` value in `settings.cfg` to match the _Redirect URI_.
+1. Copy the `sqlite_deploy` directory to wherever you want to run the server
+1. In the `sqlite_deploy` directory on the server, create a new python virtual environment:
 
         virtualenv .
-        source bin/activate
 
-1. Install all dependencies into the environment:
-
-        pip install -r requirements.txt
-        pip install -e .
-
-1. Run the server
+1. Run the server; this may have to run as root because it uses port 80 by default:
 
         ./run.sh
 
-1. Note that all of the data for the server will live in the `sqlite_deploy` directory in a file named `data.db`.
-1. When you quit the server, don't forget to deactivate your virtual environment:
-
-        deactivate
+1. Note:
+    - All of the data for the server will live in the `sqlite_deploy` directory in a file named `data.db`.
+    - You may want to install a package like [tmpreaper](https://packages.debian.org/jessie/tmpreaper) to ensure you don't fill up `/tmp` with test images and log files.
+    - You may want to run the server under a supervisor like [runit](https://packages.debian.org/jessie/runit) so it's always up.
 
 ### App Engine managed VMs
 
