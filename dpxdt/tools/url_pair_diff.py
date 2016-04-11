@@ -84,6 +84,12 @@ class UrlPairDiff(workers.WorkflowItem):
                 'height': 1024,
             }
         }
+
+        if FLAGS.width:
+            config_dict['viewportSize']['width'] = FLAGS.width
+        if FLAGS.height:
+            config_dict['viewportSize']['height'] = FLAGS.height
+
         if FLAGS.inject_css:
             config_dict['injectCss'] = FLAGS.inject_css
         if FLAGS.inject_js:
