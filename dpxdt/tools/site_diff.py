@@ -285,6 +285,9 @@ class SiteDiff(workers.WorkflowItem):
             parts = urlparse.urlparse(url)
             run_name = parts.path
 
+            if FLAGS.keep_query_string == True:
+                run_name += '?' + parts.query
+
             config_dict = {
                 'viewportSize': {
                     'width': 1280,
