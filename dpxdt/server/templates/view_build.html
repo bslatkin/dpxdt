@@ -13,8 +13,17 @@ Build '{{ build.name }}'
 
 {% if release_name_list %}
     <div class="row">
-        <div class="span12">
+        <div class="span8">
             <h4>Releases</h4>
+        </div>
+        <div class="span4">
+            <form method="GET" action="{{ url_for('view_build') }}" class="form-inline">
+                <input type="hidden" name="id" value="{{ build.id }}" />
+                <div class="form-group">
+                    <label for="page_size" class="control-label">Releases per page: </label>
+                    <input type="number" name="page_size" id="page_size" class="form-control" value="{{ page_size }}" />
+                </div>
+            </form>
         </div>
     </div>
     <div class="row body-section">
@@ -92,7 +101,7 @@ Build '{{ build.name }}'
                 {% if has_next_page %}
                     <div class="row">
                         <div class="span2">
-                            <a href="{{ url_for('view_build', id=build.id, offset=next_offset) }}">&laquo; Older</a>
+                            <a href="{{ url_for('view_build', id=build.id, offset=next_offset, page_size=page_size) }}">&laquo; Older</a>
                         </div>
                     </div>
                 {% endif %}
@@ -100,13 +109,13 @@ Build '{{ build.name }}'
                     {% if last_offset == 0 %}
                         <div class="row">
                             <div class="span2">
-                                <a href="{{ url_for('view_build', id=build.id) }}">Newer &raquo;</a>
+                                <a href="{{ url_for('view_build', id=build.id, page_size=page_size) }}">Newer &raquo;</a>
                             </div>
                         </div>
                     {% else %}
                         <div class="row">
                             <div class="span2">
-                                <a href="{{ url_for('view_build', id=build.id, offset=last_offset) }}">Newer &raquo;</a>
+                                <a href="{{ url_for('view_build', id=build.id, offset=last_offset, page_size=page_size) }}">Newer &raquo;</a>
                             </div>
                         </div>
                     {% endif %}

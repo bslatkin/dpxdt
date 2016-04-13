@@ -95,7 +95,7 @@ def new_build():
 def view_build():
     """Page for viewing all releases in a build."""
     build = g.build
-    page_size = 10
+    page_size = request.args.get('page_size', 10, type=int)
     offset = request.args.get('offset', 0, type=int)
 
     ops = operations.BuildOps(build.id)
@@ -144,7 +144,8 @@ def view_build():
         has_next_page=has_next_page,
         current_offset=offset,
         next_offset=offset + page_size,
-        last_offset=max(0, offset -  page_size))
+        last_offset=max(0, offset -  page_size),
+        page_size=page_size)
 
 
 @app.route('/release', methods=['GET', 'POST'])
