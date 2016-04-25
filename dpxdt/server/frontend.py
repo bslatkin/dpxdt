@@ -95,7 +95,7 @@ def new_build():
 def view_build():
     """Page for viewing all releases in a build."""
     build = g.build
-    page_size = request.args.get('page_size', 10, type=int)
+    page_size = min(request.args.get('page_size', 10, type=int), 50)
     offset = request.args.get('offset', 0, type=int)
 
     ops = operations.BuildOps(build.id)
