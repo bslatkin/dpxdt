@@ -59,6 +59,10 @@ gflags.DEFINE_spaceseplist(
     'ignore_prefixes', [],
     'URL prefixes that should not be crawled.')
 
+gflags.DEFINE_bool(
+    'keep_query_string', False,
+    'Keep the query string when cleaning URLs')
+
 
 # URL regex rewriting code originally from mirrorrr
 # http://code.google.com/p/mirrorrr/source/browse/trunk/transform_content.py
@@ -118,7 +122,10 @@ def clean_url(url, force_scheme=None):
     if force_scheme:
         url_parts[0] = force_scheme
     url_parts[2] = '/'.join(path_parts)
-    url_parts[4] = ''    # No query string
+
+    if FLAGS.keep_query_string == False:
+        url_parts[4] = ''    # No query string
+
     url_parts[5] = ''    # No path
 
     # Always have a trailing slash
@@ -277,6 +284,9 @@ class SiteDiff(workers.WorkflowItem):
             yield heartbeat('Requesting run for %s' % url)
             parts = urlparse.urlparse(url)
             run_name = parts.path
+
+            if FLAGS.keep_query_string == True:
+                run_name += '?' + parts.query
 
             config_dict = {
                 'viewportSize': {
