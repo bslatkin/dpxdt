@@ -130,6 +130,10 @@ a.big-link {
     margin-bottom: 20px;
 }
 
+.row.release-test-section:hover {
+  background: #eee;
+}
+
 .build-list > .row:last-child {
     margin-bottom: 0;
 }
