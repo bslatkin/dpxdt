@@ -42,7 +42,7 @@ from dpxdt.server import utils
 GOOGLE_OAUTH2_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth'
 GOOGLE_OAUTH2_TOKEN_URL = 'https://accounts.google.com/o/oauth2/token'
 GOOGLE_OAUTH2_USERINFO_URL = 'https://www.googleapis.com/oauth2/v1/userinfo'
-GOOGLE_OAUTH2_SCOPES ='https://www.googleapis.com/auth/userinfo.email'
+GOOGLE_OAUTH2_SCOPES = 'https://www.googleapis.com/auth/userinfo.email'
 FETCH_TIMEOUT_SECONDS = 60
 
 
@@ -88,6 +88,8 @@ def login_view():
         scope=GOOGLE_OAUTH2_SCOPES,
         state=urllib.quote(next_url),
     )
+    if app.config.GOOGLE_OAUTH2_HOSTED_DOMAIN is not None:
+        params['hd'] = app.config.GOOGLE_OAUTH2_HOSTED_DOMAIN
     target_url = '%s?%s' % (
         GOOGLE_OAUTH2_AUTH_URL, urllib.urlencode(params))
     logging.debug('Redirecting user to login at url=%r', target_url)

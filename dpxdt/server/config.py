@@ -41,6 +41,10 @@ GOOGLE_OAUTH2_CLIENT_ID = (
 
 GOOGLE_OAUTH2_CLIENT_SECRET = 'EhiCP-PuQYN0OsWGAELTUHyl'
 
+# Setting this value will set the `hd` parameter.
+# See https://developers.google.com/identity/protocols/OpenIDConnect#hd-param
+GOOGLE_OAUTH2_HOSTED_DOMAIN = None
+
 CACHE_TYPE = 'simple'
 
 CACHE_DEFAULT_TIMEOUT = 600
