@@ -144,7 +144,7 @@ def view_build():
         has_next_page=has_next_page,
         current_offset=offset,
         next_offset=offset + page_size,
-        last_offset=max(0, offset -  page_size),
+        last_offset=max(0, offset - page_size),
         page_size=page_size)
 
 
