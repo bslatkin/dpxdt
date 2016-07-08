@@ -88,8 +88,8 @@ def login_view():
         scope=GOOGLE_OAUTH2_SCOPES,
         state=urllib.quote(next_url),
     )
-    if app.config.GOOGLE_OAUTH2_HOSTED_DOMAIN is not None:
-        params['hd'] = app.config.GOOGLE_OAUTH2_HOSTED_DOMAIN
+    if app.config['GOOGLE_OAUTH2_HOSTED_DOMAIN'] is not None:
+        params['hd'] = app.config['GOOGLE_OAUTH2_HOSTED_DOMAIN']
     target_url = '%s?%s' % (
         GOOGLE_OAUTH2_AUTH_URL, urllib.urlencode(params))
     logging.debug('Redirecting user to login at url=%r', target_url)
