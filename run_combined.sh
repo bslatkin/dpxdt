@@ -3,7 +3,9 @@
 ./dpxdt/tools/run_server.py \
     --enable_api_server \
     --enable_queue_workers \
-    --phantomjs_timeout=20 \
+    --capture_timeout=60 \
+    --capture_binary=python \
+    --capture_script=/Users/elsigh/src/dpxdt/dpxdt/client/capture.py \
     --release_server_prefix=http://localhost:5000/api \
     --queue_server_prefix=http://localhost:5000/api/work_queue \
     --queue_idle_poll_seconds=10 \
