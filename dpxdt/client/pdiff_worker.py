@@ -57,6 +57,10 @@ gflags.DEFINE_string(
     'pdiff_composite_binary', 'composite',
     'Path to the composite binary used for resizing images.')
 
+gflags.DEFINE_string(
+    'pdiff_convert_binary', 'convert',
+    'Path to the convert binary used for removing alpha from images.')
+
 gflags.DEFINE_integer(
     'pdiff_threads', 1, 'Number of perceptual diff threads to run')
 
@@ -99,6 +103,35 @@ class ResizeWorkflow(process_worker.ProcessWorkflow):
             self.ref_path,
             self.run_path,
             self.resized_ref_path,
+        ]
+
+
+class ConvertAlphaWorkflow(process_worker.ProcessWorkflow):
+    """Workflow for converting alpha out of images before pdiff."""
+
+    def __init__(self, log_path, ref_path, output_path):
+        """Initializer.
+
+        Args:
+            log_path: Where to write the verbose logging output.
+            ref_path: Path to reference screenshot to convert.
+            output_path: Where the converted ref image should be written.
+        """
+        process_worker.ProcessWorkflow.__init__(
+            self, log_path, timeout_seconds=FLAGS.pdiff_timeout)
+        self.ref_path = ref_path
+        self.output_path = output_path
+
+    def get_args(self):
+        # Method from http://www.imagemagick.org/Usage/convert/
+        return [
+            FLAGS.pdiff_convert_binary,
+            '-background',
+            'white',
+            '-alpha',
+            'remove',
+            self.ref_path,
+            self.output_path,
         ]
 
 
@@ -160,6 +193,7 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
         try:
             ref_path = os.path.join(output_path, 'ref')
             ref_resized_path = os.path.join(output_path, 'ref_resized')
+            ref_converted_path = os.path.join(output_path, 'ref_converted')
             run_path = os.path.join(output_path, 'run')
             diff_path = os.path.join(output_path, 'diff.png')
             log_path = os.path.join(output_path, 'log.txt')
@@ -182,9 +216,17 @@ class DoPdiffQueueWorkflow(workers.WorkflowItem):
                     max_attempts,
                     'Could not resize reference image to size of new image')
 
+            yield heartbeat('Removing alpha channel from reference image')
+            returncode = yield ConvertAlphaWorkflow(
+                log_path, ref_resized_path, ref_converted_path)
+            if returncode != 0:
+                raise PdiffFailedError(
+                    max_attempts,
+                    'Could not convert reference image (remove alpha)')
+
             yield heartbeat('Running perceptual diff process')
             returncode = yield PdiffWorkflow(
-                log_path, ref_resized_path, run_path, diff_path)
+                log_path, ref_converted_path, run_path, diff_path)
 
             # ImageMagick returns 1 if the images are different and 0 if
             # they are the same, so the return code is a bad judge of
