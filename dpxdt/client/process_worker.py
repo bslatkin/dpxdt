@@ -36,7 +36,6 @@ LOGGER = workers.LOGGER
 class Error(Exception):
     """Base class for exceptions in this module."""
 
-
 class TimeoutError(Exception):
     """Subprocess has taken too long to complete and was terminated."""
 
