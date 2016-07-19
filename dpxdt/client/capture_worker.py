@@ -17,6 +17,7 @@
 
 import Queue
 import json
+import logging
 import os
 import shutil
 import tempfile
@@ -35,6 +36,13 @@ from dpxdt.client import release_worker
 from dpxdt.client import utils
 from dpxdt.client import workers
 
+DEFAULT_PHANTOMJS_FLAGS = [
+    '--disk-cache=false',
+    '--debug=true',
+    '--ignore-ssl-errors=true',
+    # https://github.com/ariya/phantomjs/issues/11239
+    '--ssl-protocol=TLSv1',
+]
 
 gflags.DEFINE_integer(
     'capture_threads', 5, 'Number of website screenshot threads to run')
@@ -48,18 +56,37 @@ gflags.DEFINE_integer(
     'Wait this many seconds between repeated invocations of capture '
     'subprocesses. Can be used to spread out load on the server.')
 
+# DEPRECATED
 gflags.DEFINE_string(
-    'phantomjs_binary', 'phantomjs', 'Path to the phantomjs binary')
+    'phantomjs_binary', None, 'Path to the phantomjs binary')
 
+# DEPRECATED
 gflags.DEFINE_string(
     'phantomjs_script',
-    os.path.join(os.path.dirname(__file__), 'capture.js'),
+    None,
     'Path to the script that drives the phantomjs process')
 
+# DEPRECATED
 gflags.DEFINE_integer(
-    'phantomjs_timeout', 120,
+    'phantomjs_timeout', None,
     'Seconds until giving up on a phantomjs sub-process and trying again.')
 
+# TODO(elsigh): Consider changing default `capture_binary` to `python`
+# and `capture_script` to `capture.py` if BrowserStack writes back with
+# a free account for testing with dpxdt.
+
+gflags.DEFINE_string(
+    'capture_binary', 'phantomjs',
+    'Path to the capture binary, e.g. python or phantomjs')
+
+gflags.DEFINE_string(
+    'capture_script',
+    os.path.join(os.path.dirname(__file__), 'capture.js'),
+    'Path to the script that drives the capture process')
+
+gflags.DEFINE_integer(
+    'capture_timeout', 120,
+    'Seconds until giving up on a capture sub-process and trying again.')
 
 
 class CaptureFailedError(queue_worker.GiveUpAfterAttemptsError):
@@ -78,22 +105,38 @@ class CaptureWorkflow(process_worker.ProcessWorkflow):
                 to PhantomJs.
             output_path: Where the output screenshot should be written.
         """
+        if FLAGS.phantomjs_timeout is not None:
+            logging.info(
+                'Using FLAGS.phantomjs_timeout which is deprecated in favor'
+                'of FLAGS.capture_timeout - please update your config')
+            capture_timeout = FLAGS.phantomjs_timeout
+        else:
+            capture_timeout = FLAGS.capture_timeout
         process_worker.ProcessWorkflow.__init__(
-            self, log_path, timeout_seconds=FLAGS.phantomjs_timeout)
+            self, log_path, timeout_seconds=capture_timeout)
         self.config_path = config_path
         self.output_path = output_path
 
     def get_args(self):
-        return [
-            FLAGS.phantomjs_binary,
-            '--disk-cache=false',
-            '--debug=true',
-            '--ignore-ssl-errors=true',
-            '--ssl-protocol=TLSv1', # https://github.com/ariya/phantomjs/issues/11239
-            FLAGS.phantomjs_script,
-            self.config_path,
-            self.output_path,
-        ]
+        if FLAGS.phantomjs_binary:
+            logging.info(
+                'Using FLAGS.phantomjs_binary which is deprecated in favor'
+                'of FLAGS.capture_binary - please update your config')
+            return [FLAGS.phantomjs_binary] + DEFAULT_PHANTOMJS_FLAGS + [
+                FLAGS.phantomjs_script,
+                self.config_path,
+                self.output_path,
+            ]
+        else:
+            args = [FLAGS.capture_binary]
+            # Injects some default flags if we think this is phantomjs
+            if FLAGS.capture_binary.endswith('phantomjs'):
+                args += DEFAULT_PHANTOMJS_FLAGS
+            return args + [
+                FLAGS.capture_script,
+                self.config_path,
+                self.output_path,
+            ]
 
 
 class DoCaptureQueueWorkflow(workers.WorkflowItem):
@@ -159,10 +202,14 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
 
 def register(coordinator):
     """Registers this module as a worker with the given coordinator."""
-    utils.verify_binary('phantomjs_binary', ['--version'])
 
-    assert FLAGS.phantomjs_script
-    assert os.path.exists(FLAGS.phantomjs_script)
+    if FLAGS.phantomjs_script:
+        utils.verify_binary('phantomjs_binary', ['--version'])
+        assert os.path.exists(FLAGS.phantomjs_script)
+    else:
+        utils.verify_binary('capture_binary', ['--version'])
+        assert FLAGS.capture_script
+        assert os.path.exists(FLAGS.capture_script)
 
     assert FLAGS.capture_threads > 0
     assert FLAGS.queue_server_prefix

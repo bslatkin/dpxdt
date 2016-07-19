@@ -100,6 +100,13 @@ class UrlPairDiff(workers.WorkflowItem):
         if FLAGS.http_password:
             config_dict['httpPassword'] = FLAGS.http_password
 
+        if FLAGS.command_executor:
+            config_dict['command_executor'] = FLAGS.command_executor
+
+        if FLAGS.desired_capabilities:
+            config_dict['desired_capabilities'] = json.loads(
+                FLAGS.desired_capabilities)
+
         config_data = json.dumps(config_dict)
 
         url_parts = urlparse.urlparse(new_url)
