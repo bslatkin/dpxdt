@@ -18,5 +18,6 @@ poster==0.8.1
 pyimgur==0.5.2
 python-gflags==2.0
 requests==2.5.1
+selenium==2.53.6
 watchdog==0.8.3
 wsgiref==0.1.2

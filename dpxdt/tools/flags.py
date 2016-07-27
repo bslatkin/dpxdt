@@ -67,3 +67,10 @@ gflags.DEFINE_string(
     'http_password', None,
     'Password if site is protected by an HTTP basic authentication')
 
+gflags.DEFINE_string(
+    'command_executor', None,
+    'Webdriver.Remote command_executor argument')
+
+gflags.DEFINE_string(
+    'desired_capabilities', None,
+    'webdriver.Remote desired_capabilities argument')

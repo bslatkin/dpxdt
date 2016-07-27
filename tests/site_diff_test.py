@@ -359,8 +359,8 @@ class HtmlRewritingTest(unittest.TestCase):
 
 
 def main(argv):
-    gflags.MarkFlagAsRequired('phantomjs_binary')
-    gflags.MarkFlagAsRequired('phantomjs_script')
+    gflags.MarkFlagAsRequired('capture_binary')
+    gflags.MarkFlagAsRequired('capture_script')
 
     try:
         argv = FLAGS(argv)

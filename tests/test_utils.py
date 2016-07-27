@@ -40,7 +40,7 @@ def start_server():
 
     FLAGS.fetch_frequency = 100
     FLAGS.fetch_threads = 1
-    FLAGS.phantomjs_timeout = 60
+    FLAGS.capture_timeout = 60
     FLAGS.polltime = 1
     FLAGS.queue_idle_poll_seconds = 1
     FLAGS.queue_busy_poll_seconds = 1
