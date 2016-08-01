@@ -13,6 +13,16 @@ Settings for '{{ build.name }}'
 <div class="row">
     <div class="col-md-12">
         <h4>Settings</h4>
+        <ol class="breadcrumb">
+            <li class="active">
+                Build
+            </li>
+            <li>
+                <a href="{{ url_for('build_settings_release_config', build_id=build.id) }}">
+                    Release Config
+                </a>
+            </li>
+        </ol>
 
         {% if settings_form.errors %}
             <div class="row">

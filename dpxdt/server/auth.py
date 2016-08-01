@@ -194,7 +194,8 @@ def can_user_access_build(param_name):
     """
     build_id = (
         request.args.get(param_name, type=int) or
-        request.form.get(param_name, type=int))
+        request.form.get(param_name, type=int) or
+        request.json[param_name])
     if not build_id:
         logging.debug('Build ID in param_name=%r was missing', param_name)
         abort(400)
@@ -310,7 +311,8 @@ def can_api_key_access_build(param_name):
     """
     build_id = (
         request.args.get(param_name, type=int) or
-        request.form.get(param_name, type=int))
+        request.form.get(param_name, type=int) or
+        request.json[param_name])
     utils.jsonify_assert(build_id, 'build_id required')
 
     if app.config.get('IGNORE_AUTH'):
