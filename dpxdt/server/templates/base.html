@@ -7,7 +7,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta property="og:image" content="{{ url_for('static', filename='img/logo_big.png', _external=True) }}">
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap-responsive.min.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/base.css') }}?buster={{ cache_buster }}">
         <link rel="icon shortcut" href="{{ url_for('static', filename='img/favicon.ico') }}">
         <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo_big.png') }}">
@@ -22,14 +21,14 @@
 {% block header %}
 
 <div class="row">
-    <div class="span12">
+    <div class="col-md-12">
         <a href="{{ url_for('homepage') }}" class="logo">
-            <div class="hidden-phone">
+            <div class="hidden-sm">
                 <div class="logo-outside">
                     <div class="logo-inside">dpxdt</div>
                 </div>
             </div>
-            <div class="visible-phone">
+            <div class="visible-sm">
                 <div class="logo-small-outside">
                     <div class="logo-small-inside">dpxdt</div>
                 </div>
@@ -49,14 +48,14 @@
 
 {% if release %}
     <div class="row">
-        <div class="span7">
+        <div class="col-md-7">
             {% if run %}
                 <h4 class="ellipsis-overflow"><a class="big-link" id="release_link" href="{{ url_for('view_release', id=build.id, name=release.name, number=release.number) }}">Release: {{ release.name }} #{{ release.number }}</a></h4>
             {% else %}
                 <h4>Release: {{ release.name }} #{{ release.number }}</h4>
             {% endif %}
         </div>
-        <div class="span5 text-right">
+        <div class="col-md-5 text-right">
             {% if release.status == 'good' %}
                 <h4>Status: {{ release.status|title }}</h4>
             {% elif release.status == 'bad' %}
@@ -71,10 +70,10 @@
 
 {% if release or run %}
     <div class="row">
-        <div class="span7">
+        <div class="col-md-7">
             <h4 class="ellipsis-overflow">{% block run_row_left %}{% endblock run_row_left %}</h4>
         </div>
-        <div class="span5 text-right ">
+        <div class="col-md-5 text-right ">
             <div class="h4sized">
                 {% block run_row_right %}{% endblock run_row_right %}
             </div>
@@ -99,13 +98,13 @@
 {% block footer_container %}
 <div class="container">
     <div class="row">
-        <div class="span12">
+        <div class="col-md-12">
             <div class="footer-section">
                 <div class="row">
-                    <div class="span6">
+                    <div class="col-md-6">
                         {% block footer_left %}{% endblock footer_left %}
                     </div>
-                    <div class="span6 text-right">
+                    <div class="col-md-6 text-right">
                         {% block footer_right %}
                             {% if current_user.is_authenticated() %}
                                 {{ current_user.email_address }}

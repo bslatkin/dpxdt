@@ -4,7 +4,7 @@
 {% block run_detail %}
 
 <div class="row diff-section">
-    <div class="span12">
+    <div class="col-md-12">
         {% if image_file %}
             Image:
         {% elif log_file %}
@@ -35,17 +35,17 @@
 {% block belowbody %}
 
 {% if not sha1sum %}
-    <div class="container-fluid">
-        <div class="row-fluid">
-            <div class="span12 text-center">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12 text-center">
                 <strong>Nothing</strong>
             </div>
         </div>
     </div>
 {% elif image_file %}
-    <div class="container-fluid">
-        <div class="row-fluid">
-            <div class="span12 text-center">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12 text-center">
                 <div class="run-image-link">
                     <img src="{{ url_for('download', sha1sum=sha1sum, build_id=build.id) }}" class="run-image">
                 </div>

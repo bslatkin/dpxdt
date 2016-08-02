@@ -12,15 +12,15 @@ Admin management for '{{ build.name }}'
 {% block body %}
 
 <div class="row">
-    <div class="span12">
+    <div class="col-md-6">
         <h4>Add admin</h4>
 
         {% if add_form.errors %}
             <div class="row">
-                <div class="span6 alert alert-error">
+                <div class="col-md-4 alert alert-error">
                 {% for field, field_errors in add_form.errors|dictsort %}
                     <div>
-                        Invalid {{ add_form[field].label(class='inline') }}
+                        Invalid {{ add_form[field].label(class='list-inline') }}
                     </div>
                 {% endfor %}
                 </div>
@@ -32,7 +32,7 @@ Admin management for '{{ build.name }}'
             {{ add_form.build_id }}
             <div>
                 {{ add_form.email_address.label }}
-                {{ add_form.email_address }}
+                {{ add_form.email_address(class_='form-control') }}
             </div>
             <br>
             {{ add_form.add(class_='btn btn-primary') }}
@@ -41,7 +41,7 @@ Admin management for '{{ build.name }}'
 </div>
 
 <div class="row">
-    <div class="span12">
+    <div class="col-md-12">
         <h4>Existing admins</h4>
     </div>
 </div>
@@ -49,26 +49,26 @@ Admin management for '{{ build.name }}'
 {% if revoke_form_list %}
     {% for admin_user, revoke_form in revoke_form_list %}
         <div class="row">
-            <div class="span9 well well-small">
+            <div class="col-md-9 well well-small">
                 <div class="row">
-                    <div class="span7">
+                    <div class="col-md-10">
                         {% if admin_user.superuser %}
                             <div class="row">
-                                <div class="span2 text-error">
+                                <div class="col-md-2 text-error">
                                     <strong>Superuser</strong>
                                 </div>
                             </div>
                         {% endif %}
                         <div class="row">
-                            <div class="span2"><strong>Email address</strong></div>
-                            <div class="span5">{{ admin_user.email_address }}</div>
+                            <div class="col-md-4"><strong>Email address</strong></div>
+                            <div class="col-md-6">{{ admin_user.email_address }}</div>
                         </div>
                         <div class="row">
-                            <div class="span2"><strong>Authorization type</strong></div>
-                            <div class="span5">{{ admin_user.get_auth_type() }}</div>
+                            <div class="col-md-4"><strong>Authorization type</strong></div>
+                            <div class="col-md-6">{{ admin_user.get_auth_type() }}</div>
                         </div>
                     </div>
-                    <div class="span2 text-right">
+                    <div class="col-md-2 text-right">
                         {% if admin_user == current_user %}
                             <strong>You</strong>
                         {% else %}
@@ -76,7 +76,7 @@ Admin management for '{{ build.name }}'
                                 {{ revoke_form.csrf_token }}
                                 {{ revoke_form.user_id }}
                                 {{ revoke_form.build_id }}
-                                {{ revoke_form.revoke(class_='btn btn-inverse btn-small') }}
+                                {{ revoke_form.revoke(class_='btn btn-inverse btn-sm') }}
                             </form>
                         {% endif %}
                     </div>
@@ -86,7 +86,7 @@ Admin management for '{{ build.name }}'
     {% endfor %}
 {% else %}
     <div class="row">
-        <div class="span12">
+        <div class="col-md-12">
             There are no admins for this build.
         </div>
     </div>

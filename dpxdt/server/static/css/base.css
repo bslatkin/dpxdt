@@ -1,4 +1,7 @@
 /* Bootstrap overrides and common styles. */
+h1 {
+    margin-top: 10px;
+}
 h1 a:link,
 h1 a:visited,
 h1 a:active,
@@ -11,6 +14,10 @@ h4 a:active,
 h4 a:hover {
     color: inherit;
 }
+form {
+    margin-bottom: 40px;
+}
+
 .ellipsis-overflow {
     text-overflow: ellipsis;
     overflow: hidden;
@@ -197,6 +204,7 @@ a.big-link {
 }
 .run-image {
     border: 1px solid #ccc;
+    width: 100%;
 }
 .diff-section {
     margin-top: 10px;

@@ -34,16 +34,16 @@ Test run '{{ run.name }}'
 {% block body %}
 
 <div class="row body-section">
-    <div class="span12">
+    <div class="col-md-12">
         {% set alert_wrapper=True %}
         {% include 'fragment_run_status.html' with context %}
     </div>
 </div>
 
 <div class="row">
-    <div class="span12">
+    <div class="col-md-12">
         <div class="row">
-            <div class="span7">
+            <div class="col-md-7">
                 {% if run.status == 'diff_found' %}
                     <form action="{{ url_for(request.endpoint) }}" method="post" class="inline-block">
                         {{ run_form.csrf_token }}
@@ -72,7 +72,7 @@ Test run '{{ run.name }}'
                     </form>
                 {% endif %}
             </div>
-            <div class="span5 text-right">
+            <div class="col-md-5 text-right">
                 <p>
                 {% if previous_run %}
                     <a href="{{ url_for(request.endpoint, id=build.id, name=release.name, number=release.number, test=previous_run.name, type=file_type) }}" class="btn" id="previous_button">&larr; Prev test</a>
@@ -95,13 +95,13 @@ Test run '{{ run.name }}'
 
 <div class="container-fluid">
 
-    <div class="row-fluid body-section">
-        <div class="span4">
-            <div class="row-fluid">
-                <div class="span6">
+    <div class="row body-section">
+        <div class="col-md-4">
+            <div class="row">
+                <div class="col-md-6">
                     <strong>Before</strong>
                 </div>
-                <div class="span6 text-right">
+                <div class="col-md-6 text-right">
                     <small>
                         {% if run.ref_url %}
                             <a href="{{ run.ref_url }}" target="_blank">Visit</a>
@@ -121,8 +121,8 @@ Test run '{{ run.name }}'
                     </small>
                 </div>
             </div>
-            <div class="row-fluid">
-                <div class="span12">
+            <div class="row">
+                <div class="col-md-12">
                     {% if run.ref_image %}
                         <a class="run-image-link" href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='before') }}"><img src="{{ url_for('download', sha1sum=run.ref_image, build_id=build.id) }}" class="run-image"></a>
                     {% else %}
@@ -134,12 +134,12 @@ Test run '{{ run.name }}'
                 </div>
             </div>
         </div>
-        <div class="span4">
-            <div class="row-fluid">
-                <div class="span6">
+        <div class="col-md-4">
+            <div class="row">
+                <div class="col-md-6">
                     <strong>Diff</strong>
                 </div>
-                <div class="span6 text-right">
+                <div class="col-md-6 text-right">
                     <small>
                         {% if run.diff_log %}
                             <a href="{{ url_for('view_log', id=build.id, name=release.name, number=release.number, test=run.name, type='diff') }}">Log</a>
@@ -147,8 +147,8 @@ Test run '{{ run.name }}'
                     </small>
                 </div>
             </div>
-            <div class="row-fluid">
-                <div class="span12">
+            <div class="row">
+                <div class="col-md-12">
                     {% if run.diff_image %}
                         <a class="run-image-link" href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='diff') }}"><img src="{{ url_for('download', sha1sum=run.diff_image, build_id=build.id) }}" class="run-image"></a>
                     {% else %}
@@ -160,12 +160,12 @@ Test run '{{ run.name }}'
                 </div>
             </div>
         </div>
-        <div class="span4">
-            <div class="row-fluid">
-               <div class="span6">
+        <div class="col-md-4">
+            <div class="row">
+               <div class="col-md-6">
                     <strong>After</strong>
                 </div>
-                <div class="span6 text-right">
+                <div class="col-md-6 text-right">
                     <small>
                         {% if run.url %}
                             <a href="{{ run.url }}" target="_blank">Visit</a>
@@ -185,8 +185,8 @@ Test run '{{ run.name }}'
                     </small>
                 </div>
             </div>
-            <div class="row-fluid">
-                <div class="span12">
+            <div class="row">
+                <div class="col-md-12">
                     {% if run.image %}
                         <a class="run-image-link" href="{{ url_for('view_image', id=build.id, name=release.name, number=release.number, test=run.name, type='after') }}"><img src="{{ url_for('download', sha1sum=run.image, build_id=build.id) }}" class="run-image"></a>
                     {% else %}

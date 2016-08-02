@@ -15,8 +15,8 @@
 {% endif %}
 
 {% if alert_wrapper %}
-<div class="row-fluid status-panel status-panel-{{ run_status }} no-min-height">
-    <div class="span3">
+<div class="row status-panel status-panel-{{ run_status }} no-min-height">
+    <div class="col-md-3">
         <strong>
 {% endif %}
 
@@ -65,7 +65,7 @@
 {% if alert_wrapper %}
         </strong>
     </div>
-    <div class="span9 text-right ellipsis-overflow">
+    <div class="col-md-9 text-right ellipsis-overflow">
         {% if run.tasks %}
             {% set last_task=run.tasks[-1] %}
             {% if last_task.status == 'error' %}

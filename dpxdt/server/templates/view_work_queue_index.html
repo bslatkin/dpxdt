@@ -18,44 +18,44 @@ Work queue index
 
 <div class="row body-section">
     {% if queue_list %}
-        <div class="span12">
+        <div class="col-md-12">
             <div class="row">
-                <div class="span2">
+                <div class="col-md-2">
                     <strong>Queue name</strong>
                 </div>
-                <div class="span2">
+                <div class="col-md-2">
                     <strong>Status</strong>
                 </div>
-                <div class="span2">
+                <div class="col-md-2">
                     <strong>Count</strong>
                 </div>
-                <div class="span2">
+                <div class="col-md-2">
                     <strong>Newest created</strong>
                 </div>
-                <div class="span2">
+                <div class="col-md-2">
                     <strong>Oldest ETA</strong>
                 </div>
             </div>
             {% for group in queue_list|groupby('name') %}
                 <div class="row">
-                    <div class="span12 workqueue-index-first-row">
+                    <div class="col-md-12 workqueue-index-first-row">
                         <a class="big-link" href="{{ url_for('manage_work_queue', queue_name=group.grouper) }}">{{ group.grouper|title }}</a>
                     </div>
                 </div>
                 {% for queue_dict in group.list %}
                     <div class="row">
-                        <div class="span2 offset2">
+                        <div class="col-md-2 col-md-offset-2">
                             <a href="{{ url_for('manage_work_queue', queue_name=group.grouper, status=queue_dict.status) }}">{{ queue_dict.status|title }}</a>
                         </div>
-                        <div class="span2">
+                        <div class="col-md-2">
                             {{ queue_dict.count }}
                         </div>
-                        <div class="span2">
+                        <div class="col-md-2">
                             <abbr title="Created {{ queue_dict.newest_created.strftime('%Y-%m-%dT%H:%MZ') }}">
                                 {{ queue_dict.newest_created|timesince }}
                             </abbr>
                         </div>
-                        <div class="span2">
+                        <div class="col-md-2">
                             <abbr title="Oldest ETA {{ queue_dict.oldest_eta.strftime('%Y-%m-%dT%H:%MZ') }}">
                                 {{ queue_dict.oldest_eta|timesince }}
                             </abbr>
@@ -66,7 +66,7 @@ Work queue index
         </div>
     {% else %}
         <div class="row">
-            <div class="span12">
+            <div class="col-md-12">
                 All queues are empty.
             </div>
         </div>

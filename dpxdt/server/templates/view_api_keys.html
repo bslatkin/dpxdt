@@ -12,15 +12,15 @@ API key management for '{{ build.name }}'
 {% block body %}
 
 <div class="row">
-    <div class="span12">
+    <div class="col-md-5">
         <h4>Create a new API key</h4>
 
         {% if create_form.errors %}
             <div class="row">
-                <div class="span6 alert alert-error">
+                <div class="col-md-5 alert alert-error">
                 {% for field, field_errors in create_form.errors|dictsort %}
                     <div>
-                        Invalid {{ create_form[field].label(class="inline") }}
+                        Invalid {{ create_form[field].label(class="list-inline") }}
                     </div>
                 {% endfor %}
                 </div>
@@ -32,7 +32,7 @@ API key management for '{{ build.name }}'
             {{ create_form.build_id }}
             <div>
                 {{ create_form.purpose.label }}
-                {{ create_form.purpose }}
+                {{ create_form.purpose(class="form-control") }}
             </div>
             <br>
             {{ create_form.create(class_='btn btn-primary') }}
@@ -41,7 +41,7 @@ API key management for '{{ build.name }}'
 </div>
 
 <div class="row">
-    <div class="span12">
+    <div class="col-md-12">
         <h4>Existing API keys</h4>
     </div>
 </div>
@@ -49,36 +49,36 @@ API key management for '{{ build.name }}'
 {% if revoke_form_list %}
     {% for api_key, revoke_form in revoke_form_list %}
         <div class="row">
-            <div class="span9 well well-small">
+            <div class="col-md-10 well well-small">
                 <div class="row">
-                    <div class="span7">
+                    <div class="col-md-8">
                         {% if api_key.superuser %}
                             <div class="row">
-                                <div class="span2 text-error">
+                                <div class="col-md-2 text-error">
                                     <strong>Superuser</strong>
                                 </div>
                             </div>
                         {% endif %}
                         <div class="row">
-                            <div class="span2"><strong>Purpose</strong></div>
-                            <div class="span5">{{ api_key.purpose }}</div>
+                            <div class="col-md-3"><strong>Purpose</strong></div>
+                            <div class="col-md-6">{{ api_key.purpose }}</div>
                         </div>
                         <div class="row">
-                            <div class="span2"><strong>Created</strong></div>
-                            <div class="span5">{{ api_key.created|timesince }}</div>
+                            <div class="col-md-3"><strong>Created</strong></div>
+                            <div class="col-md-6">{{ api_key.created|timesince }}</div>
                         </div>
                         <div class="row">
-                            <div class="span2"><strong>Client ID</strong></div>
+                            <div class="col-md-3"><strong>Client ID</strong></div>
                             {# Extra divs are for easy double-click to copy and paste #}
-                            <div class="span5"><div>{{ api_key.id }}</div></div>
+                            <div class="col-md-6"><div>{{ api_key.id }}</div></div>
                         </div>
                         <div class="row">
-                            <div class="span2"><strong>Client Secret</strong></div>
+                            <div class="col-md-3"><strong>Client Secret</strong></div>
                             {# Extra divs are for easy double-click to copy and paste #}
-                            <div class="span5"><div>{{ api_key.secret }}</div></div>
+                            <div class="col-md-6"><div>{{ api_key.secret }}</div></div>
                         </div>
                     </div>
-                    <div class="span2 text-right">
+                    <div class="col-md-2 text-right">
                         {% if not api_key.active %}
                             <div class="text-error">
                                 <strong>Revoked</strong>
@@ -88,7 +88,7 @@ API key management for '{{ build.name }}'
                                 {{ revoke_form.csrf_token }}
                                 {{ revoke_form.id }}
                                 {{ revoke_form.build_id }}
-                                {{ revoke_form.revoke(class_='btn btn-inverse btn-small') }}
+                                {{ revoke_form.revoke(class_='btn btn-inverse btn-sm') }}
                             </form>
                         {% endif %}
                     </div>
@@ -98,7 +98,7 @@ API key management for '{{ build.name }}'
     {% endfor %}
 {% else %}
     <div class="row">
-        <div class="span12">
+        <div class="col-md-12">
             There are no API keys for this build.
         </div>
     </div>
