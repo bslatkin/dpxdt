@@ -11,13 +11,13 @@ Create new build
 {% block body %}
 
 <div class="row">
-    <div class="span12">
+    <div class="col-md-12">
         {% if build_form.errors %}
             <div class="row">
-                <div class="span6 alert alert-error">
+                <div class="col-md-6 alert alert-error">
                 {% for field, field_errors in build_form.errors|dictsort %}
                     <div>
-                        Invalid {{ build_form[field].label(class="inline") }}
+                        Invalid {{ build_form[field].label(class="list-inline") }}
                     </div>
                 {% endfor %}
                 </div>
@@ -28,10 +28,10 @@ Create new build
                 {{ build_form.csrf_token }}
 
                 {{ build_form.name.label }}
-                {{ build_form.name }}
+                {{ build_form.name(class_="form-control") }}
 
-                <div>
-                    <label class="checkbox" for="{{ build_form.public.label.field_id }}">
+                <div class="checkbox">
+                    <label for="{{ build_form.public.label.field_id }}">
                         {{ build_form.public }}
                         {{ build_form.public.label.text }}
                     </label>

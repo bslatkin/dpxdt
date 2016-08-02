@@ -11,15 +11,15 @@ Settings for '{{ build.name }}'
 {% block body %}
 
 <div class="row">
-    <div class="span12">
+    <div class="col-md-12">
         <h4>Settings</h4>
 
         {% if settings_form.errors %}
             <div class="row">
-                <div class="span6 alert alert-error">
+                <div class="col-md-6 alert alert-error">
                 {% for field, field_errors in settings_form.errors|dictsort %}
                     <div>
-                        Invalid {{ settings_form[field].label(class="inline") }}
+                        Invalid {{ settings_form[field].label(class="list-inline") }}
                     </div>
                 {% endfor %}
                 </div>
@@ -29,26 +29,32 @@ Settings for '{{ build.name }}'
         <form autocomplete="off" action="{{ url_for('build_settings') }}" method="post">
             {{ settings_form.csrf_token }}
             {{ settings_form.build_id }}
-            <div>
+            <div class="form-group">
                 {{ settings_form.name.label }}
-                {{ settings_form.name }}
+                {{ settings_form.name(class_="form-control") }}
             </div>
-            <div>
-                <label class="checkbox" for="{{ settings_form.public.label.field_id }}">
-                    {{ settings_form.public }}
-                    {{ settings_form.public.label.text }}
-                </label>
+            <div class="form-group">
+                <div class="checkbox">
+                    <label class="" for="{{ settings_form.public.label.field_id }}">
+                        {{ settings_form.public }}
+                        {{ settings_form.public.label.text }}
+                    </label>
+                </div>
             </div>
-            <div>
-                <label class="checkbox" for="{{ settings_form.send_email.label.field_id }}">
-                    {{ settings_form.send_email }}
-                    {{ settings_form.send_email.label.text }}
-                </label>
-                <span class="help-block">e.g., When a release is ready for review</span>
+
+            <div class="form-group">
+                <div class="checkbox">
+                    <label class="" for="{{ settings_form.send_email.label.field_id }}">
+                        {{ settings_form.send_email }}
+                        {{ settings_form.send_email.label.text }}
+                    </label>
+                    <span class="help-block">e.g., When a release is ready for review</span>
+                </div>
             </div>
-            <div>
+
+            <div class="form-group">
                 {{ settings_form.email_alias.label }}
-                {{ settings_form.email_alias }}
+                {{ settings_form.email_alias(class_="form-control") }}
                 <span class="help-block">Otherwise sent to build admins</span>
             </div>
             <br>

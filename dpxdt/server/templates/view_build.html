@@ -13,10 +13,10 @@ Build '{{ build.name }}'
 
 {% if release_name_list %}
     <div class="row">
-        <div class="span8">
+        <div class="col-md-8">
             <h4>Releases</h4>
         </div>
-        <div class="span4">
+        <div class="col-md-4">
             <form method="GET" action="{{ url_for('view_build') }}" class="form-inline">
                 <input type="hidden" name="id" value="{{ build.id }}" />
                 <div class="form-group">
@@ -27,17 +27,17 @@ Build '{{ build.name }}'
         </div>
     </div>
     <div class="row body-section">
-        <div class="span12">
+        <div class="col-md-12">
             {% for release_name in release_name_list %}
                 {% with candidate_list=release_dict[release_name] %}
                     <div class="row build-release-section">
-                        <div class="span12">
+                        <div class="col-md-12">
                             <div class="build-release-first-row">
                                 <div class="row">
-                                    <div class="span10 ellipsis-overflow">
+                                    <div class="col-md-10 ellipsis-overflow">
                                         {{ release_name }}
                                     </div>
-                                    <div class="span2">
+                                    <div class="col-md-2">
                                         {% if candidate_list|length == 1 %}
                                             1 candidate
                                         {% elif candidate_list|length > 1 %}
@@ -50,10 +50,10 @@ Build '{{ build.name }}'
                             </div>
                             {% for candidate in candidate_list %}
                                 <div class="row build-candidate-section">
-                                    <div class="span2 offset2">
+                                    <div class="col-md-2 col-md-offset-2">
                                         <a href="{{ url_for('view_release', id=build.id, name=candidate.name, number=candidate.number) }}" class="big-link">Attempt #{{ candidate.number }}</a>
                                     </div>
-                                    <div class="span2">
+                                    <div class="col-md-2">
                                         <abbr title="Created {{ candidate.created.strftime('%Y-%m-%dT%H:%MZ') }}">
                                             {{ candidate.created|timesince }}
                                         </abbr>
@@ -66,14 +66,14 @@ Build '{{ build.name }}'
                                         {% set runs_failed = stats_dict.runs_failed %}
                                         {% set runs_baseline = stats_dict.runs_baseline %}
                                         {% set runs_pending = stats_dict.runs_pending %}
-                                        <div class="span2">
+                                        <div class="col-md-2">
                                             {% include 'fragment_runs_complete.html' with context %}
                                         </div>
-                                        <div class="span2">
+                                        <div class="col-md-2">
                                             {% include 'fragment_runs_failed.html' with context %}
                                         </div>
                                     {% endwith %}
-                                    <div class="span2" title="Current status">
+                                    <div class="col-md-2" title="Current status">
                                         {% if candidate.status == 'good' %}
                                             <span class="text-good">
                                                 {{ candidate.status|title }}
@@ -97,10 +97,10 @@ Build '{{ build.name }}'
 
     {% if has_next_page or current_offset %}
         <div class="row body-section">
-            <div class="span12">
+            <div class="col-md-12">
                 {% if has_next_page %}
                     <div class="row">
-                        <div class="span2">
+                        <div class="col-md-2">
                             <a href="{{ url_for('view_build', id=build.id, offset=next_offset, page_size=page_size) }}">&laquo; Older</a>
                         </div>
                     </div>
@@ -108,13 +108,13 @@ Build '{{ build.name }}'
                 {% if last_offset < current_offset %}
                     {% if last_offset == 0 %}
                         <div class="row">
-                            <div class="span2">
+                            <div class="col-md-2">
                                 <a href="{{ url_for('view_build', id=build.id, page_size=page_size) }}">Newer &raquo;</a>
                             </div>
                         </div>
                     {% else %}
                         <div class="row">
-                            <div class="span2">
+                            <div class="col-md-2">
                                 <a href="{{ url_for('view_build', id=build.id, offset=last_offset, page_size=page_size) }}">Newer &raquo;</a>
                             </div>
                         </div>
@@ -126,7 +126,7 @@ Build '{{ build.name }}'
 
 {% else %}
     <div class="row body-section">
-        <div class="span12">
+        <div class="col-md-12">
             <div class="alert alert-info alert-block">
                 There are no releases for this build.
             </div>

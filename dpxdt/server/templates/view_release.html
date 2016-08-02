@@ -36,7 +36,7 @@ Release '{{ release.name }}' attempt #{{ release.number }}
 {% block body %}
 
 <div class="row body-section">
-    <div class="span12">
+    <div class="col-md-12">
         {% set alert_wrapper=True %}
         {% set runs_total = stats_dict.runs_total %}
         {% set runs_complete = stats_dict.runs_complete %}
@@ -49,7 +49,7 @@ Release '{{ release.name }}' attempt #{{ release.number }}
 </div>
 
 <div class="row">
-    <div class="span12">
+    <div class="col-md-12">
         {% if release.status in ('reviewing', 'receiving', 'processing') %}
             <form action="{{ url_for(request.endpoint) }}" method="post" class="inline-block">
                 {{ release_form.csrf_token }}
@@ -89,13 +89,13 @@ Release '{{ release.name }}' attempt #{{ release.number }}
 
 {% if run_list %}
     <div class="row body-section">
-        <div class="span12">
+        <div class="col-md-12">
             {% for run in run_list %}
                 <div class="row release-test-section">
-                    <div class="span9 ellipsis-overflow" title="Test name">
+                    <div class="col-md-9 ellipsis-overflow" title="Test name">
                         <a href="{{ url_for('view_run', id=build.id, name=release.name, number=release.number, test=run.name) }}" class="big-link">{{ run.name }}</a>
                     </div>
-                    <div class="span3" title="Test status">
+                    <div class="col-md-3" title="Test status">
                         {% set alert_wrapper=False %}
                         {% include 'fragment_run_status.html' with context %}
                     </div>

@@ -11,43 +11,43 @@ Who am I? Debug user login
 {% block body %}
 
 <div class="row">
-    <div class="span12">
+    <div class="col-md-12">
         <h4>Debug user login</h4>
     </div>
 </div>
 
 <div class="row">
-    <div class="span4">
+    <div class="col-md-4">
         User ID:
     </div>
-    <div class="span4">
+    <div class="col-md-4">
         {{ user.id }}
     </div>
 </div>
 
 <div class="row">
-    <div class="span4">
+    <div class="col-md-4">
         Email address:
     </div>
-    <div class="span4">
+    <div class="col-md-4">
         {{ user.email_address }}
     </div>
 </div>
 
 <div class="row">
-    <div class="span4">
+    <div class="col-md-4">
         Created:
     </div>
-    <div class="span4">
+    <div class="col-md-4">
         {{ user.created|timesince }}
     </div>
 </div>
 
 <div class="row">
-    <div class="span4">
+    <div class="col-md-4">
         Last seen:
     </div>
-    <div class="span4">
+    <div class="col-md-4">
         {{ user.last_seen|timesince }}
     </div>
 </div>

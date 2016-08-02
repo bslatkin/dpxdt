@@ -17,7 +17,7 @@ Depicted
 
 {% if show_video_and_promo_text %}
 <div class="row">
-    <div class="span6 body-subsection video-and-promo-text">
+    <div class="col-md-6 body-subsection video-and-promo-text">
         <p>
             Make continuous deployment safe by comparing before and after webpage screenshots for each release. Depicted shows when any visual, perceptual differences are found. This is the ultimate, automated end-to-end test.
         </p>
@@ -35,7 +35,7 @@ Depicted
             See the video (right) for a presentation about how perceptual diffs have made continuous deployment safe. <a href="https://github.com/bslatkin/dpxdt">Learn about the tool and API on GitHub</a>.
         </p>
     </div>
-    <div class="span6 body-subsection">
+    <div class="col-md-6 body-subsection">
         <iframe width="640" height="360" class="video-promo" src="https://www.youtube-nocookie.com/embed/1wHr-O6gEfc?rel=0&html5=1" frameborder="0" allowfullscreen></iframe>
     </div>
 </div>
@@ -48,7 +48,7 @@ Depicted
 {% if build_list %}
 
 <div class="row">
-    <div class="span6">
+    <div class="col-md-6">
         <h4>Builds you have access to</h4>
     </div>
 </div>
@@ -56,17 +56,17 @@ Depicted
 <div class="build-list">
     {% for build in build_list %}
         <div class="row">
-            <div class="span7">
+            <div class="col-md-7">
                 <a href="{{ url_for('view_build', id=build.id) }}" class="big-link">{{ build.name }}</a>
             </div>
-            <div class="span2">
+            <div class="col-md-2">
                 {% if build.public %}
                     Public
                 {% else %}
                     Private
                 {% endif %}
             </div>
-            <div class="span3">
+            <div class="col-md-3">
                 Created {{ build.created|timesince }}
             </div>
         </div>

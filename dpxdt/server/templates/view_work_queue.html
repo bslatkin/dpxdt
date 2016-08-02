@@ -19,7 +19,7 @@ Work queue: {{ queue_name|title }}
 {% block body %}
 
 <div class="row body-section">
-    <div class="span12">
+    <div class="col-md-12">
         <a href="{{ url_for('view_all_work_queues') }}">&laquo; Back to all queues</a>
     </div>
 </div>
@@ -28,64 +28,64 @@ Work queue: {{ queue_name|title }}
 
 {% block belowbody %}
 
-<div class="container-fluid body-section">
+<div class="container body-section">
     {% if work_list %}
-        <div class="row-fluid">
-            <div class="span2"><strong>Task</strong></div>
-            <div class="span5"><strong>Heartbeat</strong></div>
-            <div class="span5"><strong>Payload</strong></div>
+        <div class="row">
+            <div class="col-md-2"><strong>Task</strong></div>
+            <div class="col-md-5"><strong>Heartbeat</strong></div>
+            <div class="col-md-5"><strong>Payload</strong></div>
         </div>
         {% for task, modify_form in work_list %}
-            <div class="row-fluid workqueue-task-row">
-                <div class="span2">
-                    <div class="row-fluid">
-                        <div class="span12 ellipsis-overflow">
+            <div class="row workqueue-task-row">
+                <div class="col-md-2">
+                    <div class="row">
+                        <div class="col-md-12 ellipsis-overflow">
                             <strong><abbr title="{{ task.task_id }}">{{ task.task_id }}</abbr></strong>
                         </div>
                     </div>
-                    <div class="row-fluid">
+                    <div class="row">
                         {% if task.lease_outstanding %}
-                            <div class="span6">
+                            <div class="col-md-6">
                                 Lease #{{ task.lease_attempts }}
                             </div>
-                            <div class="span6">
+                            <div class="col-md-6">
                                 {{ task.last_lease|timesince }}
                             </div>
                         {% elif task.status == 'live' %}
-                            <div class="span6">
+                            <div class="col-md-6">
                                 ETA #{{ task.lease_attempts }}
                             </div>
-                            <div class="span6">
+                            <div class="col-md-6">
                                 {{ task.eta|timesince }}
                             </div>
                         {% else %}
-                            <div class="span6">
+                            <div class="col-md-6">
                                 {{ task.status|title }} #{{ task.lease_attempts }}
                             </div>
-                            <div class="span6">
+                            <div class="col-md-6">
                                 {{ task.finished|timesince }}
                             </div>
                         {% endif %}
                     </div>
-                    <div class="row-fluid">
-                        <div class="span6">Source</div>
-                        <div class="span6 ellipsis-overflow">
+                    <div class="row">
+                        <div class="col-md-6">Source</div>
+                        <div class="col-md-6 ellipsis-overflow">
                             {{ task.source|default('-', true) }}
                         </div>
                     </div>
-                    <div class="row-fluid">
-                        <div class="span6">Owner</div>
-                        <div class="span6 ellipsis-overflow">
+                    <div class="row">
+                        <div class="col-md-6">Owner</div>
+                        <div class="col-md-6 ellipsis-overflow">
                             {{ task.last_owner|default('-', true) }}
                         </div>
                     </div>
-                    <div class="row-fluid">
-                        <div class="span12">
+                    <div class="row">
+                        <div class="col-md-12">
                             <form class="inline-block" action="{{ url_for('manage_work_queue', queue_name=queue_name) }}" method="post">
                                 <input type="hidden" name="action" value="delete">
                                 {{ modify_form.csrf_token }}
                                 {{ modify_form.task_id }}
-                                {{ modify_form.delete(class_='btn btn-inverse btn-small') }}
+                                {{ modify_form.delete(class_='btn btn-inverse btn-sm') }}
                             </form>
 
 
@@ -93,22 +93,22 @@ Work queue: {{ queue_name|title }}
                                 <input type="hidden" name="action" value="retry">
                                 {{ modify_form.csrf_token }}
                                 {{ modify_form.task_id }}
-                                {{ modify_form.retry(class_='btn btn-small') }}
+                                {{ modify_form.retry(class_='btn btn-sm') }}
                             </form>
                         </div>
                     </div>
                 </div>
-                <div class="span5 force-wrap">
+                <div class="col-md-5 force-wrap">
                     {{ task.heartbeat|default('-', true) }}
                 </div>
-                <div class="span5 force-wrap">
+                <div class="col-md-5 force-wrap">
                     {{ task.payload|default('-', true) }}
                 </div>
             </div>
         {% endfor %}
     {% else %}
         <div class="row">
-            <div class="span12">
+            <div class="col-md-12">
                 No tasks.
             </div>
         </div>
