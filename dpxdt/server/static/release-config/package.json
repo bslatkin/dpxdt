@@ -1,0 +1,26 @@
+{
+  "name": "dpxdt-config",
+  "version": "0.0.1",
+  "private": true,
+  "devDependencies": {
+    "react-bootstrap": "^0.30.0",
+    "react-redux": "^4.4.5",
+    "react-redux-form": "^0.14.3",
+    "react-router": "^2.6.1",
+    "react-router-redux": "^4.0.5",
+    "react-scripts": "0.1.0",
+    "redux": "^3.5.2",
+    "redux-form": "^5.3.1",
+    "redux-localstorage": "^0.4.1",
+    "redux-thunk": "^2.1.0"
+  },
+  "dependencies": {
+    "react": "^15.2.1",
+    "react-dom": "^15.2.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "eject": "react-scripts eject"
+  }
+}

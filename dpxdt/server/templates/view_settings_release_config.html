@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title -%}
+{{ build.name }} &rsaquo; Settings &rsaquo; Release
+{%- endblock title %}
+
+{% block description -%}
+Release settings for '{{ build.name }}'
+{%- endblock description %}
+
+{% block body %}
+<div class="row">
+  <div class="col-md-12">
+    <h4>Settings</h4>
+    <ol class="breadcrumb">
+        <li class="active">
+          <a href="{{ url_for('build_settings', build_id=build.id) }}">
+            Build
+          </a>
+        </li>
+        <li class="active">
+          Release Config
+        </li>
+    </ol>
+  </div>
+</div>
+
+<div id="root"></div>
+<script>
+  window.CSRF_TOKEN = '{{ csrf_token }}';
+</script>
+<!--<script src="http://localhost:3000/bundle.js"></script>-->
+<script src="{{ url_for('static', filename='release-config/build/main.dd3fd99653d02d5125d9.js') }}"></script>
+{% endblock body %}
