@@ -578,15 +578,15 @@ def _save_artifact(build, data, content_type):
     artifact = models.Artifact.query.filter_by(id=sha1sum).first()
 
     if artifact:
-      logging.debug('Upload already exists: artifact_id=%r', sha1sum)
+        logging.debug('Upload already exists: artifact_id=%r', sha1sum)
     else:
-      logging.info('Upload received: artifact_id=%r, content_type=%r',
-                   sha1sum, content_type)
-      artifact = models.Artifact(
-          id=sha1sum,
-          content_type=content_type,
-          data=data)
-      _artifact_created(artifact)
+        logging.info('Upload received: artifact_id=%r, content_type=%r',
+                     sha1sum, content_type)
+        artifact = models.Artifact(
+            id=sha1sum,
+            content_type=content_type,
+            data=data)
+        _artifact_created(artifact)
 
     artifact.owners.append(build)
     return artifact
@@ -680,3 +680,88 @@ def download():
         return response
 
     return _get_artifact_response(artifact)
+
+
+def _enqueue_release_template(build, release_config_artifact):
+    """Enqueues a task to convert a release template into a new release."""
+
+    # TODO: Consider having an explicit versioned task ID here.
+    task_id = work_queue.add(
+        constants.RELEASE_TEMPLATE_QUEUE_NAME,
+        payload=dict(
+            build_id=build.id,
+            release_config_sha1sum=release_config_artifact.id,
+        ),
+        build_id=build.id,
+        source='update_release_template')
+
+    logging.info('Enqueuing release_template task_id=%r', task_id)
+
+
+@app.route('/api/update_release_template', methods=['POST'])
+@auth.build_api_access_required
+@utils.retryable_transaction()
+def update_release_template():
+    """Updates a ReleaseTemplate, optionally spawning a new release."""
+    build = g.build
+
+    also_create_release = False
+    if request.form.get('create_release', type=str):
+        also_create_release = True
+
+    config_data = request.form.get('release_config', default='{}', type=str)
+    config_artifact = _save_artifact(build, config_data, 'application/json')
+    db.session.add(config_artifact)
+    db.session.flush()
+
+    release_template = (
+        models.ReleaseTemplate.query
+        .filter_by(build_id=build.id)
+        .first())
+    if not release_template:
+        release_template = models.ReleaseTemplate(
+            build_id=build.id,
+            release_config=config_artifact)
+
+    release_template.release_config = config_artifact.id
+    db.session.add(release_template)
+
+    if also_create_release:
+        _enqueue_release_template(build, config_artifact)
+
+    db.session.commit()
+
+    signals.build_updated.send(app, build=build)
+
+    logging.info('Updated release template: build_id=%r, release_config=%r, '
+                 'create_release=%r', build.id, release_template.release_config,
+                 also_create_release)
+
+    return flask.jsonify(
+        success=True,
+        build_id=build.id,
+        release_config_sha1sum=config_artifact.id,
+        created_release=also_create_release)
+
+
+@app.route('/api/release_template')
+@auth.build_api_access_required
+@utils.retryable_transaction()
+def get_release_template():
+    """Retrieves the sha1sum of the config JSON data for a ReleaseTemplate."""
+    build = g.build
+
+    config_data = '{}'
+    release_template = (
+        models.ReleaseTemplate.query
+        .filter_by(build_id=build.id)
+        .first())
+    if not release_template or not release_template.release_config:
+        return flask.jsonify(
+            success=True,
+            build_id=build.id)
+
+    return flask.jsonify(
+        success=True,
+        build_id=build.id,
+        release_config_sha1sum=release_template.release_config.id)

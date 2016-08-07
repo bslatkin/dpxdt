@@ -29,6 +29,8 @@ Release settings for '{{ build.name }}'
 <script>
   window.CSRF_TOKEN = '{{ csrf_token }}';
 </script>
+{# TODO: How to make this local bundle path automatic #}
 <!--<script src="http://localhost:3000/bundle.js"></script>-->
+{# TODO: How to automate the generation of the built filename? #}
 <script src="{{ url_for('static', filename='release-config/build/main.dd3fd99653d02d5125d9.js') }}"></script>
 {% endblock body %}

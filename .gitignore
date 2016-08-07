@@ -16,3 +16,4 @@ include
 lib
 Scripts
 pip-selfcheck.json
+selenium

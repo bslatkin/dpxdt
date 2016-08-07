@@ -250,3 +250,19 @@ class AdminLog(db.Model):
     # For flask-cache memoize key.
     def __repr__(self):
         return 'AdminLog(id=%r)' % self.id
+
+
+class ReleaseTemplate(db.Model):
+    """A server-side stored config used to automatically create a release."""
+
+    build_id = db.Column(db.Integer, db.ForeignKey('build.id'), nullable=False)
+
+    created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
+                         onupdate=datetime.datetime.utcnow)
+
+    release_config = db.Column(db.String(100), db.ForeignKey('artifact.id'))
+
+    # For flask-cache memoize key.
+    def __repr__(self):
+        return 'BuildConfig(id=%r)' % self.id

@@ -30,11 +30,14 @@ from dpxdt.server import signals
 class Error(Exception):
     """Base class for exceptions in this module."""
 
+
 class TaskDoesNotExistError(Error):
     """Task with the given ID does not exist and cannot be finished."""
 
+
 class LeaseExpiredError(Error):
     """Owner's lease on the task has expired, not completing task."""
+
 
 class NotOwnerError(Error):
     """Requestor is no longer the owner of the task."""

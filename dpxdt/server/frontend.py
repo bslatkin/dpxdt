@@ -372,32 +372,37 @@ def build_settings():
         build=build,
         settings_form=settings_form)
 
-@app.route('/settings/release/config', methods=['GET', 'POST'])
+
+# TODO: Change this URL to look like ReleaseTemplate
+@app.route('/settings/release/config')
 @auth.build_access_required('build_id')
-def build_settings_release_config():
+def view_release_template():
     build = g.build
     settings_form = forms.SettingsForm()
-    if request.method == 'POST':
-        release_config = request.json['release_config']
-        logging.info('release_config: %s', release_config)
-        action = request.json['action'] # action is either "save" or "saveAndRun"
-        logging.info('action: %s', action)
-        release_path = None
-        # TODO: Save release_config to the DB (maybe just a col in build?)
+    # if request.method == 'POST':
+    #    release_config = request.json['release_config']
+    #    logging.info('release_config: %s', release_config)
+    #    # action is either "save" or "saveAndRun"
+    #    action = request.json['action']
+    #    logging.info('action: %s', action)
+    #    release_path = None
+    #    # TODO: Save release_config to the DB (maybe just a col in build?)
 
-        if action == 'saveAndRun':
-            logging.info('Starting a diff_my_urls!')
-            # -- ping /api/build/release/diff_my_urls (or something) to start a run
-            # -- return a link in resp so the user can view the release
-            release_path = 'release?id=1&number=1&name=foo'
+    #    if action == 'saveAndRun':
+    #        logging.info('Starting a diff_my_urls!')
+    #        # -- ping /api/build/release/diff_my_urls (or something) to start a run
+    #        # -- return a link in resp so the user can view the release
+    #        release_path = 'release?id=1&number=1&name=foo'
 
-        resp = {
-            'csrf_token': settings_form.csrf_token._value(),
-            'release_path': release_path,
-        }
-        return flask.jsonify(**resp)
-    else:
-        return render_template(
-            'view_settings_release_config.html',
-            build=build,
-            csrf_token=settings_form.csrf_token._value())
+    #    resp = {
+    #        'csrf_token': settings_form.csrf_token._value(),
+    #        'release_path': release_path,
+    #    }
+    #    return flask.jsonify(**resp)
+    # else:
+
+    return render_template(
+        # TODO: Change template name to view_release_template.html
+        'view_settings_release_config.html',
+        build=build,
+        csrf_token=settings_form.csrf_token._value())
