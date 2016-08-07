@@ -25,4 +25,4 @@ CAPTURE_QUEUE_NAME = 'capture'
 
 PDIFF_QUEUE_NAME = 'run-pdiff'
 
-RELEASE_TEMPLATE_QUEUE_NAME 'release-template'
+RELEASE_TEMPLATE_QUEUE_NAME = 'release-template'

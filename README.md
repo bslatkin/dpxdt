@@ -501,8 +501,11 @@ Endpoints:
 - [/api/find_run](#apifind_run)
 - [/api/request_run](#apirequest_run)
 - [/api/upload](#apiupload)
+- [/api/download](#apidownload)
 - [/api/report_run](#apireport_run)
 - [/api/runs_done](#apiruns_done)
+- [/api/update_release_template](#apiupdate_release_template)
+- [/api/release_template](#apirelease_template)
 
 #### /api/create_release
 
@@ -614,6 +617,19 @@ Uploads an artifact referenced by a run.
 - *sha1sum*: Artifact ID (SHA1 hash) of the file that was uploaded.
 - *content_type*: Content type of the artifact that was uploaded.
 
+#### /api/download
+
+Downloads an artifact referenced by a build.
+
+##### Parameters
+
+- *build_id*: ID of the build.
+- *sha1sum*: Artifact ID (SHA1 hash) of the file to download.
+
+##### Returns
+
+The data of the file if the artifact does exist and is owned by the build. The `Content-Type` header will match the type of the data passed to the `upload` API call which was inferred by the filename's suffix.
+
 #### /api/report_run
 
 Reports data for a run for a release candidate. May be called multiple times as progress is made for a run. Should not be called once the screenshot image for the run has been assigned.
@@ -639,6 +655,7 @@ Reports data for a run for a release candidate. May be called multiple times as 
 - *distortion*: Float amount of difference found in the diff that was uploaded, as a float between 0 and 1
 
 ##### Returns
+
 Nothing but success on success.
 
 #### /api/runs_done
@@ -654,6 +671,46 @@ Marks a release candidate as having all runs reported.
 ##### Returns
 
 - *results_url*: URL where a release candidates run status can be viewed in a web browser by a build admin.
+
+#### /api/update_release_template
+
+Updates the release template for a build, optionally spawning a new release.
+
+##### Parameters
+
+- *build_id*: ID of the build.
+- *release_config*: Optional JSON data containing the release template to save for this build. If empty, the data will be ignored and only the `create_release` parameter will be inspected.
+- *create_release*: When not empty, kick off a new release for this build that uses the release config as a template.
+
+###### Format of `release_config`
+
+The config passed to the `update_release_template` function may have any or all of these fields. All fields are optional and have reasonably sane defaults.
+
+```json
+{
+    ...
+    TODO: Fill this in
+}
+```
+
+##### Returns
+
+- *build_id*: ID of the build that was updated.
+- *release_config_sha1sum*: Artifact ID (SHA1 hash) of the release config that was saved.
+- *create_release*: True if a release was kicked off, False if not.
+
+#### /api/release_template
+
+Fetches the release template for a build.
+
+##### Parameters
+
+- *build_id*: ID of the build.
+
+##### Returns
+
+- *build_id*: ID of the build that was updated.
+- *release_config_sha1sum*: Artifact ID (SHA1 hash) of the release config that was saved. This can be retrieved using the
 
 ## Deployment
 

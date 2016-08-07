@@ -18,8 +18,8 @@ Settings for '{{ build.name }}'
                 Build
             </li>
             <li>
-                <a href="{{ url_for('build_settings_release_config', build_id=build.id) }}">
-                    Release Config
+                <a href="{{ url_for('view_release_template', build_id=build.id) }}">
+                    Release Template
                 </a>
             </li>
         </ol>

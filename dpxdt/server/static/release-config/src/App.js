@@ -32,7 +32,7 @@ export default class App extends Component {
     return (
       <Provider store={store}>
         <Router history={history}>
-          <Route path="/settings/release/config" component={ConfigForm}>
+          <Route path="/settings/release_template" component={ConfigForm}>
           </Route>
         </Router>
       </Provider>

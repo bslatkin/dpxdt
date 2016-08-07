@@ -16,13 +16,13 @@ export default class Home extends Component {
             <Link
               activeClassName="active"
               className="breadcrumb-item"
-              to={`/settings/release/config?build_id=${buildID}`}
+              to={`/settings/release_template?build_id=${buildID}`}
               >Settings</Link>
             {' '}/{' '}
             <Link
               activeClassName="active"
               className="breadcrumb-item"
-              to={`/settings/release/config/urls?build_id=${buildID}`}
+              to={`/settings/release_template/urls?build_id=${buildID}`}
               >URLs</Link>
           </nav>
           {this.props.children}

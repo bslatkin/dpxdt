@@ -374,7 +374,7 @@ def build_settings():
 
 
 # TODO: Change this URL to look like ReleaseTemplate
-@app.route('/settings/release/config')
+@app.route('/settings/release_template')
 @auth.build_access_required('build_id')
 def view_release_template():
     build = g.build

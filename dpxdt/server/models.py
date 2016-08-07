@@ -255,6 +255,7 @@ class AdminLog(db.Model):
 class ReleaseTemplate(db.Model):
     """A server-side stored config used to automatically create a release."""
 
+    id = db.Column(db.Integer, primary_key=True)
     build_id = db.Column(db.Integer, db.ForeignKey('build.id'), nullable=False)
 
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)

@@ -588,6 +588,8 @@ def _save_artifact(build, data, content_type):
             data=data)
         _artifact_created(artifact)
 
+    # TODO: Do we need to dedupe builds that already own artifacts?
+
     artifact.owners.append(build)
     return artifact
 
@@ -705,14 +707,10 @@ def update_release_template():
     """Updates a ReleaseTemplate, optionally spawning a new release."""
     build = g.build
 
-    also_create_release = False
-    if request.form.get('create_release', type=str):
-        also_create_release = True
+    config_data = request.form.get('release_config', default='', type=str)
+    create_release_param = request.form.get('create_release', type=str)
 
-    config_data = request.form.get('release_config', default='{}', type=str)
-    config_artifact = _save_artifact(build, config_data, 'application/json')
-    db.session.add(config_artifact)
-    db.session.flush()
+    also_create_release = True if create_release_param else False
 
     release_template = (
         models.ReleaseTemplate.query
@@ -720,10 +718,15 @@ def update_release_template():
         .first())
     if not release_template:
         release_template = models.ReleaseTemplate(
-            build_id=build.id,
-            release_config=config_artifact)
+            build_id=build.id)
 
-    release_template.release_config = config_artifact.id
+    if config_data:
+        config_artifact = _save_artifact(
+            build, config_data, 'application/json')
+        db.session.add(config_artifact)
+        db.session.flush()
+        release_template.release_config = config_artifact.id
+
     db.session.add(release_template)
 
     if also_create_release:
@@ -741,7 +744,7 @@ def update_release_template():
         success=True,
         build_id=build.id,
         release_config_sha1sum=config_artifact.id,
-        created_release=also_create_release)
+        create_release=also_create_release)
 
 
 @app.route('/api/release_template')
