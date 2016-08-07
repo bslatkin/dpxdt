@@ -19,8 +19,6 @@
 # TODO(elsigh): Support cookies
 # TODO(elsigh): Support resourcesToIgnore
 # TODO(elsigh): Support httpUserName/httpPassWord
-# TODO(elsigh): Support userAgent
-# TODO(elsigh): Support injectCSS/injectJS
 
 import json
 import logging
@@ -44,11 +42,33 @@ desired_capabilities = config['desired_capabilities']
 assert config['targetUrl']
 target_url = config['targetUrl']
 
+def getProfile(desired_capabilities, config):
+    profile = None
+    if desired_capabilities['browser'] == 'Firefox':
+        profile  = webdriver.FirefoxProfile()
+    if 'userAgent' in config and config['userAgent'] is not None and config['userAgent'] != '':
+        profile.set_preference(
+            'general.useragent.override', config['userAgent'])
+        profile.update_preferences()
+    return profile
+
+def injectCSSandJS(driver, config):
+    if 'injectCss' in config and config['injectCss'] is not None and config['injectCss'] != '':
+        script = ("jQuery('<style type=\"text/css\">" +
+            config['injectCss'] +
+            "</style>').appendTo('html > head');")
+        logging.info('injectCss script %s', script)
+        driver.execute_script(script)
+    if 'injectJs' in config and config['injectJs'] is not None and config['injectJs'] != '':
+        driver.execute_script(config['injectJs'])
+
 
 driver = webdriver.Remote(
+    browser_profile=getProfile(desired_capabilities, config),
     command_executor=config['command_executor'],
     desired_capabilities=config['desired_capabilities'],
 )
 driver.get(config['targetUrl'])
+injectCSSandJS(driver, config)
 driver.save_screenshot(output_file)
 driver.quit()
