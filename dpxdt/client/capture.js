@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// TODO: Header key/value pairs
 // TODO: User agent spoofing shortcut
 
 var fs = require('fs');
