@@ -26,6 +26,7 @@ from pprint import pprint
 import sys
 import time
 from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
 
 config_file_path = sys.argv[1]
 output_file = sys.argv[2]
@@ -41,6 +42,9 @@ assert config['desired_capabilities']
 desired_capabilities = config['desired_capabilities']
 assert config['targetUrl']
 target_url = config['targetUrl']
+
+# optional configs
+resourceTimeoutMs = config.get('resourceTimeoutMs', 60 * 1000)
 
 def getProfile(desired_capabilities, config):
     profile = None
@@ -70,5 +74,10 @@ driver = webdriver.Remote(
 )
 driver.get(config['targetUrl'])
 injectCSSandJS(driver, config)
+
+# Wait for any jQuery AJAX loading to finish.
+wait = WebDriverWait(driver, resourceTimeoutMs)
+wait.until(lambda driver: driver.execute_script('return !!jQuery && jQuery.active === 0'))
+
 driver.save_screenshot(output_file)
 driver.quit()
