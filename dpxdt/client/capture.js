@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// TODO: Header key/value pairs
 // TODO: User agent spoofing shortcut
 
 var fs = require('fs');
@@ -129,6 +128,18 @@ page.onResourceRequested = function(requestData, networkRequest) {
                 console.log('Blocking resource: ' + url);
                 networkRequest.abort();
                 return;
+            }
+        }
+
+        if (config.injectHeaders) {
+            for (var host in config.injectHeaders) {
+                if (host == url || url.match(new RegExp(host))) {
+                    var headers = config.injectHeaders[host];
+                    for (var header in headers) {
+                        networkRequest.setHeader(header, headers[header]);
+                        console.log('Setting header ' + header + ' to ' + headers[header]);
+                    }
+                }
             }
         }
         console.log('Requested: ' + url);

@@ -19,6 +19,7 @@
 # TODO(elsigh): Support cookies
 # TODO(elsigh): Support resourcesToIgnore
 # TODO(elsigh): Support httpUserName/httpPassWord
+# TODO(elsigh): Support injectHeaders
 
 import json
 import logging

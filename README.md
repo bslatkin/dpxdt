@@ -578,6 +578,9 @@ The config passed to the `request_run` function may have any or all of these fie
     "httpPassword": "my-password",
     "injectCss": ".my-css-rules-here { display: none; }",
     "injectJs": "document.getElementById('foobar').innerText = 'foo';",
+    "injectHeaders": {
+        "domain.com": { "X-CustomHeader": "HeaderValue" }
+    },
     "resourcesToIgnore": ["www.google-analytics.com", "bad.example.com"],
     "resourceTimeoutMs": 60000,
     "userAgent": "My fancy user agent",
