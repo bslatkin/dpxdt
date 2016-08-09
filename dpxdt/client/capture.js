@@ -131,6 +131,18 @@ page.onResourceRequested = function(requestData, networkRequest) {
                 return;
             }
         }
+
+        if (config.injectHeaders) {
+            for (var host in config.injectHeaders) {
+                if (host == url || url.match(new RegExp(host))) {
+                    var headers = config.injectHeaders[host];
+                    for (var header in headers) {
+                        networkRequest.setHeader(header, headers[header]);
+                        console.log('Setting header ' + header + ' to ' + headers[header]);
+                    }
+                }
+            }
+        }
         console.log('Requested: ' + url);
     }
 
