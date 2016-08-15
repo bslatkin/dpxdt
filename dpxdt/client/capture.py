@@ -78,7 +78,8 @@ injectCSSandJS(driver, config)
 
 # Wait for any jQuery AJAX loading to finish.
 wait = WebDriverWait(driver, resourceTimeoutMs)
-wait.until(lambda driver: driver.execute_script('return !!jQuery && jQuery.active === 0'))
+areResourcesDoneScript = "return typeof jQuery !== 'undefined' && jQuery.active === 0"
+wait.until(lambda driver: driver.execute_script(areResourcesDoneScript))
 
 driver.save_screenshot(output_file)
 driver.quit()
