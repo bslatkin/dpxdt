@@ -59,9 +59,9 @@ def getProfile(desired_capabilities, config):
 
 def injectCSSandJS(driver, config):
     if 'injectCss' in config and config['injectCss'] is not None and config['injectCss'] != '':
-        script = ("jQuery('<style type=\"text/css\">" +
-            config['injectCss'] +
-            "</style>').appendTo('html > head');")
+        script = ("var node = document.createElement('style');"
+                  "node.innerHTML = '%s';"
+                  "document.body.appendChild(node);" % config['injectCss'])
         logging.info('injectCss script %s', script)
         driver.execute_script(script)
     if 'injectJs' in config and config['injectJs'] is not None and config['injectJs'] != '':
