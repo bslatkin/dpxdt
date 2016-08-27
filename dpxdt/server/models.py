@@ -127,7 +127,7 @@ class Release(db.Model):
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
                          onupdate=datetime.datetime.utcnow)
-    status = db.Column(db.Enum(*STATES), default=RECEIVING, nullable=False)
+    status = db.Column(db.Enum(*STATES, name='release_states'), default=RECEIVING, nullable=False)
     build_id = db.Column(db.Integer, db.ForeignKey('build.id'), nullable=False)
     url = db.Column(db.String(2048))
 
@@ -184,7 +184,7 @@ class Run(db.Model):
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
                          onupdate=datetime.datetime.utcnow)
-    status = db.Column(db.Enum(*STATES), nullable=False)
+    status = db.Column(db.Enum(*STATES, name='run_states'), nullable=False)
 
     image = db.Column(db.String(100), db.ForeignKey('artifact.id'))
     log = db.Column(db.String(100), db.ForeignKey('artifact.id'))
@@ -244,7 +244,7 @@ class AdminLog(db.Model):
     user = db.relationship('User', lazy='joined', join_depth=1)
 
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    log_type = db.Column(db.Enum(*LOG_TYPES), nullable=False)
+    log_type = db.Column(db.Enum(*LOG_TYPES, name='log_types'), nullable=False)
     message = db.Column(db.Text)
 
     # For flask-cache memoize key.
