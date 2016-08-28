@@ -76,6 +76,10 @@ gflags.DEFINE_integer(
 # a free account for testing with dpxdt.
 
 gflags.DEFINE_string(
+    'capture_format', 'png',
+    'Screenshot format, e.g. png or bmp')
+
+gflags.DEFINE_string(
     'capture_binary', 'phantomjs',
     'Path to the capture binary, e.g. python or phantomjs')
 
@@ -162,7 +166,7 @@ class DoCaptureQueueWorkflow(workers.WorkflowItem):
             heartbeat=None):
         output_path = tempfile.mkdtemp()
         try:
-            image_path = os.path.join(output_path, 'capture.png')
+            image_path = os.path.join(output_path, 'capture.%s' % FLAGS.capture_format)
             log_path = os.path.join(output_path, 'log.txt')
             config_path = os.path.join(output_path, 'config.json')
             capture_failed = True
