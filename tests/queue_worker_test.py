@@ -92,7 +92,7 @@ class RemoteQueueWorkflowTest(unittest.TestCase):
             wait_seconds=0.01)
         item.root = True
         self.coordinator.input_queue.put(item)
-        time.sleep(2)
+        time.sleep(5)
         item.stop()
         self.coordinator.wait_one()
 

@@ -71,7 +71,7 @@ def login_view():
             anonymous_superuser = models.User(
                 id=fake_id,
                 email_address='superuser@example.com',
-                superuser=1)
+                superuser=True)
             db.session.add(anonymous_superuser)
             db.session.commit()
         login_user(anonymous_superuser)

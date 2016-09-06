@@ -59,7 +59,7 @@ class WorkQueue(db.Model):
 
     task_id = db.Column(db.String(100), primary_key=True, nullable=False)
     queue_name = db.Column(db.String(100), primary_key=True, nullable=False)
-    status = db.Column(db.Enum(*STATES), default=LIVE, nullable=False)
+    status = db.Column(db.Enum(*STATES, name='work_queue_states'), default=LIVE, nullable=False)
     eta = db.Column(db.DateTime, default=datetime.datetime.utcnow,
                     nullable=False)
 
