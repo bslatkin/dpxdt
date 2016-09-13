@@ -107,7 +107,8 @@ def main(block=True):
             server.app.run(
                 debug=FLAGS.reload_code,
                 host=FLAGS.host,
-                port=FLAGS.port)
+                port=FLAGS.port,
+                threaded=server.utils.is_production())
         elif FLAGS.enable_queue_workers:
             coordinator.join()
         else:
