@@ -155,7 +155,9 @@ def is_production():
     return (
         os.environ.get('SERVER_SOFTWARE', '').startswith('Google App Engine')
         or
-        'SQLITE_PRODUCTION' in os.environ)
+        'SQLITE_PRODUCTION' in os.environ
+        or
+        'KUBERNETES_SERVICE_HOST' in os.environ)
 
 
 def get_deployment_timestamp():
